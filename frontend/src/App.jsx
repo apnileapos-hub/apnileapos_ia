@@ -13454,6 +13454,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   const [newDate, setNewDate] = useState("2026-05-27");
   const [newTime, setNewTime] = useState("14:30");
   const [newLink, setNewLink] = useState("");
+  const [videoPlatform, setVideoPlatform] = useState("jitsi");
   const [newAgenda, setNewAgenda] = useState("");
   const [newCadenceType, setNewCadenceType] = useState("Weekly College PM Update");
   const [isScheduling, setIsScheduling] = useState(false);
@@ -14133,20 +14134,62 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
             </div>
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
-              Zoom / Teams Video Link
+          <div style={{ marginBottom: "8px" }}>
+            <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+              Video Platform Options *
             </label>
-            <input
-              type="url"
-              className="form-input"
-              value={newLink}
-              onChange={(e) => setNewLink(e.target.value)}
-              placeholder="https://teams.microsoft.com/l/meetup-join/..."
-              style={{ width: "100%", padding: "10px 12px", fontSize: "13px" }}
-            />
-          </div>
+            <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: videoPlatform === "jitsi" ? "var(--primary)" : "var(--text-main)", fontWeight: videoPlatform === "jitsi" ? "700" : "500" }}>
+                <input 
+                  type="radio" 
+                  name="videoPlatform" 
+                  value="jitsi" 
+                  checked={videoPlatform === "jitsi"} 
+                  onChange={() => {
+                    setVideoPlatform("jitsi");
+                    setNewLink(""); // clear custom link
+                  }}
+                  style={{ accentColor: "var(--primary)" }}
+                />
+                Built-in Jitsi Meeting
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: videoPlatform === "teams" ? "var(--primary)" : "var(--text-main)", fontWeight: videoPlatform === "teams" ? "700" : "500" }}>
+                <input 
+                  type="radio" 
+                  name="videoPlatform" 
+                  value="teams" 
+                  checked={videoPlatform === "teams"} 
+                  onChange={() => setVideoPlatform("teams")}
+                  style={{ accentColor: "var(--primary)" }}
+                />
+                Microsoft Teams / External Link
+              </label>
+            </div>
 
+            {videoPlatform === "jitsi" && (
+              <div style={{ padding: "12px", background: "var(--primary-glow)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "8px", fontSize: "12px", color: "var(--primary)", fontWeight: "600" }}>
+                <FaDesktop style={{ marginRight: "6px", verticalAlign: "middle" }} />
+                A secure, embedded Jitsi video room will be automatically generated for this sync. No external link required.
+              </div>
+            )}
+
+            {videoPlatform === "teams" && (
+              <div>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                  Paste Teams / External Video Link *
+                </label>
+                <input
+                  type="url"
+                  required
+                  className="form-input"
+                  value={newLink}
+                  onChange={(e) => setNewLink(e.target.value)}
+                  placeholder="https://teams.microsoft.com/l/meetup-join/..."
+                  style={{ width: "100%", padding: "10px 12px", fontSize: "13px" }}
+                />
+              </div>
+            )}
+          </div>
           <div>
             <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
               Sync Agenda *
