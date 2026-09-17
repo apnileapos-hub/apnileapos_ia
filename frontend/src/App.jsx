@@ -702,7 +702,7 @@ function App() {
   const [showCohortModal, setShowCohortModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // B2B Project Ingest Form State
+  // Project Ingest Form State
   const [isIngestOpen, setIsIngestOpen] = useState(false);
   const [ingestCompany, setIngestCompany] = useState("Company 1");
   const [ingestTitle, setIngestTitle] = useState("");
@@ -712,7 +712,7 @@ function App() {
   const [ingestDueDate, setIngestDueDate] = useState("2026-08-25");
   const [isIngesting, setIsIngesting] = useState(false);
 
-  // B2B Project Edit Form State
+  // Project Edit Form State
   const [editingProject, setEditingProject] = useState(null);
   const [editCompany, setEditCompany] = useState("Company 1");
   const [editTitle, setEditTitle] = useState("");
@@ -770,7 +770,7 @@ function App() {
   const [hubMetrics, setHubMetrics] = useState(null);
   const [isHubLoading, setIsHubLoading] = useState(true);
 
-  // B2B Moderator Project Assignment states
+  // Moderator Project Assignment states
   const [moderatorProjects, setModeratorProjects] = useState([]);
   const [isModeratorLoading, setIsModeratorLoading] = useState(false);
   const [selectedAssignProject, setSelectedAssignProject] = useState(null);
@@ -1140,13 +1140,13 @@ function App() {
       });
 
       if (response.data && response.data.success) {
-        triggerToast(" Successfully updated B2B project details!");
+        triggerToast(" Successfully updated project details!");
         setEditingProject(null);
         fetchModeratorProjects(true);
       }
     } catch (err) {
       console.error("Project Update Error:", err);
-      triggerToast(err.response?.data?.error || "Failed to update B2B project.", "error");
+      triggerToast(err.response?.data?.error || "Failed to update project.", "error");
     } finally {
       setIsUpdatingProject(false);
     }
@@ -1385,7 +1385,7 @@ function App() {
     }
   };
 
-  // Fetch incoming B2B projects for Moderator Intake
+  // Fetch incoming projects for Moderator Intake
   const fetchModeratorProjects = async (silent = false) => {
     if (!silent) setIsModeratorLoading(true);
     setHasError(false);
@@ -1465,7 +1465,7 @@ function App() {
     }
   };
 
-  // Spoke Coordinator accepts B2B Project assignment (Spoke)
+  // Spoke Coordinator accepts Project assignment (Spoke)
   const handleAcceptProject = async (projectId) => {
     setIsRespondingToProject(true);
     try {
@@ -1483,7 +1483,7 @@ function App() {
     }
   };
 
-  // Spoke Coordinator declines B2B Project assignment (Spoke)
+  // Spoke Coordinator declines Project assignment (Spoke)
   const handleDeclineProject = async (projectId) => {
     setIsRespondingToProject(true);
     try {
@@ -1514,7 +1514,7 @@ function App() {
         fetchJiraTasks(false);
         fetchSpokeMembers(currentBoardId);
         fetchSpokeTeams(currentBoardId);
-        fetchModeratorProjects(true); // Fetch moderator projects silently to check for proposed B2B assignments
+        fetchModeratorProjects(true); // Fetch moderator projects silently to check for proposed assignments
         fetchHubMetrics(true); // Fetch hub metrics silently to feed leaderboards!
         fetchAllSubmissions(); // Auto-load all submissions for deliverables review queue!
       }
@@ -6262,7 +6262,7 @@ function App() {
           />
         ) : (
           <>
-            {/* Proposed B2B Project Decision Banner (Multi-tenant Coordinator Review Privilege) */}
+            {/* Proposed Project Decision Banner (Multi-tenant Coordinator Review Privilege) */}
             {sessionUser?.role !== "Student Developer" && proposedProjectsForSpoke.map((proj) => (
               <div key={proj.id} className="glass-panel pulse-glow" style={{
                 background: theme === "dark"
@@ -7138,7 +7138,7 @@ function App() {
                           })()}
                         </div>
 
-                        {/* Active B2B Spoke Project */}
+                        {/* Active Spoke Project */}
                         {acceptedProjectsForSpoke.length > 0 && (
                           <div className="glass-panel" style={{ padding: "20px 24px" }}>
                             <h3 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -7423,7 +7423,7 @@ function App() {
                                               {sub.status === "Awaiting Review" ? (
                                                 <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                                                   <button 
-                                                    onClick={() => handleUpdateSubmissionStatus(sub._id, "Approved", "Meets all FIP B2B criteria. Excellent work!")}
+                                                    onClick={() => handleUpdateSubmissionStatus(sub._id, "Approved", "Meets all FIP criteria. Excellent work!")}
                                                     style={{
                                                       padding: "6px 12px",
                                                       background: "rgba(45, 212, 191, 0.15)",
@@ -7472,7 +7472,7 @@ function App() {
                                                     <span>Revision Required</span>
                                                   </span>
                                                   <button 
-                                                    onClick={() => handleUpdateSubmissionStatus(sub._id, "Approved", "Re-evaluated and approved! Meets all B2B criteria.")}
+                                                    onClick={() => handleUpdateSubmissionStatus(sub._id, "Approved", "Re-evaluated and approved! Meets all criteria.")}
                                                     style={{
                                                       padding: "6px 12px",
                                                       background: "rgba(45, 212, 191, 0.15)",
@@ -7755,7 +7755,7 @@ function App() {
                       </div>
                     )}
 
-                    {/* TAB 3: 💼 B2B PROJECT & SPRINT ALLOCATOR */}
+                    {/* TAB 3: 💼 PROJECT & SPRINT ALLOCATOR */}
                     {activeCoordinatorTab === "projects" && (
                       <div className="fade-in" style={{
                         display: "flex",
@@ -7763,7 +7763,7 @@ function App() {
                         gap: "20px"
                       }}>
                           <h3 style={{ fontSize: "16px", fontWeight: "800", color: "var(--text-main)", margin: "0 0 10px 0" }}>
-                            Active B2B Projects Allocated to {SPOKES[currentBoardId]?.name || "Our Campus"}
+                            Active Projects Allocated to {SPOKES[currentBoardId]?.name || "Our Campus"}
                           </h3>
 
                           {acceptedProjectsForSpoke.length > 0 ? (
@@ -7947,7 +7947,7 @@ function App() {
                               🏛️ {SPOKES[currentBoardId]?.name || "This Spoke"} — Active Projects &amp; Teams
                             </h3>
                             <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
-                              All B2B projects your spoke is working on, with teams, student members, and collaboration spaces.
+                              All projects your spoke is working on, with teams, student members, and collaboration spaces.
                             </p>
                           </div>
                           <span style={{ fontSize: "11px", fontWeight: "800", background: "rgba(99,102,241,0.08)", color: "var(--primary)", padding: "4px 12px", borderRadius: "20px", border: "1px solid rgba(99,102,241,0.2)" }}>
@@ -9524,7 +9524,7 @@ function App() {
         </div>
       )}
 
-      {/* 🚀 MODAL 4: AUTOMATED B2B PROJECT ASSIGNMENT & PROVISIONING */}
+      {/* 🚀 MODAL 4: AUTOMATED PROJECT ASSIGNMENT & PROVISIONING */}
       {isAssignModalOpen && selectedAssignProject && (
         <div style={modalBackdropStyle}>
           <div className="glass-panel" style={{
@@ -9736,7 +9736,7 @@ function App() {
         </div>
       )}
 
-      {/* INGEST B2B PROJECT PROPOSAL MODAL */}
+      {/* INGEST PROJECT PROPOSAL MODAL */}
       {isIngestOpen && (
         <div style={{
           position: "fixed",
@@ -9878,7 +9878,7 @@ function App() {
         </div>
       )}
 
-      {/* EDIT B2B PROJECT PROPOSAL MODAL */}
+      {/* EDIT PROJECT PROPOSAL MODAL */}
       {editingProject && (
         <div style={{
           position: "fixed",
@@ -9907,7 +9907,7 @@ function App() {
               Edit Project
             </h3>
             <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "24px" }}>
-              Update the specifications and budget parameters of the active B2B project contract.
+              Update the specifications and budget parameters of the active project contract.
             </p>
 
             <form onSubmit={handleUpdateProjectSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -10991,7 +10991,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
   const globalCompletionRate = totalIssues > 0 ? Math.round((totalDone / totalIssues) * 100) : 0;
   const totalBlockers = metrics.blockers.length;
 
-  // B2B Stats calculations
+  // Stats calculations
   const b2bList = metrics.b2bProjects || [];
   const totalB2BFunding = b2bList.reduce((sum, p) => {
     const val = parseInt(p.budget.replace(/[^0-9]/g, "")) || 0;
@@ -11039,7 +11039,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             Global Executive Portfolio & Agile Hub
           </h2>
           <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-            Oversee multi-tenant academic deliverables, critical spoke escalations, and B2B sponsorship allocations.
+            Oversee multi-tenant academic deliverables, critical spoke escalations, and sponsorship allocations.
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
@@ -11135,7 +11135,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             gap: "8px"
           }}
         >
-          <span><span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaBriefcase /> B2B Sponsorships Portfolio</span></span>
+          <span><span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaBriefcase /> Sponsorships Portfolio</span></span>
         </button>
       </div>
 
@@ -11322,14 +11322,14 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
         </>
       ) : (
         <>
-          {/* B2B Specific KPI Cards */}
+          {/* Specific KPI Cards */}
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "20px"
           }}>
             <DashboardCard
-              title="B2B Proposals"
+              title="Proposals"
               value={b2bList.length}
               subtitle="Ingested sponsor scopes"
               glow={true}
@@ -11341,7 +11341,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
               themeColor="var(--status-progress-text)"
             />
             <DashboardCard
-              title="Avg B2B Milestone Progress"
+              title="Avg Milestone Progress"
               value={`${avgB2BProgress}%`}
               subtitle="Completion across Spokes"
               progress={avgB2BProgress}
@@ -11423,7 +11423,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
               })}
               {b2bList.length === 0 && (
                 <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "120px", color: "var(--text-muted)", fontStyle: "italic", fontSize: "13px" }}>
-                  <span>No B2B sponsorships active in the portfolio yet.</span>
+                  <span>No sponsorships active in the portfolio yet.</span>
                 </div>
               )}
             </div>
@@ -11646,7 +11646,7 @@ function ProgressBadge({ pct }) {
 }
 
 // ==========================================
-// B2B MODERATOR PORTAL COMPONENTS
+// MODERATOR PORTAL COMPONENTS
 // ==========================================
 
 function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, onIngestClick, onEditClick, onDeleteClick }) {
@@ -12325,7 +12325,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
     );
   }
 
-  // Filter B2B projects submitted by this specific sponsor's company
+  // Filter projects submitted by this specific sponsor's company
   const sponsorProjects = projects.filter(p => 
     p.company && p.company.toLowerCase().trim() === companyName.toLowerCase().trim()
   );
@@ -12450,7 +12450,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
           <button
             onClick={() => {
               setActiveTab("submit");
-              if (triggerToast) triggerToast("Switched Tab: Submit a new B2B Proposal");
+              if (triggerToast) triggerToast("Switched Tab: Submit a new Proposal");
             }}
             className="btn-primary"
             style={{
@@ -12465,7 +12465,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
               boxShadow: "0 4px 12px rgba(239, 68, 68, 0.2)"
             }}
           >
-            Propose B2B Project
+            Propose Project
           </button>
           <span style={{
             fontSize: "11px",
@@ -12831,7 +12831,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                           No Active Sponsorships
                         </h4>
                         <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-                          No project proposals have been submitted by your company yet. Propose your first industry B2B project to begin campus allocations!
+                          No project proposals have been submitted by your company yet. Propose your first industry project to begin campus allocations!
                         </p>
                         <button
                           onClick={() => {
@@ -12869,7 +12869,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
             Submit Project Proposal
           </h3>
           <p style={{ margin: "0 0 24px 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            Propose a new industry B2B engineering project. Central Moderators will review the proposal and assign it to student cohorts at KLE, COEP, MMCOEP, or RIT spokes.
+            Propose a new industry engineering project. Central Moderators will review the proposal and assign it to student cohorts at KLE, COEP, MMCOEP, or RIT spokes.
           </p>
 
           <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "12px", padding: "16px", background: "rgba(168, 85, 247, 0.05)", border: "1px dashed rgba(168, 85, 247, 0.4)", borderRadius: "8px" }}>
@@ -13173,7 +13173,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                 FIP Campus Budget Share
               </h3>
               <p style={{ fontSize: "12.5px", color: "var(--text-muted)", lineHeight: "1.6" }}>
-                This card represents the total budget committed by **{companyName}** across the campus spokes. Allocations are partitioned to direct-hire and hardware deployment subsidies for active B2B deliverables.
+                This card represents the total budget committed by **{companyName}** across the campus spokes. Allocations are partitioned to direct-hire and hardware deployment subsidies for active deliverables.
               </p>
             </div>
             
@@ -13205,7 +13205,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
             Final Work Progress Reviews
           </h3>
           <p style={{ margin: "0 0 20px 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            Evaluate completed sprints and final deliverables submitted by college teams working on your B2B projects.
+            Evaluate completed sprints and final deliverables submitted by college teams working on your projects.
           </p>
 
           {(() => {
@@ -13354,7 +13354,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                               <label style={{ display: "block", fontSize: "11px", fontWeight: "750", color: "var(--text-muted)", marginBottom: "4px" }}>Written Feedback Comments *</label>
                               <input
                                 type="text"
-                                placeholder="Provide detailed B2B engineering milestone feedback..."
+                                placeholder="Provide detailed engineering milestone feedback..."
                                 value={evalFeedback[team._id || team.id] || ""}
                                 onChange={(e) => setEvalFeedback({ ...evalFeedback, [team._id || team.id]: e.target.value })}
                                 style={{
@@ -15241,7 +15241,7 @@ function FacultyMentorDashboardView({
                               onClick={() => {
                                 const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
                                 if (grade !== null) {
-                                  const feedback = prompt("Enter evaluation comments:", "Meets all FIP B2B criteria. Excellent work!");
+                                  const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
                                   if (feedback !== null) {
                                     handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
                                   }
@@ -15298,7 +15298,7 @@ function FacultyMentorDashboardView({
                               onClick={() => {
                                 const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
                                 if (grade !== null) {
-                                  const feedback = prompt("Enter evaluation comments:", "Re-evaluated and approved! Meets all B2B criteria.");
+                                  const feedback = prompt("Enter evaluation comments:", "Re-evaluated and approved! Meets all criteria.");
                                   if (feedback !== null) {
                                     handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
                                   }
