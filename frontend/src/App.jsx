@@ -13448,7 +13448,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
     return `Awaiting Projects`;
   };
   const [newTitle, setNewTitle] = useState("");
-  const [newCampusId, setNewCampusId] = useState("3");
+  const [newCampusIds, setNewCampusIds] = useState(["3"]);
   const [newDate, setNewDate] = useState("2026-05-27");
   const [newTime, setNewTime] = useState("14:30");
   const [newLink, setNewLink] = useState("");
@@ -13476,35 +13476,39 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
       triggerToast("Please enter a meeting title.", "warning");
       return;
     }
+    
+    if (newCampusIds.length === 0) {
+      triggerToast("Please select at least one campus.", "warning");
+      return;
+    }
 
-    const overlap = meetings.some(m => m.campusId === newCampusId && m.date === newDate && m.time === newTime);
+    const overlap = meetings.some(m => newCampusIds.includes(m.campusId) && m.date === newDate && m.time === newTime);
     if (overlap) {
-      triggerToast(` Schedule Conflict: There is already a sync scheduled for this campus today at ${newTime}!`, "warning");
+      triggerToast(` Schedule Conflict: There is already a sync scheduled for one of these campuses today at ${newTime}!`, "warning");
     }
 
     setIsScheduling(true);
     try {
-      const res = await axios.post("http://localhost:5001/meetings", {
-        title: newTitle,
-        campusId: newCampusId,
-        date: newDate,
-        time: newTime,
-        link: newLink,
-        agenda: newAgenda,
-        cadenceType: newCadenceType
-      });
-
-      if (res.data && res.data.success) {
-        triggerToast("FIP campus sync meeting scheduled successfully!");
-        setNewTitle("");
-        setNewLink("");
-        setNewAgenda("");
-        setNewCadenceType("Weekly College PM Update");
-        onRefresh();
+      // Create a meeting for EACH selected campus
+      for (const campusId of newCampusIds) {
+        await axios.post("http://localhost:5001/meetings", {
+          title: newTitle,
+          campusId: campusId,
+          date: newDate,
+          time: newTime,
+          link: newLink,
+          agenda: newAgenda,
+          cadenceType: newCadenceType
+        });
       }
-    } catch (err) {
-      console.error(err);
-      triggerToast("Failed to schedule sync meeting.", "error");
+
+      triggerToast("Campus sync meeting(s) scheduled successfully!");
+      setNewTitle("");
+      setNewLink("");
+      setNewAgenda("");
+      onRefresh(); // Refresh all syncs
+    } catch (error) {
+      triggerToast(error.response?.data?.error || "Failed to schedule sync meeting.", "error");
     } finally {
       setIsScheduling(false);
     }
@@ -14005,24 +14009,34 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
 
           <div>
             <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
-              Target Institution Campus *
+              Target Institution Campuses * (Select multiple)
             </label>
-            <select
-              className="form-select"
-              required
-              value={newCampusId}
-              onChange={(e) => setNewCampusId(e.target.value)}
-              style={{ width: "100%", padding: "10px 12px", fontSize: "13px" }}
-            >
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-glass)" }}>
               {spokes.map(s => {
                 const status = getSpokeProjectStatus(s.name);
+                const isSelected = newCampusIds.includes(s.id);
                 return (
-                  <option key={s.id} value={s.id}>
-                    <span><FaBuilding style={{ marginRight: '6px', verticalAlign: 'middle' }} /> {s.name} ({s.key}) — [{status}]</span>
-                  </option>
+                  <label key={s.id} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: isSelected ? "var(--text-main)" : "var(--text-muted)", cursor: "pointer", padding: "4px 0" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setNewCampusIds([...newCampusIds, s.id]);
+                        } else {
+                          setNewCampusIds(newCampusIds.filter(id => id !== s.id));
+                        }
+                      }}
+                      style={{ accentColor: "var(--primary)", width: "16px", height: "16px" }}
+                    />
+                    <span style={{ flex: 1 }}>{s.name} ({s.key})</span>
+                    <span style={{ fontSize: "11px", color: status.includes("Active") ? "var(--primary)" : "var(--text-dim)", fontStyle: "italic" }}>
+                      [{status}]
+                    </span>
+                  </label>
                 );
               })}
-            </select>
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
