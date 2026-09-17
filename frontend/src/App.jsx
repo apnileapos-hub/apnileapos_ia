@@ -2782,7 +2782,7 @@ function App() {
               gap: "8px"
             }}
           >
-            <FaDesktop /> Company Corporate Sponsorship Portal
+            <FaDesktop /> Company Sponsorship Portal
           </button>
         </div>
       );
@@ -3949,7 +3949,7 @@ function App() {
             }}>
               <h3 style={{ fontSize: "22px", fontWeight: "800", color: theme === "dark" ? "#ffffff" : "#1e3a8a" }}>Get in Touch</h3>
               <p style={{ fontSize: "14.5px", color: theme === "dark" ? "#cbd5e1" : "#475569", lineHeight: "1.6", fontWeight: "500" }}>
-                Have questions about the ApniLeap platform, campus integration, or corporate sponsorship? Contact our administration team using the details below or send us a message.
+                Have questions about the ApniLeap platform, campus integration, or sponsorship? Contact our administration team using the details below or send us a message.
               </p>
               
               <div style={{
@@ -4501,7 +4501,7 @@ function App() {
                   </button>
                 </div>
 
-                {/* Corporate Partners Header */}
+                {/* Partners Header */}
                 <span style={{
                   display: "block",
                   fontSize: "9px",
@@ -4513,10 +4513,10 @@ function App() {
                   borderTop: "1px solid rgba(255, 255, 255, 0.08)",
                   paddingTop: "10px"
                 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaBriefcase style={{ color: "#6366f1" }} /> Corporate Partners</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaBriefcase style={{ color: "#6366f1" }} /> Partners</span>
                 </span>
 
-                {/* Corporate Partners Grid */}
+                {/* Partners Grid */}
                 <div style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(2, 1fr)",
@@ -4537,7 +4537,7 @@ function App() {
                       cursor: "pointer",
                       transition: "var(--transition-smooth)"
                     }}
-                    title="Connect as Company Corporate Partner"
+                    title="Connect as Company Partner"
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = "rgba(118, 185, 0, 0.35)";
                     }}
@@ -6220,7 +6220,7 @@ function App() {
                 }
               } catch (err) {
                 console.error(err);
-                triggerToast("Failed to submit corporate project proposal.", "error");
+                triggerToast("Failed to submit project proposal.", "error");
               }
             }}
             triggerToast={triggerToast}
@@ -6281,7 +6281,7 @@ function App() {
                     <span style={{ fontSize: "28px" }}><FaCheckCircle style={{ color: "var(--status-done-text)" }} /></span>
                     <div>
                       <h4 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)" }}>
-                        New Corporate Project Proposed!
+                        New Project Proposed!
                       </h4>
                       <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
                         Your institution has been nominated by the Moderator for a premium company program.
@@ -6615,7 +6615,7 @@ function App() {
                         const linkedProj = moderatorProjects.find(p => p._id === team.projectId || p.id === team.projectId);
                         return {
                           teamName: team.name,
-                          projectName: linkedProj ? linkedProj.title : "Unresolved Corporate Project",
+                          projectName: linkedProj ? linkedProj.title : "Unresolved Project",
                           githubRepo: team.githubRepo
                         };
                       });
@@ -6632,7 +6632,7 @@ function App() {
                         const linkedProj = moderatorProjects.find(p => p._id === team.projectId || p.id === team.projectId);
                         return {
                           teamName: team.name,
-                          projectName: linkedProj ? linkedProj.title : "Unresolved Corporate Project",
+                          projectName: linkedProj ? linkedProj.title : "Unresolved Project",
                           githubRepo: team.githubRepo,
                           leaderName: team.teamLeader.displayName || "Unknown Leader",
                           leaderEmail: team.teamLeader.emailAddress || ""
@@ -7763,7 +7763,7 @@ function App() {
                         gap: "20px"
                       }}>
                           <h3 style={{ fontSize: "16px", fontWeight: "800", color: "var(--text-main)", margin: "0 0 10px 0" }}>
-                            Active B2B Corporate Projects Allocated to {SPOKES[currentBoardId]?.name || "Our Campus"}
+                            Active B2B Projects Allocated to {SPOKES[currentBoardId]?.name || "Our Campus"}
                           </h3>
 
                           {acceptedProjectsForSpoke.length > 0 ? (
@@ -7931,7 +7931,7 @@ function App() {
                             })
                           ) : (
                             <div className="glass-panel" style={{ padding: "30px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                              No active corporate projects have been allocated to your campus spoke yet.
+                              No active projects have been allocated to your campus spoke yet.
                             </div>
                           )}
                         </div>
@@ -7947,7 +7947,7 @@ function App() {
                               🏛️ {SPOKES[currentBoardId]?.name || "This Spoke"} — Active Projects &amp; Teams
                             </h3>
                             <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
-                              All B2B corporate projects your spoke is working on, with teams, student members, and collaboration spaces.
+                              All B2B projects your spoke is working on, with teams, student members, and collaboration spaces.
                             </p>
                           </div>
                           <span style={{ fontSize: "11px", fontWeight: "800", background: "rgba(99,102,241,0.08)", color: "var(--primary)", padding: "4px 12px", borderRadius: "20px", border: "1px solid rgba(99,102,241,0.2)" }}>
@@ -8092,7 +8092,7 @@ function App() {
                           );
                         }) : (
                           <div className="glass-panel" style={{ padding: "40px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                            No active corporate projects allocated to your spoke yet.
+                            No active projects allocated to your spoke yet.
                           </div>
                         )}
                       </div>
@@ -9762,10 +9762,10 @@ function App() {
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
           }}>
             <h3 style={{ fontSize: "20px", fontWeight: "800", color: "var(--text-main)", marginBottom: "8px" }}>
-              Ingest New Corporate Proposal
+              Ingest New Proposal
             </h3>
             <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "24px" }}>
-              Manually ingest a new corporate program proposal into the Central Project Intake pool.
+              Manually ingest a new program proposal into the Central Project Intake pool.
             </p>
 
             <form onSubmit={handleIngestProjectSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -9904,7 +9904,7 @@ function App() {
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
           }}>
             <h3 style={{ fontSize: "20px", fontWeight: "800", color: "var(--text-main)", marginBottom: "8px" }}>
-              Edit Corporate Project
+              Edit Project
             </h3>
             <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "24px" }}>
               Update the specifications and budget parameters of the active B2B project contract.
@@ -11039,7 +11039,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             Global Executive Portfolio & Agile Hub
           </h2>
           <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-            Oversee multi-tenant academic deliverables, critical spoke escalations, and B2B corporate sponsorship allocations.
+            Oversee multi-tenant academic deliverables, critical spoke escalations, and B2B sponsorship allocations.
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
@@ -11351,20 +11351,20 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
               <DashboardCard
                 title="Total Committed Funding"
                 value={`$${totalB2BFunding.toLocaleString()}`}
-                subtitle="External FIP corporate backing"
+                subtitle="External FIP backing"
                 themeColor="#a855f7"
                 glow={totalB2BFunding > 0}
               />
             )}
           </div>
 
-          {/* 💼 Active Corporate Partnerships Tracker */}
+          {/* 💼 Active Partnerships Tracker */}
           <div className="glass-panel" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border-glass)", paddingBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ fontSize: "20px", display: "inline-flex", alignItems: "center" }}><FaBriefcase /></span>
                 <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "850", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)" }}>
-                  Corporate Partnerships & Campus Deployments Ledger
+                  Partnerships & Campus Deployments Ledger
                 </h3>
               </div>
               <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -12443,7 +12443,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
             Corporate Partner Sponsorship Portal
           </h2>
           <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5" }}>
-            Propose new corporate projects, monitor active campus sponsorships, and track student engineering deliverables.
+            Propose new projects, monitor active campus sponsorships, and track student engineering deliverables.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
@@ -12577,7 +12577,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
               transition: "all 0.3s ease"
             }}
           >
-            Submit Corporate Project Proposal
+            Submit Project Proposal
           </button>
           <button
             onClick={() => setActiveTab("cohorts")}
@@ -12626,7 +12626,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
       {activeTab === "portfolio" && (
         <div className="glass-panel" style={{ padding: "24px" }}>
           <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", fontWeight: "800", color: "var(--text-main)" }}>
-            Corporate Sponsorship Portfolio
+            Sponsorship Portfolio
           </h3>
           <p style={{ margin: "0 0 20px 0", fontSize: "13px", color: "var(--text-dim)" }}>
             Live real-time monitoring of campus deliveries, allocated scopes, and student milestones progress.
@@ -12866,7 +12866,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
       {activeTab === "submit" && (
         <div className="glass-panel" style={{ padding: "30px", maxWidth: "680px" }}>
           <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "850", color: "var(--text-main)" }}>
-            Submit Corporate Project Proposal
+            Submit Project Proposal
           </h3>
           <p style={{ margin: "0 0 24px 0", fontSize: "13px", color: "var(--text-muted)" }}>
             Propose a new industry B2B engineering project. Central Moderators will review the proposal and assign it to student cohorts at KLE, COEP, MMCOEP, or RIT spokes.
@@ -13107,7 +13107,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                 marginTop: "10px"
               }}
             >
-              {isSubmitting ? "Submitting Corporate Proposal..." : "Submit Corporate Proposal"}
+              {isSubmitting ? "Submitting Proposal..." : "Submit Proposal"}
             </button>
           </form>
         </div>
@@ -13205,7 +13205,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
             Final Work Progress Reviews
           </h3>
           <p style={{ margin: "0 0 20px 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            Evaluate completed sprints and final deliverables submitted by college teams working on your B2B corporate projects.
+            Evaluate completed sprints and final deliverables submitted by college teams working on your B2B projects.
           </p>
 
           {(() => {
@@ -14744,7 +14744,7 @@ function FacultyMentorDashboardView({
             Faculty Mentor Portal
           </h2>
           <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            Welcome, <strong>{sessionUser?.displayName}</strong>. Manage your assigned corporate projects and assemble student teams.
+            Welcome, <strong>{sessionUser?.displayName}</strong>. Manage your assigned projects and assemble student teams.
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
@@ -14834,7 +14834,7 @@ function FacultyMentorDashboardView({
                   style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
                   required
                 >
-                  <option value="">-- Choose Corporate Project --</option>
+                  <option value="">-- Choose Project --</option>
                   {assignedProjects.map(proj => (
                     <option key={proj._id || proj.id} value={proj._id || proj.id}>
                       [{proj.company}] {proj.title}
@@ -14843,7 +14843,7 @@ function FacultyMentorDashboardView({
                 </select>
                 {assignedProjects.length === 0 && (
                   <span style={{ fontSize: "11.5px", color: "#ef4444", marginTop: "4px", display: "block" }}>
-                    No corporate projects have been assigned to you yet.
+                    No projects have been assigned to you yet.
                   </span>
                 )}
               </div>
@@ -14943,10 +14943,10 @@ function FacultyMentorDashboardView({
         {/* Right Column: Assigned Projects list and Active Teams list */}
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           
-          {/* Assigned Corporate Projects */}
+          {/* Assigned Projects */}
           <div className="glass-panel" style={{ padding: "24px" }}>
             <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <FaBriefcase size={16} style={{ color: "#3b82f6" }} /> Assigned Corporate Projects
+              <FaBriefcase size={16} style={{ color: "#3b82f6" }} /> Assigned Projects
             </h3>
             
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -14974,7 +14974,7 @@ function FacultyMentorDashboardView({
               ))}
               {assignedProjects.length === 0 && (
                 <div style={{ padding: "20px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                  No corporate projects assigned to you yet.
+                  No projects assigned to you yet.
                 </div>
               )}
             </div>
@@ -15020,7 +15020,7 @@ function FacultyMentorDashboardView({
                     </div>
 
                     <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      Project: <strong style={{ color: "var(--text-main)" }}>{linkedProj ? linkedProj.title : "Unresolved Corporate Project"}</strong>
+                      Project: <strong style={{ color: "var(--text-main)" }}>{linkedProj ? linkedProj.title : "Unresolved Project"}</strong>
                     </div>
                     {team.githubRepo && (
                       <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
