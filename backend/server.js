@@ -3034,9 +3034,9 @@ app.post("/meetings", async (req, res) => {
   try {
     const newMeeting = await prisma.meeting.create({
       data: {
-        id: `meet-${Date.now()}`,
+        id: `meet-${Date.now()}-${Math.floor(Math.random()*10000)}`,
         title,
-        campusId,
+        campusId: String(campusId),
         date,
         time,
         link: link || "https://teams.microsoft.com/",
@@ -3171,14 +3171,18 @@ app.post("/meetings", async (req, res) => {
             </div>
           </div>
         `;
-        await transporter.sendMail({
-          from: `"${process.env.SMTP_FROM_NAME || 'ApniLeap Hub'}" <${process.env.SMTP_USER}>`,
-          to: finalTo,
-          subject: `📅 [Meeting Scheduled] Sync Invitation: ${title} (${spoke.name})`,
-          text: `Meeting: ${title}\nCampus: ${spoke.name}\nTime: ${date} at ${time}\nJoin Link: ${newMeeting.link}\nAgenda: ${agenda || "General campus sync."}\n\n(Demo Mode - Originally addressed to: ${recipientList.join(", ")})`,
-          html: htmlTemplate
-        });
-        console.log(`[MEETING-SCHEDULE] Notification email successfully sent to ${finalTo}`);
+        try {
+          await transporter.sendMail({
+            from: `"${process.env.SMTP_FROM_NAME || 'ApniLeap Hub'}" <${process.env.SMTP_USER}>`,
+            to: finalTo,
+            subject: `📅 [Meeting Scheduled] Sync Invitation: ${title} (${spoke.name})`,
+            text: `Meeting: ${title}\nCampus: ${spoke.name}\nTime: ${date} at ${time}\nJoin Link: ${newMeeting.link}\nAgenda: ${agenda || "General campus sync."}\n\n(Demo Mode - Originally addressed to: ${recipientList.join(", ")})`,
+            html: htmlTemplate
+          });
+          console.log(`[MEETING-SCHEDULE] Notification email successfully sent to ${finalTo}`);
+        } catch (emailErr) {
+          console.warn("[MEETING-SCHEDULE] Failed to send email, but meeting was created:", emailErr.message);
+        }
       }
     }
     res.json({
