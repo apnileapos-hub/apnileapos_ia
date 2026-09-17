@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  sender    String
+  message   String
+  campus    String
+  createdAt DateTime @default(now())
+}
+
+model CorporateProject {
+  id                  String   @id @default(uuid())
+  company             String
+  logoUrl             String?
+  title               String
+  description         String
+  budget              String
+  duration            String
+  status              String   @default("Pending Assignment")
+  assignedTo          String?
+  targetCampusId      String?
+  proposedDueDate     String
+  assignedKey         String?
+  facultyMentor       Json?
+  projectMentor       Json?
+  dateAdded           String
+  problemStatementUrl String?
+  requirements        String?
+  phases              Json?    // [{ name: String, description: String }]
+  allocations         Json?    // [AllocationSchema]
+}
+
+model Meeting {
+  id          String   @id
+  title       String
+  campusId    String
+  date        String
+  time        String
+  link        String
+  agenda      String
+  cadenceType String   @default("General Sync")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MockTask {
+  id        String   @id
+  key       String   @unique
+  boardId   String
+  fields    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Submission {
+  id            String   @id @default(uuid())
+  taskId        String
+  studentName   String
+  fileName      String
+  fileUrl       String
+  comments      String?
+  status        String   @default("Awaiting Review")
+  feedback      String?
+  grade         String?
+  version       Int      @default(1)
+  reworkHistory Json?    // Array of rework history objects
+  submittedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Team {
+  id            String   @id @default(uuid())
+  name          String
+  boardId       String
+  members       Json?    // Array of team members
+  mentor        Json?
+  teamLeader    Json?
+  projectId     String?
+  subMentor     Json?
+  githubRepo    String?
+  finalProgress Json?    // Object containing progress details
+  createdAt     DateTime @default(now())
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  displayName String
+  role        String
+  persona     String
+  spokeId     String?
+  createdAt   DateTime @default(now())
+}
