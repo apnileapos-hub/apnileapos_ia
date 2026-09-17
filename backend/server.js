@@ -4624,7 +4624,7 @@ async function seedDefaultMeetings() {
   await seedDefaultUsers();
   // await seedDefaultProjects();
   await seedDefaultTasks();
-  await seedDefaultMeetings();
+  // await seedDefaultMeetings();
   await seedDefaultChatMessages();
   const PORT = process.env.PORT || 5001;
   app.listen(PORT, () => {
