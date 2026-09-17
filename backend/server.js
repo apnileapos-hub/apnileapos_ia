@@ -3158,7 +3158,7 @@ app.post("/meetings", async (req, res) => {
                 <!-- Action Button -->
                 <div style="text-align: center; margin-top: 30px;">
                   <a href="${newMeeting.link}" target="_blank" style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);">
-                    Join Live Sync Room
+                    Join Meeting
                   </a>
                 </div>
               </div>
@@ -3506,7 +3506,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
             <!-- Action Button -->
             <div style="text-align: center;">
               <a href="${meeting.link}" target="_blank" style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);">
-                Join Live Sync Room
+                Join Meeting
               </a>
             </div>
           </div>
