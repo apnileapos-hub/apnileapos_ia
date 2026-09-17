@@ -13449,6 +13449,8 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   };
   const [newTitle, setNewTitle] = useState("");
   const [newCampusIds, setNewCampusIds] = useState(["3"]);
+  const [selectionMode, setSelectionMode] = useState("manual");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
   const [newDate, setNewDate] = useState("2026-05-27");
   const [newTime, setNewTime] = useState("14:30");
   const [newLink, setNewLink] = useState("");
@@ -14008,8 +14010,71 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
           </div>
 
           <div>
+            <div style={{ display: "flex", gap: "12px", marginBottom: "12px", background: "rgba(0,0,0,0.1)", padding: "10px", borderRadius: "8px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: selectionMode === "project" ? "var(--primary)" : "var(--text-main)", fontWeight: selectionMode === "project" ? "700" : "500" }}>
+                <input 
+                  type="radio" 
+                  name="selectionMode" 
+                  value="project" 
+                  checked={selectionMode === "project"} 
+                  onChange={() => {
+                    setSelectionMode("project");
+                    setNewCampusIds([]);
+                  }}
+                  style={{ accentColor: "var(--primary)" }}
+                />
+                Group by Active Project
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: selectionMode === "manual" ? "var(--primary)" : "var(--text-main)", fontWeight: selectionMode === "manual" ? "700" : "500" }}>
+                <input 
+                  type="radio" 
+                  name="selectionMode" 
+                  value="manual" 
+                  checked={selectionMode === "manual"} 
+                  onChange={() => {
+                    setSelectionMode("manual");
+                    setSelectedProjectId("");
+                  }}
+                  style={{ accentColor: "var(--primary)" }}
+                />
+                Manual Campus Selection
+              </label>
+            </div>
+
+            {selectionMode === "project" && (
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                  Select Project To Auto-Assign Campuses *
+                </label>
+                <select
+                  className="form-select"
+                  value={selectedProjectId}
+                  onChange={(e) => {
+                    const pid = e.target.value;
+                    setSelectedProjectId(pid);
+                    const proj = moderatorProjects.find(p => p.id === pid || p._id === pid);
+                    if (proj) {
+                      const ids = proj.allocations ? proj.allocations.map(a => a.targetCampusId) : [proj.targetCampusId].filter(Boolean);
+                      setNewCampusIds([...new Set(ids)]);
+                      if (!newTitle.trim() || newTitle.startsWith("Sync:")) {
+                        setNewTitle(`Sync: ${proj.title}`);
+                      }
+                    } else {
+                      setNewCampusIds([]);
+                    }
+                  }}
+                  style={{ width: "100%", padding: "10px 12px", fontSize: "13px", border: "1px solid var(--primary)", background: "rgba(99, 102, 241, 0.05)", borderRadius: "6px", color: "var(--text-main)" }}
+                >
+                  <option value="">-- Choose an Active Project --</option>
+                  {moderatorProjects.filter(p => p.allocations && p.allocations.length > 0).map(p => (
+                    <option key={p.id || p._id} value={p.id || p._id}>{p.title} ({p.company})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
-              Target Institution Campuses * (Select multiple)
+              {selectionMode === "project" ? "Assigned Campuses (Review)" : "Target Institution Campuses * (Select multiple)"}
             </label>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-glass)" }}>
               {spokes.map(s => {
