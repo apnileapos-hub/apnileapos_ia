@@ -23,3 +23,12 @@ yarn-error.log*
 # System Files
 .DS_Store
 Thumbs.db
+
+# Office & Design Documents
+*.docx
+*.pptx
+
+# Temporary test dumps and scripts
+pnlp*.json
+fix_*.js
+
