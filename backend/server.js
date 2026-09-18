@@ -90,11 +90,11 @@ const CACHE_EXPIRY = {
   // 1 hour
   members: 15 * 60 * 1000,
   // 15 minutes
-  tasks: 10 * 60 * 1000,
-  // 10 minutes
-  hubMetrics: 10 * 60 * 1000,
-  // 10 minutes
-  moderatorProjects: 10 * 60 * 1000 // 10 minutes
+  tasks: 5 * 1000,
+  // 5 seconds (instant sync for demo)
+  hubMetrics: 5 * 1000,
+  // 5 seconds
+  moderatorProjects: 5 * 1000 // 5 seconds
 };
 
 // High-performance Offline Circuit Breaker state variables
