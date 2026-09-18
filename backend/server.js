@@ -452,7 +452,7 @@ app.get("/spokes/:boardId/members", async (req, res) => {
           Authorization: `Basic ${auth}`,
           Accept: "application/json"
         },
-        timeout: 10000
+        timeout: 30000
       });
       members = response.data.map(u => ({
         accountId: u.accountId,
@@ -559,7 +559,7 @@ app.get("/tasks", async (req, res) => {
           Authorization: `Basic ${auth}`,
           Accept: "application/json"
         },
-        timeout: 10000
+        timeout: 30000
       });
       let issues = response.data.issues || [];
 
@@ -673,7 +673,7 @@ app.get("/myself", async (req, res) => {
         Authorization: `Basic ${auth}`,
         Accept: "application/json"
       },
-      timeout: 10000
+      timeout: 30000
     });
     apiCache.myself = response.data;
     apiCache.myselfTime = now;
@@ -2006,7 +2006,7 @@ app.get("/hub/metrics", async (req, res) => {
               Authorization: `Basic ${auth}`,
               Accept: "application/json"
             },
-            timeout: 10000
+            timeout: 30000
           });
           let issues = response.data.issues || [];
           if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
@@ -2264,7 +2264,7 @@ app.get("/moderator/projects", async (req, res) => {
               Authorization: `Basic ${auth}`,
               Accept: "application/json"
             },
-            timeout: 10000 // Quick timeout to prevent blocking
+            timeout: 30000 // Quick timeout to prevent blocking
           });
           let issues = response.data.issues || [];
           if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
@@ -3054,7 +3054,7 @@ app.post("/meetings", async (req, res) => {
               Authorization: `Basic ${auth}`,
               Accept: "application/json"
             },
-            timeout: 10000
+            timeout: 30000
           });
           if (Array.isArray(jiraRes.data)) {
             jiraRes.data.forEach(u => {
@@ -3223,7 +3223,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
             Authorization: `Basic ${auth}`,
             Accept: "application/json"
           },
-          timeout: 10000
+          timeout: 30000
         });
         let issues = response.data.issues || [];
         if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
@@ -3278,7 +3278,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
               Authorization: `Basic ${auth}`,
               Accept: "application/json"
             },
-            timeout: 10000
+            timeout: 30000
           });
           if (Array.isArray(jiraRes.data)) {
             jiraRes.data.forEach(u => {
@@ -3635,7 +3635,7 @@ app.post("/moderator/alerts/check", async (req, res) => {
               Authorization: `Basic ${auth}`,
               Accept: "application/json"
             },
-            timeout: 10000
+            timeout: 30000
           });
           tasks = response.data.issues || [];
         } catch (err) {
@@ -3904,7 +3904,7 @@ async function syncAcceptedProjectsWithJira() {
           Authorization: `Basic ${auth}`,
           Accept: "application/json"
         },
-        timeout: 10000
+        timeout: 30000
       });
       const issues = response.data.issues || [];
       const epics = issues.filter(t => t.fields?.issuetype?.name === "Epic");
@@ -5296,7 +5296,7 @@ app.put("/submissions/:id/status", authenticateToken, async (req, res) => {
             Authorization: `Basic ${auth}`,
             Accept: "application/json"
           },
-          timeout: 10000
+          timeout: 30000
         });
         const transitions = transitionsRes.data.transitions || [];
 
@@ -5314,7 +5314,7 @@ app.put("/submissions/:id/status", authenticateToken, async (req, res) => {
               Accept: "application/json",
               "Content-Type": "application/json"
             },
-            timeout: 10000
+            timeout: 30000
           });
           console.log(`[REACTIVE AGENT] Successfully transitioned live JIRA issue ${taskId} to '${targetStatusName}'!`);
 
@@ -5329,7 +5329,7 @@ app.put("/submissions/:id/status", authenticateToken, async (req, res) => {
                   Accept: "application/json",
                   "Content-Type": "application/json"
                 },
-                timeout: 10000
+                timeout: 30000
               });
               console.log(`[REACTIVE AGENT] Successfully appended re-work feedback comment to JIRA task ${taskId}.`);
             } catch (commentErr) {

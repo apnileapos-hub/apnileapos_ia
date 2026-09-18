@@ -946,7 +946,7 @@ function App() {
       triggerToast(`Logged in successfully as ${user.displayName}!`);
     } catch (err) {
       console.error("Login Failure:", err);
-      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5000.";
+      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5001 (or the Jira API timed out).";
       setLoginError(errMsg);
     } finally {
       setIsLoggingIn(false);
@@ -1056,7 +1056,7 @@ function App() {
       triggerToast(`Quick Connected as ${user.displayName}! `);
     } catch (err) {
       console.error("Quick Connect Failure:", err);
-      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5000.";
+      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5001 (or the Jira API timed out).";
       setLoginError(errMsg);
     } finally {
       setIsLoggingIn(false);
@@ -6149,7 +6149,7 @@ function App() {
             <FaExclamationTriangle size={48} color="#ef4444" className="pulse-glow" style={{ borderRadius: "50%" }} />
             <h2 style={{ fontSize: "20px", fontWeight: "700" }}>Jira Backend Connection Failed</h2>
             <p style={{ color: "var(--text-muted)", fontSize: "14px", maxWidth: "450px", lineHeight: "1.6" }}>
-              The dashboard was unable to fetch tasks because the local Express server is not running on port 5000. 
+              The dashboard was unable to fetch tasks because the local Express server is not running on port 5001 (or the Jira API timed out). 
             </p>
             <div style={{ background: "rgba(0,0,0,0.2)", padding: "16px 24px", borderRadius: "8px", fontFamily: "var(--mono)", fontSize: "13px", color: "var(--text-main)", border: "1px solid var(--border-glass)" }}>
               cd backend<br/>
