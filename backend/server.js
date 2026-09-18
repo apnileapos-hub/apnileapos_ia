@@ -4724,7 +4724,25 @@ app.post("/api/login", async (req, res) => {
             to: recipient,
             subject: "Your ApniLeap Login Code",
             text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
-            html: `<h2>ApniLeap Secure Login</h2><p>Your 6-digit login code is: <b>${generatedOtp}</b></p><p><small>(Sent to ${recipient} because of SMTP override. Original user: ${user.email})</small></p>`
+            html: `
+<div style="font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; max-width: 600px; margin: 0 auto; color: #24292f; background-color: #ffffff; padding: 20px;">
+    <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="font-size: 24px; font-weight: 400; margin-bottom: 8px;">Please verify your identity, ${user.displayName}</h2>
+    </div>
+    <div style="border: 1px solid #d0d7de; border-radius: 6px; padding: 32px; background-color: #f6f8fa;">
+        <p style="font-size: 14px; margin-top: 0; margin-bottom: 16px;">Here is your ApniLeap authentication code:</p>
+        <div style="font-size: 32px; font-weight: 600; text-align: center; letter-spacing: 6px; margin-bottom: 16px;">
+            ${generatedOtp}
+        </div>
+        <p style="font-size: 12px; color: #57606a; margin-bottom: 16px;">This code is valid for 10 minutes and can only be used once.</p>
+        <p style="font-size: 12px; color: #57606a; margin-bottom: 16px;">Please don't share this code with anyone: we'll never ask for it on the phone or via email.</p>
+        <p style="font-size: 12px; color: #57606a; margin-bottom: 0;">Thanks,<br/>The ApniLeap Team</p>
+    </div>
+    <div style="margin-top: 24px; text-align: center;">
+        <p style="font-size: 11px; color: #57606a; margin-bottom: 0;">You're receiving this email because a verification code was requested for your ApniLeap account (${user.email}). If this wasn't you, please ignore this email.</p>
+    </div>
+</div>
+`
         };
         
         const info = await transporter.sendMail(mailOptions);
