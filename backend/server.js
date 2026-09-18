@@ -151,27 +151,27 @@ function invalidateCache(boardId = null) {
 const SPOKES = {
   "3": {
     name: "KLE Spoke",
-    key: "AK",
+    key: "KAN",
     live: true,
-    boardId: 4
+    boardId: 2
   },
   "101": {
     name: "COEP Spoke",
-    key: "AK",
+    key: "KAN",
     live: true,
-    boardId: 5
+    boardId: 2
   },
   "102": {
     name: "MMCOEP Spoke",
-    key: "AK",
+    key: "KAN",
     live: true,
-    boardId: 6
+    boardId: 2
   },
   "103": {
     name: "RIT Spoke",
-    key: "AK",
+    key: "KAN",
     live: true,
-    boardId: 7
+    boardId: 2
   }
 };
 const LIVE_BOARD_IDS = Object.values(SPOKES).filter(s => s.live).map(s => s.boardId);
