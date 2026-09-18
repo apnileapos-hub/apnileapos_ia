@@ -4674,54 +4674,92 @@ async function seedDefaultMeetings() {
   });
 })();
 
-// POST /api/login - Validate credentials against persistent PostgreSQL records and return user details with a secure JWT token
+// POST /api/login - Validate credentials and require OTP via Nodemailer
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    console.log(`[LOGIN ATTEMPT] Received email: "${email}", password: "${password}"`);
+    const { email, password, otp } = req.body;
+    console.log(`[LOGIN ATTEMPT] Received email: "${email}", OTP: "${otp}"`);
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required." });
     }
     const cleanEmail = email.toLowerCase().trim();
     const user = await prisma.user.findFirst({ where: { email: cleanEmail } });
-    if (!user) {
-      console.warn(`[LOGIN FAILED] User not found in PostgreSQL for email: "${cleanEmail}"`);
+    if (!user || user.password !== password) {
       return res.status(401).json({ error: "Invalid email address or incorrect password." });
     }
-    console.log(`[DEBUG] DB password: "${user.password}", Provided: "${password}"`);
-    if (user.password !== password) {
-      console.warn(`[LOGIN FAILED] Password mismatch for user: "${cleanEmail}". expected matching DB, Got: "${password}"`);
-      return res.status(401).json({ error: "Invalid email address or incorrect password." });
-    }
-    console.log(`[LOGIN SUCCESS] Successfully authenticated user: "${cleanEmail}" (${user.role})`);
 
-    // Generate secure JWT token
-    const token = jwt.sign({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      persona: user.persona
-    }, process.env.JWT_SECRET || "apnileap_secret_session_token_key_123!", {
-      expiresIn: "24h"
+    // STEP 1: Verify Password and Send OTP
+    if (!otp) {
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+        
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { otpCode: generatedOtp, otpExpiry }
+        });
+        
+        const nodemailer = require("nodemailer");
+        const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+        let transporter, isTestAccount = false;
+        
+        if (hasSmtpConfig) {
+            transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: parseInt(process.env.SMTP_PORT || "587"),
+                secure: process.env.SMTP_SECURE === "true",
+                auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+            });
+        } else {
+            isTestAccount = true;
+            const testAccount = await nodemailer.createTestAccount();
+            transporter = nodemailer.createTransport({
+                host: "smtp.ethereal.email", port: 587, secure: false,
+                auth: { user: testAccount.user, pass: testAccount.pass }
+            });
+        }
+        
+        const mailOptions = {
+            from: process.env.SMTP_FROM || '"ApniLeap Auth" <noreply@apnileap.com>',
+            to: user.email,
+            subject: "Your ApniLeap Login Code",
+            text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
+            html: `<h2>ApniLeap Secure Login</h2><p>Your 6-digit login code is: <b>${generatedOtp}</b></p>`
+        };
+        
+        const info = await transporter.sendMail(mailOptions);
+        if (isTestAccount) console.log(`[2FA OTP PREVIEW URL]: ${nodemailer.getTestMessageUrl(info)}`);
+        
+        return res.json({ success: true, require2FA: true, message: "OTP sent to email." });
+    }
+
+    // STEP 2: Verify OTP
+    if (user.otpCode !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
+        return res.status(401).json({ error: "Invalid or expired OTP code." });
+    }
+    
+    // Clear OTP after successful login
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { otpCode: null, otpExpiry: null }
     });
+
+    console.log(`[LOGIN SUCCESS] Authenticated user: "${cleanEmail}" (${user.role})`);
+
+    const token = jwt.sign({
+      userId: user.id, email: user.email, role: user.role, persona: user.persona
+    }, process.env.JWT_SECRET || "apnileap_secret_session_token_key_123!", { expiresIn: "24h" });
+    
     res.json({
       success: true,
       token,
       user: {
-        _id: user.id.toString(), // Keep _id in response for frontend compatibility
-        id: user.id.toString(),
-        email: user.email,
-        displayName: user.displayName,
-        role: user.role,
-        persona: user.persona,
-        spokeId: user.spokeId
+        _id: user.id.toString(), id: user.id.toString(), email: user.email,
+        displayName: user.displayName, role: user.role, persona: user.persona, spokeId: user.spokeId
       }
     });
   } catch (error) {
     console.error("Login route error:", error);
-    res.status(500).json({
-      error: "An internal server error occurred during login."
-    });
+    res.status(500).json({ error: "An internal server error occurred during login." });
   }
 });
 
