@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -828,7 +828,9 @@ function App() {
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterAssignee, setFilterAssignee] = useState("All");
   const [filterProject, setFilterProject] = useState("All");
-  const [activeCustomBoardId, setActiveCustomBoardId] = useState(null);
+  const [activeCustomBoardId, setActiveCustomBoardIdState] = useState(null);
+  const activeCustomBoardIdRef = useRef(null);
+  const setActiveCustomBoardId = (val) => { activeCustomBoardIdRef.current = val; setActiveCustomBoardIdState(val); };
 
   // Modal States & Premium Multi-tab details
   const [selectedTask, setSelectedTask] = useState(null);
@@ -1280,7 +1282,8 @@ function App() {
     if (!silent) setIsLoading(true);
     setHasError(false);
     try {
-      const boardIdToFetch = customBoardId || activeCustomBoardId || currentBoardId;
+      const boardIdToFetch = customBoardId || activeCustomBoardIdRef.current || currentBoardId;
+      console.log("fetching tasks:", { customBoardId, activeCustomBoardId, currentBoardId, boardIdToFetch });
       const response = await axios.get(`http://localhost:5001/tasks?boardId=${boardIdToFetch}`);
       if (Array.isArray(response.data)) {
         // Adapt Jira issues dynamically - pulls exact assignee, reporter, and due date
@@ -1521,7 +1524,7 @@ function App() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspace, currentBoardId, activeCustomBoardId]);
+  }, [activeWorkspace, currentBoardId]);
 
   // On component mount, automatically fetch active session user profile
   useEffect(() => {
@@ -1556,7 +1559,7 @@ function App() {
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspace, currentBoardId, activeCustomBoardId]);
+  }, [activeWorkspace, currentBoardId]);
 
   // Ensures real Jira users are editable and filterable seamlessly.
   const activeAssignees = useMemo(() => {
