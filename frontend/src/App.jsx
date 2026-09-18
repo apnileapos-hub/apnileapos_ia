@@ -828,6 +828,7 @@ function App() {
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterAssignee, setFilterAssignee] = useState("All");
   const [filterProject, setFilterProject] = useState("All");
+  const [activeCustomBoardId, setActiveCustomBoardId] = useState(null);
 
   // Modal States & Premium Multi-tab details
   const [selectedTask, setSelectedTask] = useState(null);
@@ -1279,7 +1280,7 @@ function App() {
     if (!silent) setIsLoading(true);
     setHasError(false);
     try {
-      const boardIdToFetch = customBoardId || currentBoardId;
+      const boardIdToFetch = customBoardId || activeCustomBoardId || currentBoardId;
       const response = await axios.get(`http://localhost:5001/tasks?boardId=${boardIdToFetch}`);
       if (Array.isArray(response.data)) {
         // Adapt Jira issues dynamically - pulls exact assignee, reporter, and due date
@@ -7769,9 +7770,11 @@ function App() {
                                   if(e.target.tagName !== "BUTTON" && e.target.closest("button") === null) { 
                                     const alloc = proj.allocations ? proj.allocations.find(a => a.targetCampusId === currentBoardId) : null;
                                     if (alloc && alloc.customBoardId) {
+                                        setActiveCustomBoardId(alloc.customBoardId);
                                         fetchJiraTasks(false, alloc.customBoardId);
                                         setFilterProject("All");
                                     } else {
+                                        setActiveCustomBoardId(null);
                                         setFilterProject(`[${proj.company}] ${proj.title}`); 
                                     }
                                     setActiveView("kanban"); 
