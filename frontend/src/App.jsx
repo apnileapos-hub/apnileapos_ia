@@ -1521,7 +1521,7 @@ function App() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspace, currentBoardId]);
+  }, [activeWorkspace, currentBoardId, activeCustomBoardId]);
 
   // On component mount, automatically fetch active session user profile
   useEffect(() => {
@@ -1556,7 +1556,7 @@ function App() {
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspace, currentBoardId]);
+  }, [activeWorkspace, currentBoardId, activeCustomBoardId]);
 
   // Ensures real Jira users are editable and filterable seamlessly.
   const activeAssignees = useMemo(() => {
