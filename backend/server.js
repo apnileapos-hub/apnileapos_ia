@@ -548,13 +548,15 @@ app.get("/spokes/:boardId/members", async (req, res) => {
 app.get("/tasks", async (req, res) => {
   const boardId = req.query.boardId || "3";
   const spoke = SPOKES[boardId];
+  const isDynamicLiveBoard = LIVE_BOARD_IDS.includes(boardId.toString());
   const now = Date.now();
-  if (spoke && spoke.live && shouldCheckJira()) {
+  if ((spoke && spoke.live && shouldCheckJira()) || isDynamicLiveBoard) {
     if (apiCache.tasks[boardId] && now - apiCache.tasks[boardId].time < CACHE_EXPIRY.tasks) {
       return res.json(apiCache.tasks[boardId].data);
     }
     try {
-      const response = await axios.get(`${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${spoke.boardId}/issue`, {
+      const targetJiraBoardId = isDynamicLiveBoard ? boardId : spoke.boardId;
+      const response = await axios.get(`${process.env.JIRA_DOMAIN}/rest/agile/1.0/board/${targetJiraBoardId}/issue`, {
         headers: {
           Authorization: `Basic ${auth}`,
           Accept: "application/json"
@@ -562,9 +564,15 @@ app.get("/tasks", async (req, res) => {
         timeout: 30000
       });
       let issues = response.data.issues || [];
+      issues = issues.map(issue => {
+         if (issue.fields && issue.fields.status && (issue.fields.status.name === "Backlog" || issue.fields.status.name === "Selected for Development")) {
+             issue.fields.status.name = "To Do";
+         }
+         return issue;
+      });
 
       // Auto-Labeling Isolation for newly provisioned Agile boards
-      if (LIVE_BOARD_IDS.includes(spoke.boardId)) {
+      if (spoke && LIVE_BOARD_IDS.includes(spoke.boardId)) {
         issues = issues.filter(issue => {
           const labels = issue.fields?.labels || [];
           if (boardId === "3") {
