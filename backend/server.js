@@ -153,25 +153,25 @@ const SPOKES = {
     name: "KLE Spoke",
     key: "AK",
     live: true,
-    boardId: 75
+    boardId: 4
   },
   "101": {
     name: "COEP Spoke",
     key: "AK",
     live: true,
-    boardId: 76
+    boardId: 5
   },
   "102": {
     name: "MMCOEP Spoke",
     key: "AK",
     live: true,
-    boardId: 77
+    boardId: 6
   },
   "103": {
     name: "RIT Spoke",
     key: "AK",
     live: true,
-    boardId: 78
+    boardId: 7
   }
 };
 const LIVE_BOARD_IDS = Object.values(SPOKES).filter(s => s.live).map(s => s.boardId);
@@ -2833,27 +2833,24 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
       return;
     } else {
       console.log(`Mock Provisioning Project to simulated spoke ${spoke.name} on acceptance...`);
-      if (!mockTasksStore[targetBoardId]) {
-        mockTasksStore[targetBoardId] = [];
-      }
-      const spokeTasks = mockTasksStore[targetBoardId];
-      const epicIndex = spokeTasks.filter(t => t.fields?.issuetype?.name === "Epic").length + 1;
+      
+      // Load current tasks from DB to determine epicIndex
+      const dbSpokeTasks = await prisma.mockTask.findMany({
+        where: { boardId: String(targetBoardId) }
+      });
+      const epicIndex = dbSpokeTasks.filter(t => t.fields?.issuetype?.name === "Epic").length + 1;
       createdEpicKey = `${spoke.key}-${epicIndex}`;
+      
       const newEpic = {
         id: `mock-${targetBoardId}-epic-${Date.now()}`,
         key: createdEpicKey,
+        boardId: String(targetBoardId),
         fields: {
           summary: summary,
           description: descriptionText,
-          status: {
-            name: "Backlog"
-          },
-          priority: {
-            name: "High"
-          },
-          issuetype: {
-            name: "Epic"
-          },
+          status: { name: "Backlog" },
+          priority: { name: "High" },
+          issuetype: { name: "Epic" },
           created: new Date().toISOString(),
           dueDate: finalDateStr,
           flagged: false,
@@ -2863,32 +2860,25 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
           parent: null
         }
       };
-      spokeTasks.push(newEpic);
+
+      const tasksToInsert = [newEpic];
+
       standardTasks.forEach((taskSummary, idx) => {
         const childKey = `${spoke.key}-${epicIndex}-${idx + 1}`;
-        const newChild = {
+        tasksToInsert.push({
           id: `mock-${targetBoardId}-child-${Date.now()}-${idx}`,
           key: childKey,
+          boardId: String(targetBoardId),
           fields: {
             summary: taskSummary,
             description: `Automated child task created under Epic ${createdEpicKey} representing company project assigned to ${spoke.name}.`,
-            status: {
-              name: "Backlog"
-            },
-            priority: {
-              name: "Medium"
-            },
-            issuetype: {
-              name: "Task"
-            },
+            status: { name: "Backlog" },
+            priority: { name: "Medium" },
+            issuetype: { name: "Task" },
             created: new Date().toISOString(),
             dueDate: taskDueDates[idx],
             flagged: false,
-            timetracking: {
-              timeSpentSeconds: 0,
-              originalEstimateSeconds: 36000,
-              remainingEstimateSeconds: 36000
-            },
+            timetracking: { timeSpentSeconds: 0, originalEstimateSeconds: 36000, remainingEstimateSeconds: 36000 },
             subtasks: [],
             labels: ["B2B-Task"],
             parent: {
@@ -2898,9 +2888,15 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
               issueType: "Epic"
             }
           }
-        };
-        spokeTasks.push(newChild);
+        });
       });
+
+      // Insert all generated mock tasks into Postgres
+      await prisma.mockTask.createMany({
+        data: tasksToInsert,
+        skipDuplicates: true
+      });
+      console.log(`[ASYNC PROVISIONING SUCCESS] Provisioned ${tasksToInsert.length} mock tasks for ${spoke.name}`);
     }
 
     // Update specific allocation status to Active
