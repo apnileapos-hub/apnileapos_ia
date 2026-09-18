@@ -635,6 +635,8 @@ function App() {
     }
   });
   const [loginEmail, setLoginEmail] = useState("");
+  const [loginOtp, setLoginOtp] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -924,13 +926,25 @@ function App() {
       setLoginError("Please enter your password.");
       return;
     }
+    if (showOtpInput && !loginOtp.trim()) {
+      setLoginError("Please enter the 6-digit OTP code sent to your email.");
+      return;
+    }
 
     setIsLoggingIn(true);
     try {
       const response = await axios.post("http://localhost:5001/api/login", {
         email: loginEmail,
-        password: loginPassword
+        password: loginPassword,
+        otp: showOtpInput ? loginOtp : undefined
       });
+
+      if (response.data.require2FA) {
+          setShowOtpInput(true);
+          triggerToast(response.data.message || "OTP sent to email. Please verify.", "success");
+          setIsLoggingIn(false);
+          return;
+      }
 
       const { user, token } = response.data;
       setIsAuthenticated(true);
@@ -949,7 +963,7 @@ function App() {
       triggerToast(`Logged in successfully as ${user.displayName}!`);
     } catch (err) {
       console.error("Login Failure:", err);
-      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5001 (or the Jira API timed out).";
+      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5001.";
       setLoginError(errMsg);
     } finally {
       setIsLoggingIn(false);
@@ -1075,6 +1089,8 @@ function App() {
     setActiveWorkspace("hub");
     setLoginEmail("");
     setLoginPassword("");
+    setLoginOtp("");
+    setShowOtpInput(false);
     
     localStorage.removeItem("apnileap-auth");
     localStorage.removeItem("apnileap-user");
@@ -4868,6 +4884,30 @@ function App() {
                     </div>
 
                     {/* Submit Sign In button */}
+                    {showOtpInput && (
+                      <div style={{ marginTop: "10px", padding: "15px", background: "rgba(249, 115, 22, 0.05)", border: "1px dashed rgba(249, 115, 22, 0.3)", borderRadius: "10px", animation: "slideIn 0.3s ease-out" }}>
+                        <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "#f97316", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+                          Enter 6-Digit Email Code
+                        </label>
+                        <div style={{ position: "relative" }}>
+                          <input
+                            type="text"
+                            placeholder="e.g. 123456"
+                            value={loginOtp}
+                            onChange={(e) => setLoginOtp(e.target.value.replace(/\D/g, '').slice(0,6))}
+                            maxLength="6"
+                            style={{
+                              width: "100%", padding: "12px 14px", borderRadius: "8px",
+                              background: "var(--bg-card)", border: "1px solid #f97316",
+                              color: "var(--text-main)", outline: "none", fontSize: "16px",
+                              textAlign: "center", fontWeight: "700", letterSpacing: "3px"
+                            }}
+                          />
+                        </div>
+                        <p style={{ fontSize: "10.5px", color: "var(--text-muted)", marginTop: "8px", textAlign: "center" }}>Check your email inbox for the temporary 6-digit security code to complete login.</p>
+                      </div>
+                    )}
+
                     <button
                       type="submit"
                       disabled={isLoggingIn}
