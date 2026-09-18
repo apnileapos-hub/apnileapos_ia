@@ -5471,17 +5471,7 @@ function App() {
                   <FaHome size={20} />
                 </div>
 
-                <div
-                  onClick={() => {
-                    setActiveWorkspace(currentPersona);
-                    setActiveView("kanban");
-                    triggerToast(`Switched Workspace: Spoke Sprint Kanban`);
-                  }}
-                  className={`sidebar-rail-icon ${(activeWorkspace === currentPersona && activeView === "kanban") ? "active" : ""}`}
-                  title="Sprint Kanban Board"
-                >
-                  <FaTasks size={20} />
-                </div>
+
               </>
             )}
 
@@ -5641,14 +5631,7 @@ function App() {
                   onClick={() => setActiveView("dashboard")}
                   variant="accent"
                 />
-                <SidebarNavItem
-                  active={activeView === "kanban"}
-                  icon={<FaTasks size={16} />}
-                  label="Sprint Kanban Board"
-                  collapsed={false}
-                  onClick={() => setActiveView("kanban")}
-                  variant="accent"
-                />
+                
                 <hr style={{ border: "none", borderTop: "1px solid var(--sidebar-border)", margin: "8px 16px 8px 0" }} />
               </>
             )}
@@ -7782,7 +7765,7 @@ function App() {
                               const progressPct = totalT > 0 ? Math.round((doneT / totalT) * 100) : 0;
 
                               return (
-                                <div key={proj.id} className="glass-panel hover-lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer" }} onClick={(e) => { if(e.target.tagName !== "BUTTON" && e.target.closest("button") === null) { setFilterProject(`[${proj.company}] ${proj.title}`); setActiveCoordinatorTab("board"); window.scrollTo(0, 0); } }}>
+                                <div key={proj.id} className="glass-panel hover-lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer" }} onClick={(e) => { if(e.target.tagName !== "BUTTON" && e.target.closest("button") === null) { setFilterProject(`[${proj.company}] ${proj.title}`); setActiveView("kanban"); window.scrollTo(0, 0); } }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                       <CompanyLogo company={proj.company} size={36} />
