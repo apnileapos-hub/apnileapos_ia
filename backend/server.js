@@ -629,7 +629,7 @@ app.get("/tasks", async (req, res) => {
       };
       res.json(issues);
     } catch (error) {
-      console.error(`Jira Fetch Error for board ${spoke.boardId} (${spoke.name}):`, error.response?.data || error.message);
+      console.error(`Jira Fetch Error for board ${spoke?.boardId || boardId} (${spoke?.name || 'Dynamic Board'}):`, error.response?.data || error.message);
       handleJiraNetworkError(error);
 
       // Fallback to cached tasks if available
@@ -637,10 +637,9 @@ app.get("/tasks", async (req, res) => {
         console.warn(`Returning cached tasks for board ${boardId} due to Jira fetch error.`);
         return res.json(apiCache.tasks[boardId].data);
       }
-      res.status(500).json({
-        error: "Failed to fetch Jira tasks",
-        details: error.response?.data || error.message
-      });
+      
+      // If Jira is down/board is missing and no cache, return empty tasks gracefully instead of crashing UI
+      return res.json([]);
     }
   } else {
     // Return persistent mock data from PostgreSQL
@@ -718,6 +717,36 @@ app.get("/myself", async (req, res) => {
 });
 
 // Create new issue in Jira project dynamically resolved from active board issues
+// Helper to resolve synthetic spoke for dynamic Jira boards
+async function resolveSpokeContext(projectKeyOrBoardId, isBoardId = false) {
+    if (isBoardId) {
+        if (SPOKES[projectKeyOrBoardId]) return SPOKES[projectKeyOrBoardId];
+        // Dynamic board
+        const allProjs = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
+        for (const p of allProjs) {
+             const alloc = p.allocations?.find(a => a.customBoardId && a.customBoardId.toString() === projectKeyOrBoardId.toString());
+             if (alloc) return { live: true, boardId: projectKeyOrBoardId, key: alloc.assignedKey, name: alloc.assignedTo };
+        }
+        return null;
+    } else {
+        const standardSpoke = Object.values(SPOKES).find(s => s.key === projectKeyOrBoardId);
+        if (standardSpoke) return standardSpoke;
+        
+        // Dynamic key
+        const allProjs = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
+        for (const p of allProjs) {
+             if (p.assignedKey === projectKeyOrBoardId) {
+                 return { live: true, boardId: p.allocations?.[0]?.customBoardId || p.targetCampusId, key: projectKeyOrBoardId, name: p.assignedTo };
+             }
+             const alloc = p.allocations?.find(a => a.assignedKey === projectKeyOrBoardId);
+             if (alloc) {
+                 return { live: true, boardId: alloc.customBoardId || alloc.targetCampusId, key: projectKeyOrBoardId, name: alloc.assignedTo };
+             }
+        }
+        return null;
+    }
+}
+
 app.post("/tasks", authenticateToken, async (req, res) => {
   const {
     summary,
@@ -734,7 +763,7 @@ app.post("/tasks", authenticateToken, async (req, res) => {
     parentSummary
   } = req.body;
   const targetBoardId = boardId || "3";
-  const spoke = SPOKES[targetBoardId];
+  const spoke = await resolveSpokeContext(targetBoardId, true);
 
   // Resolve assignee and reporter details (handles simulated and persistent PostgreSQL users)
   let assignedUserObj = null;
@@ -1047,7 +1076,7 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
     priority
   } = req.body;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1266,7 +1295,7 @@ app.post("/tasks/:key/transition", async (req, res) => {
     statusName
   } = req.body;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1393,7 +1422,7 @@ app.delete("/tasks/:key", authenticateToken, async (req, res) => {
     key
   } = req.params;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1596,7 +1625,7 @@ app.put("/tasks/:key/flag", async (req, res) => {
     flagged
   } = req.body;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1658,7 +1687,7 @@ app.post("/tasks/:key/worklog", async (req, res) => {
     comment
   } = req.body;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1723,7 +1752,7 @@ app.get("/tasks/:key/worklog", async (req, res) => {
     key
   } = req.params;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1762,7 +1791,7 @@ app.post("/tasks/:key/subtask", authenticateToken, async (req, res) => {
     parentIssueType
   } = req.body;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1885,7 +1914,7 @@ app.post("/tasks/links", async (req, res) => {
     targetKey
   } = req.body;
   const projectKey = sourceKey.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
@@ -1945,7 +1974,7 @@ app.put("/tasks/:key/labels", async (req, res) => {
     labels
   } = req.body;
   const projectKey = key.split("-")[0];
-  const spoke = Object.values(SPOKES).find(s => s.key === projectKey);
+  const spoke = await resolveSpokeContext(projectKey, false);
   if (!spoke) {
     return res.status(400).json({
       error: "Invalid task key context. Spoke project not found."
