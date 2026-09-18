@@ -7765,7 +7765,19 @@ function App() {
                               const progressPct = totalT > 0 ? Math.round((doneT / totalT) * 100) : 0;
 
                               return (
-                                <div key={proj.id} className="glass-panel hover-lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer" }} onClick={(e) => { if(e.target.tagName !== "BUTTON" && e.target.closest("button") === null) { setFilterProject(`[${proj.company}] ${proj.title}`); setActiveView("kanban"); window.scrollTo(0, 0); } }}>
+                                <div key={proj.id} className="glass-panel hover-lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer" }} onClick={(e) => { 
+                                  if(e.target.tagName !== "BUTTON" && e.target.closest("button") === null) { 
+                                    const alloc = proj.allocations ? proj.allocations.find(a => a.targetCampusId === currentBoardId) : null;
+                                    if (alloc && alloc.customBoardId) {
+                                        fetchJiraTasks(false, alloc.customBoardId);
+                                        setFilterProject("All");
+                                    } else {
+                                        setFilterProject(`[${proj.company}] ${proj.title}`); 
+                                    }
+                                    setActiveView("kanban"); 
+                                    window.scrollTo(0, 0); 
+                                  } 
+                                }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                       <CompanyLogo company={proj.company} size={36} />

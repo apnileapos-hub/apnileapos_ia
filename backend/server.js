@@ -2733,101 +2733,96 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
       // 2. Perform live Jira calls in the background without blocking the HTTP request!
       (async () => {
         try {
-          const epicBody = {
-            fields: {
-              project: {
-                key: spoke.key
-              },
-              summary: summary,
-              description: {
-                type: "doc",
-                version: 1,
-                content: [{
-                  type: "paragraph",
-                  content: [{
-                    type: "text",
-                    text: descriptionText
-                  }]
-                }]
-              },
-              duedate: finalDateStr,
-              issuetype: {
-                name: "Epic"
-              },
-              labels: LIVE_BOARD_IDS.includes(spoke.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-spoke"] : ["epic"]
-            }
+          // 1. Generate unique key for the new Jira Project
+          const safeCompany = (project.company || "PRJ").replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase();
+          const newKey = `${safeCompany}${Math.floor(Math.random() * 9000) + 1000}`;
+          
+          console.log(`[ASYNC PROVISIONING] Creating new Jira Workspace (Project) ${newKey}...`);
+          
+          // 2. Call Jira API to create project
+          const projectBody = {
+              key: newKey,
+              name: summary.substring(0, 80),
+              projectTypeKey: "software",
+              projectTemplateKey: "com.pyxis.greenhopper.jira:gh-simplified-kanban-classic",
+              description: descriptionText,
+              leadAccountId: "712020:9b424ef2-c4f0-4698-9488-90af2d3bae9f"
           };
-          const epicRes = await axios.post(`${process.env.JIRA_DOMAIN}/rest/api/3/issue`, epicBody, {
-            headers: {
-              Authorization: `Basic ${auth}`,
-              "Content-Type": "application/json"
-            }
+          
+          const projRes = await axios.post(`${process.env.JIRA_DOMAIN}/rest/api/3/project`, projectBody, {
+              headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }
           });
-          if (epicRes.data && epicRes.data.key) {
-            const realKey = epicRes.data.key;
-            console.log(`[ASYNC PROVISIONING] Epic Created successfully: ${realKey}`);
+          
+          if (projRes.data && projRes.data.key) {
+            const realKey = projRes.data.key;
+            console.log(`[ASYNC PROVISIONING] Jira Project Created successfully: ${realKey}`);
+            
+            // 3. Find the auto-generated Agile board for this project
+            let newBoardId = null;
+            // wait a few seconds for Jira to generate the board
+            await new Promise(r => setTimeout(r, 2000));
+            
+            const boardRes = await axios.get(`${process.env.JIRA_DOMAIN}/rest/agile/1.0/board?projectKeyOrId=${realKey}`, {
+               headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }
+            });
+            
+            if (boardRes.data && boardRes.data.values && boardRes.data.values.length > 0) {
+                newBoardId = boardRes.data.values[0].id;
+                console.log(`[ASYNC PROVISIONING] Discovered Board ID: ${newBoardId}`);
+                
+                // Add to LIVE_BOARD_IDS in memory so the new board functions properly
+                if (!LIVE_BOARD_IDS.includes(newBoardId.toString())) {
+                    LIVE_BOARD_IDS.push(newBoardId.toString());
+                }
+            }
+
+            // 4. Create standard tasks inside the new project
             for (let idx = 0; idx < standardTasks.length; idx++) {
               const taskSummary = standardTasks[idx];
               const taskBody = {
                 fields: {
-                  project: {
-                    key: spoke.key
-                  },
+                  project: { key: realKey },
                   summary: taskSummary,
                   description: {
                     type: "doc",
                     version: 1,
-                    content: [{
-                      type: "paragraph",
-                      content: [{
-                        type: "text",
-                        text: `Automated child task created under Epic ${realKey}.`
-                      }]
-                    }]
+                    content: [{ type: "paragraph", content: [{ type: "text", text: `Automated task for project ${realKey}.` }] }]
                   },
                   duedate: taskDueDates[idx],
-                  issuetype: {
-                    name: "Task"
-                  },
-                  parent: {
-                    key: realKey
-                  },
-                  labels: LIVE_BOARD_IDS.includes(spoke.boardId) ? [CAMPUS_LABELS[targetBoardId] || "kle-spoke"] : ["task"]
+                  issuetype: { name: "Task" },
+                  labels: ["allocated-task"]
                 }
               };
               await axios.post(`${process.env.JIRA_DOMAIN}/rest/api/3/issue`, taskBody, {
-                headers: {
-                  Authorization: `Basic ${auth}`,
-                  "Content-Type": "application/json"
-                }
+                headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }
               });
             }
 
-            // Update DB with real Jira epic key
+            // 5. Update DB with real Jira project key and new board ID
             const freshProject = await prisma.corporateProject.findUnique({
-              where: {
-                id: projectId
-              }
+              where: { id: projectId }
             });
             if (freshProject) {
               const alloc = freshProject.allocations?.find(a => a.targetCampusId === boardId);
-              if (alloc) alloc.assignedKey = realKey;
+              if (alloc) {
+                  alloc.assignedKey = realKey;
+                  if (newBoardId) alloc.customBoardId = newBoardId; // save board ID
+              }
               await prisma.corporateProject.update({
-                where: {
-                  id: freshProject.id
-                },
+                where: { id: freshProject.id },
                 data: {
                   assignedKey: realKey,
                   allocations: freshProject.allocations
                 }
               });
               invalidateCache(boardId);
+              if (newBoardId) invalidateCache(newBoardId);
               invalidateCache();
-              console.log(`[ASYNC PROVISIONING SUCCESS] Finished creating Jira tasks for Epic ${realKey}`);
+              console.log(`[ASYNC PROVISIONING SUCCESS] Finished creating Jira tasks for Project ${realKey}`);
             }
           }
         } catch (bgErr) {
-          console.error(`[ASYNC PROVISIONING ERROR]`, bgErr.message);
+          console.error(`[ASYNC PROVISIONING ERROR]`, bgErr.response?.data || bgErr.message);
         }
       })();
       return;
