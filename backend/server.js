@@ -548,7 +548,17 @@ app.get("/spokes/:boardId/members", async (req, res) => {
 app.get("/tasks", async (req, res) => {
   const boardId = req.query.boardId || "3";
   const spoke = SPOKES[boardId];
-  const isDynamicLiveBoard = LIVE_BOARD_IDS.includes(boardId.toString());
+  let isDynamicLiveBoard = LIVE_BOARD_IDS.includes(boardId.toString());
+  if (!isDynamicLiveBoard && !spoke) {
+      const projects = await prisma.corporateProject.findMany();
+      for (const p of projects) {
+          if (p.allocations && p.allocations.some(a => a.customBoardId && a.customBoardId.toString() === boardId.toString())) {
+              isDynamicLiveBoard = true;
+              LIVE_BOARD_IDS.push(boardId.toString());
+              break;
+          }
+      }
+  }
   const now = Date.now();
   if ((spoke && spoke.live && shouldCheckJira()) || isDynamicLiveBoard) {
     if (apiCache.tasks[boardId] && now - apiCache.tasks[boardId].time < CACHE_EXPIRY.tasks) {
