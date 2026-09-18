@@ -550,7 +550,7 @@ app.get("/tasks", async (req, res) => {
   const spoke = SPOKES[boardId];
   let isDynamicLiveBoard = LIVE_BOARD_IDS.includes(boardId.toString());
   if (!isDynamicLiveBoard && !spoke) {
-      const projects = await prisma.corporateProject.findMany();
+      const projects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
       for (const p of projects) {
           if (p.allocations && p.allocations.some(a => a.customBoardId && a.customBoardId.toString() === boardId.toString())) {
               isDynamicLiveBoard = true;
@@ -2198,7 +2198,7 @@ app.get("/hub/metrics", async (req, res) => {
     });
 
     // 4. Calculate milestone progress for B2B Corporate Projects across all spokes (fetched from PostgreSQL)
-    const companyProjects = await prisma.corporateProject.findMany();
+    const companyProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
     hubData.b2bProjects = companyProjects.map(proj => {
       const enrichedAllocations = (proj.allocations || []).map(alloc => {
         const boardId = alloc.targetCampusId;
@@ -2319,7 +2319,7 @@ app.get("/moderator/projects", async (req, res) => {
         }
       }
     }));
-    const companyProjects = await prisma.corporateProject.findMany();
+    const companyProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
     const projectsWithProgress = companyProjects.map(proj => {
       // Map Mongo _id to id for client compatibility
       const normalizedProj = {
@@ -2371,7 +2371,7 @@ app.get("/moderator/projects", async (req, res) => {
       console.warn("Returning cached moderator projects on error.");
       return res.json(apiCache.moderatorProjects);
     }
-    const companyProjects = await prisma.corporateProject.findMany();
+    const companyProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
     const normalizedProjects = companyProjects.map(p => ({
       ...p,
       id: p.id.toString()
@@ -3634,7 +3634,7 @@ app.post("/moderator/alerts/check", async (req, res) => {
         }
       });
     }
-    const companyProjects = await prisma.corporateProject.findMany();
+    const companyProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
     for (const project of companyProjects) {
       if (!project.assignedTo || !project.assignedKey) continue;
       const boardId = Object.keys(SPOKES).find(k => SPOKES[k].name === project.assignedTo);
@@ -4323,7 +4323,7 @@ app.post("/api/rovo/chat", async (req, res) => {
 
     // Fetch context data
     const allTasks = await prisma.mockTask.findMany();
-    const allProjects = await prisma.corporateProject.findMany();
+    const allProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
 
     // Boundary Protection logic
     let scopedTasks = allTasks;
@@ -4790,7 +4790,7 @@ app.get("/api/cohort-stats", async (req, res) => {
     }];
 
     // Fetch all projects once
-    const allProjects = await prisma.corporateProject.findMany();
+    const allProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
 
     // Compute per-spoke stats
     const stats = await Promise.all(SPOKE_CONFIG.map(async spoke => {
@@ -5461,7 +5461,7 @@ app.post("/api/automation/verify-all", async (req, res) => {
 async function runMorningCampusDigest() {
   console.log("☀️ [CRON AGENT]: Triggering Morning Campus Portfolio Digest...");
   try {
-    const allProjects = await prisma.corporateProject.findMany();
+    const allProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
     const allSubmissions = await prisma.submission.findMany();
 
     // Calculate portfolio metrics
@@ -5850,7 +5850,7 @@ app.get("/api/mentors/:mentorId/projects", async (req, res) => {
     const {
       mentorId
     } = req.params;
-    const allProjects = await prisma.corporateProject.findMany();
+    const allProjects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
     const projects = allProjects.filter(p => {
       const rootMatch = p.facultyMentor && p.facultyMentor.accountId === mentorId;
       const allocMatch = p.allocations && p.allocations.some(a => a.facultyMentor && a.facultyMentor.accountId === mentorId);
