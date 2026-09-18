@@ -871,7 +871,7 @@ function App() {
   const [newAssignee, setNewAssignee] = useState("");
   const [newReporter, setNewReporter] = useState("");
   const [newPriority, setNewPriority] = useState("Medium");
-  const [newStatus, setNewStatus] = useState("Backlog");
+  const [newStatus, setNewStatus] = useState("To Do");
   const [newDueDate, setNewDueDate] = useState("");
 
   // Trigger Toast Notification
@@ -1289,7 +1289,7 @@ function App() {
           fields: {
             summary: item.fields?.summary || "No Summary Provided",
             description: item.fields?.description || "No description set in Jira.",
-            status: { name: item.fields?.status?.name || "Backlog" },
+            status: { name: item.fields?.status?.name || "To Do" },
             priority: { name: item.fields?.priority?.name || "Medium" },
             issueType: item.fields?.issuetype?.name || "Task",
             assignee: item.fields?.assignee ? {
@@ -1321,7 +1321,7 @@ function App() {
               id: sub.id,
               key: sub.key,
               summary: sub.fields?.summary || sub.summary || "No Summary",
-              statusName: sub.fields?.status?.name || sub.statusName || "Backlog"
+              statusName: sub.fields?.status?.name || sub.statusName || "To Do"
             })) : [],
             issuelinks: item.fields?.issuelinks ? item.fields.issuelinks.map(link => {
               const linkedIssue = link.inwardIssue || link.outwardIssue;
@@ -1332,7 +1332,7 @@ function App() {
                 direction: direction,
                 key: linkedIssue?.key,
                 summary: linkedIssue?.fields?.summary || "No Summary",
-                statusName: linkedIssue?.fields?.status?.name || "Backlog"
+                statusName: linkedIssue?.fields?.status?.name || "To Do"
               };
             }) : [],
             labels: item.fields?.labels || [],
@@ -1643,7 +1643,7 @@ function App() {
   // Aggregate Metrics
   const metrics = useMemo(() => {
     const total = filteredTasks.length;
-    const backlog = filteredTasks.filter(t => t.fields.status.name === "Backlog").length;
+    const backlog = filteredTasks.filter(t => t.fields.status.name === "To Do").length;
     const progress = filteredTasks.filter(t => t.fields.status.name === "In Progress").length;
     const done = filteredTasks.filter(t => t.fields.status.name === "Done").length;
     
@@ -1679,7 +1679,7 @@ function App() {
 
   // Recharts Chart Formats
   const statusPieData = [
-    { name: "Backlog", value: metrics.backlog, color: "#f59e0b" },
+    { name: "To Do", value: metrics.backlog, color: "#f59e0b" },
     { name: "In Progress", value: metrics.progress, color: "#3b82f6" },
     { name: "Done", value: metrics.done, color: "#10b981" },
   ].filter(d => d.value > 0);
@@ -1812,7 +1812,7 @@ function App() {
 
     // Map column ID to actual status name
     const statusMap = {
-      "col-backlog": "Backlog",
+      "col-backlog": "To Do",
       "col-progress": "In Progress",
       "col-done": "Done",
     };
@@ -1888,7 +1888,7 @@ function App() {
       setNewAssignee("");
       setNewReporter("");
       setNewPriority("Medium");
-      setNewStatus("Backlog");
+      setNewStatus("To Do");
       setNewDueDate("");
       setIsCreateOpen(false);
       
@@ -6833,7 +6833,7 @@ function App() {
                               {myAssignedTasks.length > 0 ? (
                                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                   {myAssignedTasks.map(t => {
-                                    const tStatus = t.fields?.status?.name || t.fields?.status || "Backlog";
+                                    const tStatus = t.fields?.status?.name || t.fields?.status || "To Do";
                                     const isTDone = tStatus === "Done";
                                     const isTeamTask = t.fields?.assignee?.isTeam || 
                                       t.fields?.assignee?.displayName?.includes("[TEAM]") || 
@@ -8120,14 +8120,14 @@ function App() {
                           style={getColumnStyle(snapshot.isDraggingOver)}
                         >
                           <ColumnHeader
-                            title="Backlog"
-                            count={filteredTasks.filter(t => t.fields.status.name === "Backlog").length}
+                            title="To Do"
+                            count={filteredTasks.filter(t => t.fields.status.name === "To Do").length}
                             color="var(--status-backlog-text)"
                             bgColor="var(--status-backlog-bg)"
                           />
                           <div style={{ display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", flex: 1 }}>
                             {filteredTasks
-                              .filter(t => t.fields.status.name === "Backlog")
+                              .filter(t => t.fields.status.name === "To Do")
                               .map((task, idx) => (
                                 <DraggableCard key={task.id} task={task} index={idx} onClick={() => setSelectedTask(task)} />
                               ))}
@@ -8326,7 +8326,7 @@ function App() {
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
                   >
-                    <option value="Backlog">Backlog</option>
+                    <option value="To Do">To Do</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Done">Done</option>
                   </select>
@@ -8646,7 +8646,7 @@ function App() {
                         }}
                         style={{ height: "36px", padding: "6px 12px", fontSize: "13px", cursor: isCentralAdmin ? "not-allowed" : "pointer" }}
                       >
-                        <option value="Backlog">Backlog</option>
+                        <option value="To Do">To Do</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Done">Done</option>
                       </select>
@@ -10609,7 +10609,7 @@ function ColumnHeader({ title, count, color, bgColor, pulse }) {
           }} className="pulse-glow"></span>
         )}
         <span style={{ fontWeight: "700", fontSize: "15px", letterSpacing: "0.2px" }}>
-          {title === "Backlog" ? <FaInbox style={{ marginRight: "6px", verticalAlign: "middle" }} /> : title === "In Progress" ? <FaHourglassHalf style={{ marginRight: "6px", verticalAlign: "middle" }} /> : title === "Done" ? <FaCheckCircle style={{ marginRight: "6px", verticalAlign: "middle" }} /> : ""}
+          {title === "To Do" ? <FaInbox style={{ marginRight: "6px", verticalAlign: "middle" }} /> : title === "In Progress" ? <FaHourglassHalf style={{ marginRight: "6px", verticalAlign: "middle" }} /> : title === "Done" ? <FaCheckCircle style={{ marginRight: "6px", verticalAlign: "middle" }} /> : ""}
           {title}
         </span>
       </div>

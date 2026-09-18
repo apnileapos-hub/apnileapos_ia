@@ -828,7 +828,7 @@ app.post("/tasks", authenticateToken, async (req, res) => {
           summary,
           description: description || "",
           status: {
-            name: statusName || "Backlog"
+            name: statusName || "To Do"
           },
           priority: {
             name: priorityName || "Medium"
@@ -946,8 +946,8 @@ app.post("/tasks", authenticateToken, async (req, res) => {
       }
     }
 
-    // 4. Transition the issue if it is created in a column other than Backlog
-    if (statusName && statusName !== "Backlog") {
+    // 4. Transition the issue if it is created in a column other than To Do
+    if (statusName && statusName !== "To Do") {
       try {
         const transitionsRes = await axios.get(`${process.env.JIRA_DOMAIN}/rest/api/3/issue/${newIssueKey}/transitions`, {
           headers: {
@@ -1124,7 +1124,7 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
             summary: summary || "Sprint Task",
             description: description || "",
             status: {
-              name: "Backlog"
+              name: "To Do"
             },
             priority: {
               name: priority || "Medium"
@@ -1765,7 +1765,7 @@ app.post("/tasks/:key/subtask", authenticateToken, async (req, res) => {
         fields: {
           summary,
           status: {
-            name: "Backlog"
+            name: "To Do"
           },
           priority: {
             name: "Medium"
@@ -1798,7 +1798,7 @@ app.post("/tasks/:key/subtask", authenticateToken, async (req, res) => {
           id: newId,
           key: newKey,
           summary: summary,
-          statusName: "Backlog"
+          statusName: "To Do"
         });
       }
       return res.json({
@@ -2100,7 +2100,7 @@ app.get("/hub/metrics", async (req, res) => {
       let total = 0;
       let done = 0;
       let progress = 0;
-      let backlog = 0;
+      let toDo = 0;
       let blockersCount = 0;
       const epicTaskTotals = {};
       const epicTaskDones = {};
@@ -2111,9 +2111,9 @@ app.get("/hub/metrics", async (req, res) => {
       issues.forEach(issue => {
         const issueType = issue.fields?.issuetype?.name || issue.fields?.issueType || "Task";
         if (issueType === "Epic") return;
-        const status = issue.fields?.status?.name || issue.fields?.status || "Backlog";
+        const status = issue.fields?.status?.name || issue.fields?.status || "To Do";
         total++;
-        if (status === "Done") done++;else if (status === "In Progress" || status === "To Do") progress++;else backlog++;
+        if (status === "Done") done++;else if (status === "In Progress") progress++;else toDo++;
         const simulatedAssignee = jiraSimulatedAssigneeStore[issue.key];
         const activeAssignee = simulatedAssignee ? {
           displayName: simulatedAssignee.displayName,
@@ -2155,7 +2155,7 @@ app.get("/hub/metrics", async (req, res) => {
         total,
         done,
         progress,
-        backlog,
+        toDo,
         blockersCount,
         completionRate: total > 0 ? Math.round(done / total * 100) : 0
       });
@@ -2197,7 +2197,7 @@ app.get("/hub/metrics", async (req, res) => {
           const isChild = epicKey && parentKey === epicKey || parentSummary && parentSummary === expectedSummary;
           if (isChild) {
             totalTasks++;
-            const status = issue.fields?.status?.name || issue.fields?.status || "Backlog";
+            const status = issue.fields?.status?.name || issue.fields?.status || "To Do";
             if (status === "Done") doneTasks++;
           }
         });
@@ -2324,7 +2324,7 @@ app.get("/moderator/projects", async (req, res) => {
             const isChild = epicKey && parentKey === epicKey || parentSummary && parentSummary === expectedSummary;
             if (isChild) {
               totalTasks++;
-              const status = issue.fields?.status?.name || issue.fields?.status || "Backlog";
+              const status = issue.fields?.status?.name || issue.fields?.status || "To Do";
               if (status === "Done") doneTasks++;
             }
           });
@@ -2848,7 +2848,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
         fields: {
           summary: summary,
           description: descriptionText,
-          status: { name: "Backlog" },
+          status: { name: "To Do" },
           priority: { name: "High" },
           issuetype: { name: "Epic" },
           created: new Date().toISOString(),
@@ -2872,7 +2872,7 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
           fields: {
             summary: taskSummary,
             description: `Automated child task created under Epic ${createdEpicKey} representing company project assigned to ${spoke.name}.`,
-            status: { name: "Backlog" },
+            status: { name: "To Do" },
             priority: { name: "Medium" },
             issuetype: { name: "Task" },
             created: new Date().toISOString(),
@@ -3328,7 +3328,7 @@ app.post("/meetings/:id/remind", async (req, res) => {
       const issueType = t.fields?.issuetype?.name || t.fields?.issueType || "Task";
       if (issueType === "Epic") return;
       const summary = t.fields?.summary || "Sprint task";
-      const status = t.fields?.status?.name || t.fields?.status || "Backlog";
+      const status = t.fields?.status?.name || t.fields?.status || "To Do";
       const simulatedAssignee = jiraSimulatedAssigneeStore[t.key];
       const assigneeName = simulatedAssignee ? simulatedAssignee.displayName : t.fields?.assignee?.displayName || "Unassigned";
       const assigneeEmail = simulatedAssignee ? simulatedAssignee.emailAddress : t.fields?.assignee?.emailAddress || t.fields?.assignee?.email || null;
@@ -3662,7 +3662,7 @@ app.post("/moderator/alerts/check", async (req, res) => {
       });
       const totalChildren = childTasks.length;
       const completedChildren = childTasks.filter(t => {
-        const status = t.fields?.status?.name || t.fields?.status || "Backlog";
+        const status = t.fields?.status?.name || t.fields?.status || "To Do";
         return status === "Done";
       }).length;
       const completionRate = totalChildren > 0 ? Math.round(completedChildren / totalChildren * 100) : 0;
