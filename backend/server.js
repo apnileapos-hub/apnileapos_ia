@@ -4718,16 +4718,18 @@ app.post("/api/login", async (req, res) => {
             });
         }
         
+        const recipient = process.env.SMTP_REDIRECT_TO || process.env.SMTP_USER || user.email;
         const mailOptions = {
             from: process.env.SMTP_FROM || '"ApniLeap Auth" <noreply@apnileap.com>',
-            to: user.email,
+            to: recipient,
             subject: "Your ApniLeap Login Code",
             text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
-            html: `<h2>ApniLeap Secure Login</h2><p>Your 6-digit login code is: <b>${generatedOtp}</b></p>`
+            html: `<h2>ApniLeap Secure Login</h2><p>Your 6-digit login code is: <b>${generatedOtp}</b></p><p><small>(Sent to ${recipient} because of SMTP override. Original user: ${user.email})</small></p>`
         };
         
         const info = await transporter.sendMail(mailOptions);
         if (isTestAccount) console.log(`[2FA OTP PREVIEW URL]: ${nodemailer.getTestMessageUrl(info)}`);
+        else console.log(`[2FA OTP SENT] Dispatched to ${recipient} (Override)`);
         
         return res.json({ success: true, require2FA: true, message: "OTP sent to email." });
     }
