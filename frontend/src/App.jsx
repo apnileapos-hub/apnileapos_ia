@@ -7089,7 +7089,15 @@ function App() {
                             if (myTeamsList.length > 0) {
                               return (
                                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                                  {myTeamsList.map((team) => (
+                                  {myTeamsList.map((team) => {
+                                    const linkedProj = moderatorProjects.find(p => String(p._id) === String(team.projectId) || String(p.id) === String(team.projectId));
+                                    let targetBoardId = null;
+                                    if (linkedProj && linkedProj.allocations) {
+                                      const alloc = linkedProj.allocations.find(a => String(a.targetCampusId) === String(currentBoardId));
+                                      if (alloc && alloc.customBoardId) targetBoardId = alloc.customBoardId;
+                                    }
+
+                                    return (
                                     <div key={team._id} style={{
                                       padding: "14px",
                                       background: "rgba(99, 102, 241, 0.02)",
@@ -7099,8 +7107,30 @@ function App() {
                                       flexDirection: "column",
                                       gap: "10px"
                                     }}>
-                                      <strong style={{ fontSize: "13px", color: "var(--text-main)" }}>{team.name}</strong>
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <strong style={{ fontSize: "13px", color: "var(--text-main)" }}>{team.name}</strong>
+                                        {targetBoardId && (
+                                          <button
+                                              onClick={() => {
+                                                  setActiveCustomBoardId(targetBoardId);
+                                                  fetchJiraTasks(false, targetBoardId);
+                                                  setFilterProject("All");
+                                                  setActiveView("kanban");
+                                                  window.scrollTo(0,0);
+                                              }}
+                                              style={{ fontSize: "10px", padding: "4px 10px", borderRadius: "12px", background: "var(--primary)", border: "none", color: "white", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: "700" }}
+                                          >
+                                              <FaChartPie size={10} /> Kanban Board
+                                          </button>
+                                        )}
+                                      </div>
                                       
+                                      {linkedProj && (
+                                        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>
+                                          Project: <strong style={{ color: "var(--text-main)" }}>{linkedProj.title}</strong>
+                                        </div>
+                                      )}
+
                                       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
 
                                         {team.teamLeader && (
@@ -7143,7 +7173,8 @@ function App() {
                                         </div>
                                       </div>
                                     </div>
-                                  ))}
+                                  );
+                                  })}
                                 </div>
                               );
                             } else {
