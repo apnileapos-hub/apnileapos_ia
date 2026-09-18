@@ -7782,7 +7782,7 @@ function App() {
                               const progressPct = totalT > 0 ? Math.round((doneT / totalT) * 100) : 0;
 
                               return (
-                                <div key={proj.id} className="glass-panel" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                                <div key={proj.id} className="glass-panel hover-lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer" }} onClick={(e) => { if(e.target.tagName !== "BUTTON" && e.target.closest("button") === null) { setFilterProject([] \); setActiveCoordinatorTab("board"); window.scrollTo(0, 0); } }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                       <CompanyLogo company={proj.company} size={36} />
