@@ -192,39 +192,71 @@ const CAMPUS_TEAM_MEMBERS = {
   // KLE Spoke
   {
     accountId: "mock-kle-1",
-    displayName: "Rahul Sharma (Student Developer)",
-    emailAddress: "rahul@kle.edu",
-    email: "rahul@kle.edu",
+    displayName: "Manasa Vasare (Student Developer)",
+    emailAddress: "manasa@kle.edu",
+    email: "manasa@kle.edu",
     avatarUrls: {
       "48x48": "https://i.pravatar.cc/150?img=12"
     }
   }, {
     accountId: "mock-kle-2",
-    displayName: "Priya Patel (Student Developer)",
-    emailAddress: "priya@kle.edu",
-    email: "priya@kle.edu",
+    displayName: "Divya Kumari (Student Developer)",
+    emailAddress: "divya@kle.edu",
+    email: "divya@kle.edu",
     avatarUrls: {
       "48x48": "https://i.pravatar.cc/150?img=47"
     }
   }, {
     accountId: "mock-kle-4",
-    displayName: "Rohit Verma (Student Developer)",
-    emailAddress: "rohit@kle.edu",
-    email: "rohit@kle.edu",
+    displayName: "Vineet Kulkarni (Student Developer)",
+    emailAddress: "vineet@kle.edu",
+    email: "vineet@kle.edu",
     avatarUrls: {
       "48x48": "https://i.pravatar.cc/150?img=13"
     }
   }, {
     accountId: "mock-kle-5",
-    displayName: "Swati Mishra (Student Developer)",
-    emailAddress: "swati@kle.edu",
-    email: "swati@kle.edu",
+    displayName: "Renuka Kagadal (Student Developer)",
+    emailAddress: "renuka@kle.edu",
+    email: "renuka@kle.edu",
     avatarUrls: {
       "48x48": "https://i.pravatar.cc/150?img=48"
     }
   }, {
+    accountId: "mock-kle-6",
+    displayName: "Vageesh Mathad (Student Developer)",
+    emailAddress: "vageesh@kle.edu",
+    email: "vageesh@kle.edu",
+    avatarUrls: {
+      "48x48": "https://i.pravatar.cc/150?img=53"
+    }
+  }, {
+    accountId: "mock-kle-7",
+    displayName: "Mehak Sayed (Student Developer)",
+    emailAddress: "mehak@kle.edu",
+    email: "mehak@kle.edu",
+    avatarUrls: {
+      "48x48": "https://i.pravatar.cc/150?img=49"
+    }
+  }, {
+    accountId: "mock-kle-8",
+    displayName: "Parth Karpe (Student Developer)",
+    emailAddress: "parth@kle.edu",
+    email: "parth@kle.edu",
+    avatarUrls: {
+      "48x48": "https://i.pravatar.cc/150?img=57"
+    }
+  }, {
+    accountId: "mock-kle-9",
+    displayName: "Nupur (Student Developer)",
+    emailAddress: "nupur@kle.edu",
+    email: "nupur@kle.edu",
+    avatarUrls: {
+      "48x48": "https://i.pravatar.cc/150?img=45"
+    }
+  }, {
     accountId: "mock-kle-3",
-    displayName: "Prof. Deshpande (Faculty Mentor)",
+    displayName: "Prof. Pooja P Shettar (Faculty Mentor)",
     emailAddress: "mentor@kle.edu",
     email: "mentor@kle.edu",
     avatarUrls: {
@@ -232,7 +264,7 @@ const CAMPUS_TEAM_MEMBERS = {
     }
   }, {
     accountId: "mock-kle-mentor-2",
-    displayName: "Prof. Rajesh Kumar (Faculty Mentor)",
+    displayName: "Prof. Amit Kachavimath (Faculty Mentor)",
     emailAddress: "mentor2@kle.edu",
     email: "mentor2@kle.edu",
     avatarUrls: {
@@ -240,7 +272,7 @@ const CAMPUS_TEAM_MEMBERS = {
     }
   }, {
     accountId: "mock-kle-mentor-3",
-    displayName: "Prof. Sunita Rao (Faculty Mentor)",
+    displayName: "Prof. Sneha Varur (Faculty Mentor)",
     emailAddress: "mentor3@kle.edu",
     email: "mentor3@kle.edu",
     avatarUrls: {
@@ -2474,7 +2506,7 @@ app.post("/moderator/projects", authenticateToken, async (req, res) => {
       requirements,
       phases
     } = req.body;
-    if (!company || !title || !description || !budget || !duration || !proposedDueDate) {
+    if (!company || !title || !description || !duration || !proposedDueDate) {
       return res.status(400).json({
         error: "All project proposal fields are required."
       });
@@ -2484,7 +2516,7 @@ app.post("/moderator/projects", authenticateToken, async (req, res) => {
         company,
         title,
         description,
-        budget,
+        budget: budget || "Not Applicable",
         duration,
         status: "Pending Assignment",
         assignedTo: null,
@@ -4056,30 +4088,58 @@ const CREDENTIALS_STORE = {
     persona: "spoke-kle",
     spokeId: "3"
   },
-  "rahul@kle.edu": {
+  "manasa@kle.edu": {
     password: "student123",
-    displayName: "Rahul Sharma",
+    displayName: "Manasa Vasare",
     role: "Student Developer",
     persona: "spoke-kle",
     spokeId: "3"
   },
-  "priya@kle.edu": {
+  "divya@kle.edu": {
     password: "student123",
-    displayName: "Priya Patel",
+    displayName: "Divya Kumari",
     role: "Student Developer",
     persona: "spoke-kle",
     spokeId: "3"
   },
-  "rohit@kle.edu": {
+  "vineet@kle.edu": {
     password: "student123",
-    displayName: "Rohit Verma",
+    displayName: "Vineet Kulkarni",
     role: "Student Developer",
     persona: "spoke-kle",
     spokeId: "3"
   },
-  "swati@kle.edu": {
+  "renuka@kle.edu": {
     password: "student123",
-    displayName: "Swati Mishra",
+    displayName: "Renuka Kagadal",
+    role: "Student Developer",
+    persona: "spoke-kle",
+    spokeId: "3"
+  },
+  "vageesh@kle.edu": {
+    password: "student123",
+    displayName: "Vageesh Mathad",
+    role: "Student Developer",
+    persona: "spoke-kle",
+    spokeId: "3"
+  },
+  "mehak@kle.edu": {
+    password: "student123",
+    displayName: "Mehak Sayed",
+    role: "Student Developer",
+    persona: "spoke-kle",
+    spokeId: "3"
+  },
+  "parth@kle.edu": {
+    password: "student123",
+    displayName: "Parth Karpe",
+    role: "Student Developer",
+    persona: "spoke-kle",
+    spokeId: "3"
+  },
+  "nupur@kle.edu": {
+    password: "student123",
+    displayName: "Nupur",
     role: "Student Developer",
     persona: "spoke-kle",
     spokeId: "3"
@@ -4196,21 +4256,21 @@ const CREDENTIALS_STORE = {
   },
   "mentor@kle.edu": {
     password: "mentor123",
-    displayName: "Prof. Deshpande",
+    displayName: "Prof. Pooja P Shettar",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
     spokeId: "3"
   },
   "mentor2@kle.edu": {
     password: "mentor123",
-    displayName: "Prof. Rajesh Kumar",
+    displayName: "Prof. Amit Kachavimath",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
     spokeId: "3"
   },
   "mentor3@kle.edu": {
     password: "mentor123",
-    displayName: "Prof. Sunita Rao",
+    displayName: "Prof. Sneha Varur",
     role: "Faculty Mentor",
     persona: "faculty-mentor",
     spokeId: "3"
@@ -4506,12 +4566,12 @@ async function seedDefaultChatMessages() {
     if (count === 0) {
       console.log("🌱 [SEEDING] No chat messages found. Seeding default messages...");
       const defaultMessages = [{
-        sender: "Rahul Sharma (KLE Spoke)",
+        sender: "Manasa Vasare (KLE Spoke)",
         message: "Phase 1 lab equipment setup completed! Ready for mentor review.",
         campus: "KLE Spoke"
       }, {
         sender: "Sneha Joshi (COEP Spoke)",
-        message: "Awesome Rahul! We just pushed our micro-controller architecture specs on board AK-21.",
+        message: "Awesome Manasa! We just pushed our micro-controller architecture specs on board AK-21.",
         campus: "COEP Spoke"
       }, {
         sender: "Nikhil Rane (MMCOEP Spoke)",
@@ -5693,16 +5753,11 @@ app.get("/api/spokes/:boardId/mentors", async (req, res) => {
     const targetPersona = personaMap[boardId] || "spoke-kle";
     const mentors = await prisma.user.findMany({
       where: {
-        OR: [{
-          spokeId: boardId,
-          role: /mentor/i
-        }, {
-          persona: targetPersona,
-          role: /mentor/i
-        }, {
-          persona: "faculty-mentor",
-          spokeId: boardId
-        }]
+        spokeId: boardId,
+        OR: [
+          { role: { contains: "mentor", mode: "insensitive" } },
+          { persona: "faculty-mentor" }
+        ]
       }
     });
     const result = mentors.map(m => ({
@@ -5727,22 +5782,10 @@ app.get("/api/spokes/:boardId/students", async (req, res) => {
     const {
       boardId
     } = req.params;
-    const personaMap = {
-      "3": "spoke-kle",
-      "101": "spoke-coep",
-      "102": "spoke-mmcoep",
-      "103": "spoke-rit"
-    };
-    const targetPersona = personaMap[boardId] || "spoke-kle";
     const students = await prisma.user.findMany({
       where: {
-        OR: [{
-          spokeId: boardId,
-          role: /student/i
-        }, {
-          persona: targetPersona,
-          role: /student/i
-        }]
+        spokeId: boardId,
+        role: { contains: "student", mode: "insensitive" }
       }
     });
     const result = students.map(s => ({

@@ -90,7 +90,7 @@ sequenceDiagram
 | **Central Moderator** | `admin@apnileap.com` | Global administrative governance, allocates projects to universities, manages institutional risk. |
 | **Campus Coordinator** | `kle@apnileap.com` | Accepts/declines proposed projects for the campus, oversees spoke metrics, schedules sync meetings. |
 | **Faculty Mentor** | `anitasharma@kle.in` | Creates student teams, assigns sprint tasks, reviews phase deliverables, grades submissions. |
-| **Student Developer** | `rahulsharma@kle.edu` | Views assigned Kanban board, transitions task cards, uploads phase deliverables, participates in team chat. |
+| **Student Developer** | `manasa@kle.edu` | Views assigned Kanban board, transitions task cards, uploads phase deliverables, participates in team chat. |
 
 ---
 
@@ -293,7 +293,7 @@ When configured with valid Jira credentials, ApniLeap automatically handles:
 | **KLE Coordinator** | `kle@apnileap.com` | `spoke123` | KLE Tech (Spoke 3) |
 | **COEP Coordinator** | `coep@apnileap.com` | `spoke123` | COEP (Spoke 101) |
 | **Faculty Mentor** | `anitasharma@kle.in` | `faculty123` | KLE Tech (Spoke 3) |
-| **Student Developer** | `rahulsharma@kle.edu` | `student123` | KLE Tech (Spoke 3) |
+| **Student Developer** | `manasa@kle.edu` | `student123` | KLE Tech (Spoke 3) |
 
 ---
 

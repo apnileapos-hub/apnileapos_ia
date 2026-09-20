@@ -51,7 +51,8 @@ const CorporateProjectSchema = new mongoose.Schema({
   },
   budget: {
     type: String,
-    required: true
+    required: false,
+    default: "Not Applicable"
   },
   duration: {
     type: String,

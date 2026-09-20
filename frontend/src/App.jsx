@@ -34,6 +34,8 @@ import {
   RotateCw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Info,
   Lightbulb,
   Mail,
@@ -92,6 +94,8 @@ const FaTrashAlt = Trash2;
 const FaSyncAlt = RotateCw;
 const FaChevronLeft = ChevronLeft;
 const FaChevronRight = ChevronRight;
+const FaChevronDown = ChevronDown;
+const FaChevronUp = ChevronUp;
 const FaInfoCircle = Info;
 const FaRegLightbulb = Lightbulb;
 const FaEnvelope = Mail;
@@ -435,7 +439,7 @@ function RovoAgentWidget({ sessionUser, currentBoardId, activeWorkspace }) {
   let starters = [];
   if (sessionUser?.role === "Corporate Sponsor" || sessionUser?.role === "Corporate Partner") {
     starters = [
-      "Create a project to build an AI chatbot with a budget of $15,000",
+      "Create a project to build an AI chatbot",
       "Show me the top performing student developers",
       "What are my upcoming syncs?"
     ];
@@ -610,13 +614,18 @@ function RovoAgentWidget({ sessionUser, currentBoardId, activeWorkspace }) {
 function App() {
   // Authentication & Session States
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem("apnileap-auth") === "true";
+    const auth = localStorage.getItem("apnileap-auth") === "true";
+    const token = localStorage.getItem("apnileap-token");
+    const userStr = localStorage.getItem("apnileap-user");
+    return Boolean(auth && token && userStr && userStr !== "undefined" && userStr !== "null");
   });
 
   // Public Landing Page & Redirection States
   const [viewMode, setViewMode] = useState(() => {
     const auth = localStorage.getItem("apnileap-auth") === "true";
-    return auth ? "dashboard" : "landing";
+    const token = localStorage.getItem("apnileap-token");
+    const userStr = localStorage.getItem("apnileap-user");
+    return (auth && token && userStr && userStr !== "undefined" && userStr !== "null") ? "dashboard" : "landing";
   });
   const [landingTab, setLandingTab] = useState("home"); // "home", "about", "collaboration", "contact", "login"
   const [portalModal, setPortalModal] = useState(null); // null, "academia", "industries", "startups"
@@ -683,7 +692,9 @@ function App() {
 
   const [activeWorkspace, setActiveWorkspace] = useState(() => {
     const auth = localStorage.getItem("apnileap-auth") === "true";
-    if (auth) {
+    const token = localStorage.getItem("apnileap-token");
+    const userStr = localStorage.getItem("apnileap-user");
+    if (auth && token && userStr && userStr !== "undefined" && userStr !== "null") {
       const persona = localStorage.getItem("apnileap-persona") || "moderator";
       if (persona === "executive") return "hub";
       if (persona === "moderator") return "moderator";
@@ -1048,13 +1059,31 @@ function App() {
 
     setLoginPassword(password);
     setLoginError("");
+
+    const isSameEmail = loginEmail.toLowerCase().trim() === email.toLowerCase().trim();
+    const currentOtp = (isSameEmail && showOtpInput && loginOtp.trim().length === 6) ? loginOtp.trim() : undefined;
+    if (!isSameEmail) {
+      setLoginOtp("");
+    }
+
     setIsLoggingIn(true);
 
     try {
       const response = await axios.post("http://localhost:5001/api/login", {
         email: email,
-        password: password
+        password: password,
+        otp: currentOtp
       });
+
+      if (response.data.require2FA) {
+        setShowOtpInput(true);
+        setViewMode("landing");
+        setLandingTab("login");
+        setPortalModal(null);
+        triggerToast(response.data.message || "A 6-digit verification code has been sent to your email. Please enter it below to complete login.", "success");
+        setIsLoggingIn(false);
+        return;
+      }
 
       const { user, token } = response.data;
       setIsAuthenticated(true);
@@ -1070,10 +1099,10 @@ function App() {
         localStorage.setItem("apnileap-token", token);
       }
 
-      triggerToast(`Quick Connected as ${user.displayName}! `);
+      triggerToast(`Logged in successfully as ${user.displayName}! `);
     } catch (err) {
       console.error("Quick Connect Failure:", err);
-      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5001 (or the Jira API timed out).";
+      const errMsg = err.response?.data?.error || "Connection failure. Please check if your backend is running on port 5001.";
       setLoginError(errMsg);
     } finally {
       setIsLoggingIn(false);
@@ -1102,7 +1131,7 @@ function App() {
 
   const handleIngestProjectSubmit = async (e) => {
     e.preventDefault();
-    if (!ingestTitle.trim() || !ingestDescription.trim() || !ingestBudget.trim() || !ingestDuration.trim()) {
+    if (!ingestTitle.trim() || !ingestDescription.trim() || !ingestDuration.trim()) {
       triggerToast("Please fill in all the required project proposal fields.", "warning");
       return;
     }
@@ -1113,7 +1142,7 @@ function App() {
         company: ingestCompany,
         title: ingestTitle,
         description: ingestDescription,
-        budget: ingestBudget,
+        budget: "Not Applicable",
         duration: ingestDuration,
         proposedDueDate: ingestDueDate
       });
@@ -1142,7 +1171,7 @@ function App() {
   const handleUpdateProjectSubmit = async (e) => {
     e.preventDefault();
     if (!editingProject) return;
-    if (!editTitle.trim() || !editDescription.trim() || !editBudget.trim() || !editDuration.trim()) {
+    if (!editTitle.trim() || !editDescription.trim() || !editDuration.trim()) {
       triggerToast("Please fill in all required fields.", "warning");
       return;
     }
@@ -1153,7 +1182,7 @@ function App() {
         company: editCompany,
         title: editTitle.trim(),
         description: editDescription.trim(),
-        budget: editBudget.trim(),
+        budget: editingProject.budget || "Not Applicable",
         duration: editDuration.trim(),
         proposedDueDate: editDueDate
       });
@@ -4182,7 +4211,7 @@ function App() {
 
   if (viewMode === "landing") {
     if (landingTab === "login") {
-      if (isAuthenticated) {
+      if (isAuthenticated && sessionUser && localStorage.getItem("apnileap-token")) {
         setTimeout(() => setViewMode("dashboard"), 0);
         return null;
       }
@@ -4885,26 +4914,80 @@ function App() {
 
                     {/* Submit Sign In button */}
                     {showOtpInput && (
-                      <div style={{ marginTop: "10px", padding: "15px", background: "rgba(249, 115, 22, 0.05)", border: "1px dashed rgba(249, 115, 22, 0.3)", borderRadius: "10px", animation: "slideIn 0.3s ease-out" }}>
-                        <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "#f97316", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.8px" }}>
-                          Enter 6-Digit Email Code
-                        </label>
+                      <div style={{
+                        marginTop: "10px",
+                        padding: "16px",
+                        background: "rgba(249, 115, 22, 0.08)",
+                        border: "1.5px solid rgba(249, 115, 22, 0.45)",
+                        borderRadius: "10px",
+                        animation: "slideIn 0.3s ease-out"
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                          <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "#f97316", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+                            Enter 6-Digit Email Code
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowOtpInput(false);
+                              setLoginOtp("");
+                              setLoginError("");
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "var(--text-muted)",
+                              fontSize: "11px",
+                              cursor: "pointer",
+                              textDecoration: "underline"
+                            }}
+                          >
+                            Change Email
+                          </button>
+                        </div>
                         <div style={{ position: "relative" }}>
                           <input
                             type="text"
-                            placeholder="e.g. 123456"
+                            placeholder="123456"
                             value={loginOtp}
                             onChange={(e) => setLoginOtp(e.target.value.replace(/\D/g, '').slice(0,6))}
                             maxLength="6"
+                            autoFocus
                             style={{
                               width: "100%", padding: "12px 14px", borderRadius: "8px",
-                              background: "var(--bg-card)", border: "1px solid #f97316",
-                              color: "var(--text-main)", outline: "none", fontSize: "16px",
-                              textAlign: "center", fontWeight: "700", letterSpacing: "3px"
+                              background: "var(--bg-card)", border: "1.5px solid #f97316",
+                              color: "var(--text-main)", outline: "none", fontSize: "18px",
+                              textAlign: "center", fontWeight: "800", letterSpacing: "6px"
                             }}
                           />
                         </div>
-                        <p style={{ fontSize: "10.5px", color: "var(--text-muted)", marginTop: "8px", textAlign: "center" }}>Check your email inbox for the temporary 6-digit security code to complete login.</p>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", fontSize: "11px" }}>
+                          <span style={{ color: "var(--text-muted)" }}>
+                            Code sent to <strong>{loginEmail}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                triggerToast("Resending verification code...", "info");
+                                await axios.post("http://localhost:5001/api/login", { email: loginEmail, password: loginPassword });
+                                triggerToast("A new verification code was sent to your email.", "success");
+                              } catch (err) {
+                                triggerToast("Failed to resend code.", "error");
+                              }
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#f97316",
+                              fontWeight: "700",
+                              cursor: "pointer",
+                              textDecoration: "underline"
+                            }}
+                          >
+                            Resend Code
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -4933,11 +5016,11 @@ function App() {
                       {isLoggingIn ? (
                         <>
                           <FaSyncAlt className="pulse-glow" style={{ animation: "pulseGlow 1.5s infinite linear" }} />
-                          <span>Connecting to Live Jira Hub...</span>
+                          <span>{showOtpInput ? "Verifying Code..." : "Connecting to Live Jira Hub..."}</span>
                         </>
                       ) : (
                         <>
-                          <span>Sign In</span>
+                          <span>{showOtpInput ? "Verify Code & Sign In" : "Sign In"}</span>
                           <span><FaPaperPlane /></span>
                         </>
                       )}
@@ -5507,10 +5590,10 @@ function App() {
                   onClick={() => {
                     setActiveWorkspace(currentPersona);
                     setActiveView("dashboard");
-                    triggerToast(`Switched Workspace: Spoke Dashboard`);
+                    triggerToast(`Switched Workspace: ${sessionUser?.role === "Student Developer" ? "Student Dashboard" : "Spoke Dashboard"}`);
                   }}
                   className={`sidebar-rail-icon ${(activeWorkspace === currentPersona && activeView === "dashboard") ? "active" : ""}`}
-                  title="Spoke Dashboard"
+                  title={sessionUser?.role === "Student Developer" ? "Student Dashboard" : "Spoke Dashboard"}
                 >
                   <FaHome size={20} />
                 </div>
@@ -5667,14 +5750,45 @@ function App() {
                 <div style={{ fontSize: "9px", fontWeight: "850", textTransform: "uppercase", color: "var(--sidebar-text-dim)", letterSpacing: "1px", paddingLeft: "12px", marginTop: "8px", marginBottom: "4px" }}>
                   Views
                 </div>
-                <SidebarNavItem
-                  active={activeView === "dashboard"}
-                  icon={<FaChartPie size={16} />}
-                  label="Overview"
-                  collapsed={false}
-                  onClick={() => setActiveView("dashboard")}
-                  variant="accent"
-                />
+                {activeWorkspace === "faculty-mentor" ? (
+                  <>
+                    <SidebarNavItem
+                      active={activeView === "dashboard"}
+                      icon={<FaChartPie size={16} />}
+                      label="Overview"
+                      collapsed={false}
+                      onClick={() => setActiveView("dashboard")}
+                      variant="accent"
+                    />
+                    <SidebarNavItem
+                      active={activeView === "teams"}
+                      icon={<FaUsers size={16} />}
+                      label="Create & Manage Teams"
+                      collapsed={false}
+                      onClick={() => setActiveView("teams")}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <SidebarNavItem
+                      active={activeView === "dashboard"}
+                      icon={<FaChartPie size={16} />}
+                      label={sessionUser?.role === "Student Developer" ? "Student Dashboard" : "Overview"}
+                      collapsed={false}
+                      onClick={() => setActiveView("dashboard")}
+                      variant="accent"
+                    />
+                    {sessionUser?.role === "Student Developer" && (
+                      <SidebarNavItem
+                        active={activeView === "kanban"}
+                        icon={<FaClipboardList size={16} />}
+                        label="Sprint Kanban Board"
+                        collapsed={false}
+                        onClick={() => setActiveView("kanban")}
+                      />
+                    )}
+                  </>
+                )}
                 
                 <hr style={{ border: "none", borderTop: "1px solid var(--sidebar-border)", margin: "8px 16px 8px 0" }} />
               </>
@@ -5682,7 +5796,7 @@ function App() {
 
             {/* Section 3: Campuses & Roles */}
             <div style={{ fontSize: "9px", fontWeight: "850", textTransform: "uppercase", color: "var(--sidebar-text-dim)", letterSpacing: "1px", paddingLeft: "12px", marginTop: "4px", marginBottom: "4px" }}>
-              Campuses & Roles
+              {sessionUser?.role === "Student Developer" ? "Student Workspace" : "Campuses & Roles"}
             </div>
 
             {((isCentralAdmin && currentPersona !== "executive") || currentPersona === "project-manager") && (
@@ -5698,7 +5812,7 @@ function App() {
               />
             )}
 
-            {((isCentralAdmin && currentPersona !== "executive") || currentPersona === "faculty-mentor") && (
+            {((isCentralAdmin && currentPersona !== "executive" && currentPersona !== "faculty-mentor")) && (
               <SidebarNavItem
                 active={activeWorkspace === "faculty-mentor"}
                 icon={<FaGraduationCap style={{ fontSize: "16px" }} />}
@@ -5744,8 +5858,8 @@ function App() {
             {(isCentralAdmin || currentPersona === "spoke-kle") && (
               <SidebarNavItem
                 active={activeWorkspace === "spoke-kle"}
-                icon={<FaBuilding />}
-                label="KLE Campus"
+                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
+                label={sessionUser?.role === "Student Developer" ? "KLE Student Hub" : "KLE Campus"}
                 collapsed={false}
                 onClick={() => {
                   setActiveWorkspace("spoke-kle");
@@ -5756,8 +5870,8 @@ function App() {
             {(isCentralAdmin || currentPersona === "spoke-coep") && (
               <SidebarNavItem
                 active={activeWorkspace === "spoke-coep"}
-                icon={<FaBuilding />}
-                label="COEP Campus"
+                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
+                label={sessionUser?.role === "Student Developer" ? "COEP Student Hub" : "COEP Campus"}
                 collapsed={false}
                 onClick={() => {
                   setActiveWorkspace("spoke-coep");
@@ -5768,8 +5882,8 @@ function App() {
             {(isCentralAdmin || currentPersona === "spoke-mmcoep") && (
               <SidebarNavItem
                 active={activeWorkspace === "spoke-mmcoep"}
-                icon={<FaBuilding />}
-                label="MMCOEP Campus"
+                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
+                label={sessionUser?.role === "Student Developer" ? "MMCOEP Student Hub" : "MMCOEP Campus"}
                 collapsed={false}
                 onClick={() => {
                   setActiveWorkspace("spoke-mmcoep");
@@ -5780,8 +5894,8 @@ function App() {
             {(isCentralAdmin || currentPersona === "spoke-rit") && (
               <SidebarNavItem
                 active={activeWorkspace === "spoke-rit"}
-                icon={<FaBuilding />}
-                label="RIT Campus"
+                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
+                label={sessionUser?.role === "Student Developer" ? "RIT Student Hub" : "RIT Campus"}
                 collapsed={false}
                 onClick={() => {
                   setActiveWorkspace("spoke-rit");
@@ -5859,12 +5973,18 @@ function App() {
                 if (activeWorkspace === "meetings") return "Collaboration & Sync Meetings";
                 
                 let wsName = "Spoke";
-                if (activeWorkspace === "playground") {
+                if (sessionUser?.role === "Student Developer") {
+                  return activeView === "dashboard"
+                    ? "Student Dashboard"
+                    : "Student Task Board";
+                } else if (activeWorkspace === "playground") {
                   wsName = "Playground";
                 } else if (activeWorkspace === "project-manager") {
                   wsName = "Project Manager";
                 } else if (activeWorkspace === "faculty-mentor") {
-                  wsName = "Faculty Mentor";
+                  if (activeView === "teams") return "Faculty Mentor - Create & Manage Teams";
+                  if (activeView === "kanban") return "Faculty Mentor Task Board";
+                  return "Faculty Mentor Overview";
                 } else if (activeWorkspace?.startsWith("sponsor-") || activeWorkspace === "project-mentor" || sessionUser?.role === "Corporate Partner" || sessionUser?.role === "Project Mentor") {
                   const company = sessionUser?.displayName?.replace(" Sponsor", "")?.replace(" Mentor", "") || activeWorkspace?.replace("sponsor-", "").toUpperCase() || "Corporate";
                   const suffix = (sessionUser?.role === "Project Mentor" || activeWorkspace === "project-mentor") ? "Project Mentor" : "Sponsor";
@@ -5885,6 +6005,12 @@ function App() {
                 ? "Intake projects from industry partners and automatically provision them directly to campus spaces."
                 : activeWorkspace === "meetings"
                 ? "Schedule campus sprint syncs, manage agendas, and auto-dispatch pre-meeting overdue warning digests."
+                : sessionUser?.role === "Student Developer"
+                ? "Track your active sprint tasks, team project deliverables, mentor feedback, and upcoming deadlines."
+                : activeWorkspace === "faculty-mentor" && activeView === "teams"
+                ? "Assemble student sprint teams, designate student leaders, and evaluate final project milestones."
+                : activeWorkspace === "faculty-mentor" && activeView === "dashboard"
+                ? "Monitor assigned industry projects, verify deliverables, and track campus progress."
                 : activeView === "dashboard" 
                 ? "Track student progress, team assignments, project tasks, and upcoming deadlines." 
                 : "Drag issues across columns to transition status, update fields, or track work progression."
@@ -6265,7 +6391,7 @@ function App() {
             spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
             onDeleteProject={(proj) => handleDeleteProject(proj._id || proj.id)}
           />
-        ) : activeWorkspace === "faculty-mentor" && activeView === "dashboard" ? (
+        ) : activeWorkspace === "faculty-mentor" && (activeView === "dashboard" || activeView === "teams") ? (
           <FacultyMentorDashboardView
             sessionUser={sessionUser}
             triggerToast={triggerToast}
@@ -6277,6 +6403,10 @@ function App() {
             fetchAllSubmissions={fetchAllSubmissions}
             setActiveView={setActiveView}
             handleRunAiVerificationSweep={handleRunAiVerificationSweep}
+            activeSubView={activeView === "teams" ? "teams" : "overview"}
+            setActiveCustomBoardId={setActiveCustomBoardId}
+            fetchJiraTasks={fetchJiraTasks}
+            setFilterProject={setFilterProject}
           />
         ) : activeWorkspace === "meetings" ? (
           <MeetingsPortalView
@@ -6348,9 +6478,6 @@ function App() {
                       {proj.description}
                     </p>
                     <div style={{ display: "flex", gap: "20px", marginTop: "12px", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "12.5px", color: "var(--text-main)" }}>
-                        <strong>Budget:</strong> {proj.budget}
-                      </span>
                       <span style={{ fontSize: "12.5px", color: "var(--text-main)" }}>
                         <strong>Duration:</strong> {proj.duration}
                       </span>
@@ -8053,8 +8180,6 @@ function App() {
                                   <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "850", color: "var(--text-main)" }}>{proj.title}</h4>
                                   <div style={{ display: "flex", gap: "12px", fontSize: "11.5px", color: "var(--text-dim)", marginTop: "3px", flexWrap: "wrap" }}>
                                     <span>Sponsor: <strong>{proj.company}</strong></span>
-                                    <span>•</span>
-                                    <span>Budget: <strong>{proj.budget}</strong></span>
                                     <span>•</span>
                                     <span>Duration: <strong>{proj.duration}</strong></span>
                                     {epicKey && <><span>•</span><span>Epic: <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{epicKey}</strong></span></>}
@@ -9881,31 +10006,17 @@ function App() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "6px" }}>Budget Funding</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. $25,000"
-                    value={ingestBudget}
-                    onChange={(e) => setIngestBudget(e.target.value)}
-                    required
-                    style={{ padding: "8px 12px", fontSize: "13px" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "6px" }}>Duration</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. 6 Months"
-                    value={ingestDuration}
-                    onChange={(e) => setIngestDuration(e.target.value)}
-                    required
-                    style={{ padding: "8px 12px", fontSize: "13px" }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "6px" }}>Duration</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. 6 Months"
+                  value={ingestDuration}
+                  onChange={(e) => setIngestDuration(e.target.value)}
+                  required
+                  style={{ padding: "8px 12px", fontSize: "13px" }}
+                />
               </div>
 
               <div>
@@ -9979,7 +10090,7 @@ function App() {
               Edit Project
             </h3>
             <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "24px" }}>
-              Update the specifications and budget parameters of the active project contract.
+              Update the specifications and schedule parameters of the active project contract.
             </p>
 
             <form onSubmit={handleUpdateProjectSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -10025,31 +10136,17 @@ function App() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "6px" }}>Budget Funding</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. $25,000"
-                    value={editBudget}
-                    onChange={(e) => setEditBudget(e.target.value)}
-                    required
-                    style={{ padding: "8px 12px", fontSize: "13px" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "6px" }}>Duration</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. 6 Months"
-                    value={editDuration}
-                    onChange={(e) => setEditDuration(e.target.value)}
-                    required
-                    style={{ padding: "8px 12px", fontSize: "13px" }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--text-muted)", marginBottom: "6px" }}>Duration</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. 6 Months"
+                  value={editDuration}
+                  onChange={(e) => setEditDuration(e.target.value)}
+                  required
+                  style={{ padding: "8px 12px", fontSize: "13px" }}
+                />
               </div>
 
               <div>
@@ -11065,10 +11162,6 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
 
   // Stats calculations
   const b2bList = metrics.b2bProjects || [];
-  const totalB2BFunding = b2bList.reduce((sum, p) => {
-    const val = parseInt(p.budget.replace(/[^0-9]/g, "")) || 0;
-    return sum + val;
-  }, 0);
   const activeB2BPlacements = b2bList.reduce((sum, p) => {
     return sum + (p.allocations ? p.allocations.filter(a => a.status === "Active").length : 0);
   }, 0);
@@ -11419,15 +11512,6 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
               progress={avgB2BProgress}
               themeColor="var(--primary)"
             />
-            {currentPersona !== "executive" && (
-              <DashboardCard
-                title="Total Committed Funding"
-                value={`$${totalB2BFunding.toLocaleString()}`}
-                subtitle="External FIP backing"
-                themeColor="#a855f7"
-                glow={totalB2BFunding > 0}
-              />
-            )}
           </div>
 
           {/* 💼 Active Partnerships Tracker */}
@@ -11470,7 +11554,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
                       transition: "var(--transition-smooth)"
                     }}
                   >
-                    {/* Card Header: Brand, Title, Budget */}
+                    {/* Card Header: Brand, Title, Duration */}
                     <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                       <CompanyLogo company={proj.company} size={38} />
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -11480,12 +11564,6 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
                         <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "2px", fontSize: "11px", color: "var(--text-dim)" }}>
                           <span>Sponsor: <strong style={{ color: "var(--text-muted)" }}>{proj.company}</strong></span>
                           <span>•</span>
-                          {currentPersona !== "executive" && (
-                            <>
-                              <span>Budget: <strong style={{ color: "var(--text-muted)" }}>{proj.budget}</strong></span>
-                              <span>•</span>
-                            </>
-                          )}
                           <span>Duration: <strong style={{ color: "var(--text-muted)" }}>{proj.duration}</strong></span>
                         </div>
                       </div>
@@ -11824,7 +11902,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
             <div>
               <h3 style={{ fontSize: "18px", fontWeight: "700", color: "var(--text-main)" }}>Project Intake Board</h3>
-              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "4px" }}>Review budget scope, and instantly automate provisioning to campus Jira spaces.</p>
+              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "4px" }}>Review project scope, and instantly automate provisioning to campus Jira spaces.</p>
             </div>
             <div style={{ display: "flex", gap: "10px" }}>
               <button onClick={onRefresh} className="btn-secondary" style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -12156,7 +12234,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
                             <CompanyLogo company={proj.company} size={24} />
                             <div>
                               <div style={{ fontWeight: "750", color: "var(--text-main)", fontSize: "13.5px" }}>{proj.title}</div>
-                              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Sponsor: <strong>{proj.company}</strong> | Budget: <strong>{proj.budget}</strong></span>
+                              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Sponsor: <strong>{proj.company}</strong></span>
                             </div>
                           </div>
                         </td>
@@ -12401,12 +12479,6 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
   const sponsorProjects = projects.filter(p => 
     p.company && p.company.toLowerCase().trim() === companyName.toLowerCase().trim()
   );
-
-  // Sum of budget for committed funding
-  const totalFunding = sponsorProjects.reduce((sum, p) => {
-    const val = parseInt(p.budget.replace(/[^0-9]/g, "")) || 0;
-    return sum + val;
-  }, 0);
 
   // Campus placements (Spokes where their projects are active/assigned)
   const campusPlacements = sponsorProjects.filter(p => 
@@ -12743,8 +12815,6 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
                             </h4>
                             <div style={{ display: "flex", gap: "10px", fontSize: "11px", color: "var(--text-dim)", flexWrap: "wrap" }}>
                               <span>Sponsor: <strong>{proj.company}</strong></span>
-                              <span>•</span>
-                              <span>Budget: <strong>{proj.budget}</strong></span>
                               <span>•</span>
                               <span>Duration: <strong>{proj.duration}</strong></span>
                             </div>
@@ -13238,14 +13308,14 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
             </div>
           </div>
 
-          {/* Budget Commitment Pie Card */}
+          {/* Campus Deliverables Overview Card */}
           <div className="glass-panel" style={{ padding: "24px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)" }}>
-                FIP Campus Budget Share
+                Campus Deliverables Overview
               </h3>
               <p style={{ fontSize: "12.5px", color: "var(--text-muted)", lineHeight: "1.6" }}>
-                This card represents the total budget committed by **{companyName}** across the campus spokes. Allocations are partitioned to direct-hire and hardware deployment subsidies for active deliverables.
+                This card represents the operational progress and milestone completion across the campus spokes working on **{companyName}** problem statements and sprint epics.
               </p>
             </div>
             
@@ -13259,12 +13329,12 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
               justifyContent: "space-between"
             }}>
               <div>
-                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Hardware Seed Subsidies</span>
-                <span style={{ fontSize: "16px", fontWeight: "900", color: "var(--primary)" }}>$40,000</span>
+                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Active Placements</span>
+                <span style={{ fontSize: "16px", fontWeight: "900", color: "var(--primary)" }}>{campusPlacements} Campus Spokes</span>
               </div>
               <div style={{ textAlign: "right" }}>
-                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Cohort Intern Subsidies</span>
-                <span style={{ fontSize: "16px", fontWeight: "900", color: "var(--accent)" }}>$110,000</span>
+                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>Completed Projects</span>
+                <span style={{ fontSize: "16px", fontWeight: "900", color: "var(--accent)" }}>{completedProjects} Delivered</span>
               </div>
             </div>
           </div>
@@ -14599,8 +14669,6 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
                           <div style={{ fontSize: "11px", color: "var(--text-dim)", display: "flex", gap: "8px", flexWrap: "wrap" }}>
                             <span>Company: <strong>{proj.company}</strong></span>
                             <span>•</span>
-                            <span>Budget: <strong>{proj.budget}</strong></span>
-                            <span>•</span>
                             <span>Duration: <strong>{proj.duration}</strong></span>
                           </div>
                           <p style={{ margin: "8px 0 0 0", fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.4", maxWidth: "300px" }}>
@@ -14730,13 +14798,18 @@ function FacultyMentorDashboardView({
   meetings = [],
   allSubmissions = [],
   setActiveView,
-  handleRunAiVerificationSweep
+  handleRunAiVerificationSweep,
+  activeSubView = "overview",
+  setActiveCustomBoardId,
+  fetchJiraTasks,
+  setFilterProject
 }) {
   const [assignedProjects, setAssignedProjects] = useState([]);
   const [existingTeams, setExistingTeams] = useState([]);
   const [students, setStudents] = useState([]);
   const [spokeMentors, setSpokeMentors] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [projectDetailsModal, setProjectDetailsModal] = useState(null);
 
   // Form states
   const [teamName, setTeamName] = useState("");
@@ -14748,6 +14821,25 @@ function FacultyMentorDashboardView({
 
   const mentorId = sessionUser?._id;
   const spokeId = sessionUser?.spokeId || "3"; // KLE by default
+  const currentView = activeSubView || "overview";
+
+  const handleOpenProjectKanban = (proj, e) => {
+    if (e) e.stopPropagation();
+    if (!proj) return;
+    const alloc = proj.allocations ? proj.allocations.find(a => String(a.targetCampusId) === String(spokeId)) : null;
+    if (alloc && alloc.customBoardId) {
+      if (setActiveCustomBoardId) setActiveCustomBoardId(alloc.customBoardId);
+      if (fetchJiraTasks) fetchJiraTasks(false, alloc.customBoardId);
+      if (setFilterProject) setFilterProject("All");
+    } else {
+      if (setActiveCustomBoardId) setActiveCustomBoardId(null);
+      if (setFilterProject) setFilterProject(`[${proj.company}] ${proj.title}`);
+    }
+    if (setActiveView) {
+      setActiveView("kanban");
+      window.scrollTo(0, 0);
+    }
+  };
 
   const fetchMentorData = async () => {
     if (!mentorId) return;
@@ -14762,8 +14854,14 @@ function FacultyMentorDashboardView({
       ]);
       setAssignedProjects(projectsRes.data);
       setExistingTeams(teamsRes.data);
-      setStudents(studentsRes.data);
-      setSpokeMentors(mentorsRes.data);
+      const studentOnly = Array.isArray(studentsRes.data)
+        ? studentsRes.data.filter(s => s.role && s.role.toLowerCase().includes('student'))
+        : [];
+      const mentorOnly = Array.isArray(mentorsRes.data)
+        ? mentorsRes.data.filter(m => (m.role && m.role.toLowerCase().includes('mentor')) || m.persona === 'faculty-mentor')
+        : [];
+      setStudents(studentOnly);
+      setSpokeMentors(mentorOnly);
     } catch (err) {
       console.error("Failed to load faculty mentor data:", err);
       triggerToast("Failed to retrieve dashboard data.", "error");
@@ -14922,52 +15020,206 @@ function FacultyMentorDashboardView({
   });
 
   return (
-    <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Header Block */}
-      <div className="glass-panel" style={{
-        padding: "20px 24px",
-        background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(99, 102, 241, 0.03))",
-        border: "1px solid var(--border-glass)",
-        borderRadius: "16px",
+    <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Top Navigation Pill Bar */}
+      <div style={{
         display: "flex",
+        alignItems: "center",
         justifyContent: "space-between",
-        alignItems: "center"
+        flexWrap: "wrap",
+        gap: "12px",
+        padding: "6px 8px",
+        background: "var(--bg-card, rgba(255, 255, 255, 0.02))",
+        border: "1px solid var(--border-glass)",
+        borderRadius: "14px"
       }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "900", color: "var(--text-main)", letterSpacing: "-0.5px" }}>
-            Faculty Mentor Portal
-          </h2>
-          <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-            Welcome, <strong>{sessionUser?.displayName}</strong>. Manage your assigned projects and assemble student teams.
-          </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => setActiveView && setActiveView("dashboard")}
+            style={{
+              padding: "9px 18px",
+              borderRadius: "10px",
+              border: currentView === "overview" ? "1px solid var(--primary, #3b529a)" : "1px solid transparent",
+              background: currentView === "overview" ? "var(--primary, #3b529a)" : "transparent",
+              color: currentView === "overview" ? "#ffffff" : "var(--text-muted)",
+              fontWeight: "750",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
+              boxShadow: currentView === "overview" ? "0 4px 12px rgba(59, 82, 154, 0.25)" : "none"
+            }}
+          >
+            <FaChartPie size={14} />
+            <span>Overview & Assigned Projects ({assignedProjects.length})</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setActiveView && setActiveView("teams")}
+            style={{
+              padding: "9px 18px",
+              borderRadius: "10px",
+              border: currentView === "teams" ? "1px solid var(--accent, #f97316)" : "1px solid transparent",
+              background: currentView === "teams" ? "var(--accent, #f97316)" : "transparent",
+              color: currentView === "teams" ? "#ffffff" : "var(--text-muted)",
+              fontWeight: "750",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
+              boxShadow: currentView === "teams" ? "0 4px 12px rgba(249, 115, 22, 0.25)" : "none"
+            }}
+          >
+            <FaUsers size={15} />
+            <span>Create & Manage Teams ({existingTeams.length})</span>
+          </button>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-          {setActiveView && (
-            <button
-              onClick={() => setActiveView("kanban")}
-              className="btn-primary"
-              style={{ padding: "8px 16px", borderRadius: "8px", background: "var(--accent)", color: "white", display: "flex", alignItems: "center", gap: "6px" }}
-            >
-              <FaTasks size={14} />
-              <span>Open Student Task Board (Kanban)</span>
-            </button>
-          )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button
             onClick={fetchMentorData}
             className="btn-secondary"
-            style={{ padding: "8px 16px", borderRadius: "8px" }}
+            style={{ padding: "8px 14px", borderRadius: "8px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
           >
-            Sync Dashboard
+            <FaSyncAlt size={12} className={isLoading ? "pulse-glow" : ""} />
+            <span>Sync Data</span>
           </button>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1.6fr", gap: "24px", alignItems: "flex-start" }}>
-        
-        {/* Left Column: Form and Projects */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          
+      {/* VIEW 1: OVERVIEW (PROJECTS HANDLED + DELIVERABLES VERIFICATION) */}
+      {currentView === "overview" && (
+        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* Overview Header Banner */}
+          <div className="glass-panel" style={{
+            padding: "22px 28px",
+            background: "linear-gradient(135deg, rgba(59, 82, 154, 0.08), rgba(16, 185, 129, 0.05))",
+            border: "1px solid var(--border-glass)",
+            borderRadius: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "16px"
+          }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "800",
+                  color: "var(--primary, #3b529a)",
+                  background: "rgba(59, 82, 154, 0.1)",
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  textTransform: "uppercase"
+                }}>
+                  Faculty Mentorship Portfolio
+                </span>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "750",
+                  color: "#10b981",
+                  background: "rgba(16, 185, 129, 0.1)",
+                  padding: "3px 8px",
+                  borderRadius: "6px"
+                }}>
+                  {spokes.find(s => String(s.id) === String(spokeId))?.name || "Campus Spoke"}
+                </span>
+              </div>
+              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "900", color: "var(--text-main)", letterSpacing: "-0.5px" }}>
+                Welcome, {sessionUser?.displayName}
+              </h2>
+              <p style={{ margin: "6px 0 0 0", fontSize: "13.5px", color: "var(--text-muted)" }}>
+                Track assigned corporate projects you are handling, review problem statements, and verify student milestone deliverables.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <button
+                onClick={() => setActiveView && setActiveView("teams")}
+                className="btn-primary"
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: "8px",
+                  background: "var(--accent, #f97316)",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: "750",
+                  boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)"
+                }}
+              >
+                <FaUsers size={14} />
+                <span>Create Student Team</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Metrics Summary */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            gap: "14px"
+          }}>
+            <div className="glass-panel" style={{ padding: "16px 20px", borderRadius: "12px", border: "1px solid var(--border-glass)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase" }}>Projects Handled</span>
+                <FaBriefcase size={16} style={{ color: "#3b82f6" }} />
+              </div>
+              <div style={{ fontSize: "24px", fontWeight: "900", color: "var(--text-main)", marginTop: "8px" }}>
+                {assignedProjects.length}
+              </div>
+              <span style={{ fontSize: "11.5px", color: "var(--text-dim)", marginTop: "2px", display: "block" }}>
+                Assigned corporate projects
+              </span>
+            </div>
+
+            <div className="glass-panel" style={{ padding: "16px 20px", borderRadius: "12px", border: "1px solid var(--border-glass)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase" }}>Student Teams</span>
+                <FaUsers size={16} style={{ color: "#8b5cf6" }} />
+              </div>
+              <div style={{ fontSize: "24px", fontWeight: "900", color: "var(--text-main)", marginTop: "8px" }}>
+                {existingTeams.length}
+              </div>
+              <span style={{ fontSize: "11.5px", color: "var(--text-dim)", marginTop: "2px", display: "block" }}>
+                Active custom sprint teams
+              </span>
+            </div>
+
+            <div className="glass-panel" style={{ padding: "16px 20px", borderRadius: "12px", border: "1px solid var(--border-glass)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase" }}>Pending Deliverables</span>
+                <FaClipboardList size={16} style={{ color: "#f59e0b" }} />
+              </div>
+              <div style={{ fontSize: "24px", fontWeight: "900", color: "#f59e0b", marginTop: "8px" }}>
+                {spokeSubmissions.filter(s => s.status === "Awaiting Review").length}
+              </div>
+              <span style={{ fontSize: "11.5px", color: "var(--text-dim)", marginTop: "2px", display: "block" }}>
+                Awaiting your evaluation
+              </span>
+            </div>
+
+            <div className="glass-panel" style={{ padding: "16px 20px", borderRadius: "12px", border: "1px solid var(--border-glass)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase" }}>Verified Deliverables</span>
+                <FaCheckCircle size={16} style={{ color: "#10b981" }} />
+              </div>
+              <div style={{ fontSize: "24px", fontWeight: "900", color: "#10b981", marginTop: "8px" }}>
+                {spokeSubmissions.filter(s => s.status === "Approved").length}
+              </div>
+              <span style={{ fontSize: "11.5px", color: "var(--text-dim)", marginTop: "2px", display: "block" }}>
+                Approved & graded
+              </span>
+            </div>
+          </div>
+
           {/* Upcoming Campus Syncs */}
           {meetings.filter(m => m.campusId === String(sessionUser?.spokeId || sessionUser?.campusId || "3")).length > 0 && (
             <div className="glass-panel" style={{ padding: "16px 24px", borderLeft: "4px solid #f59e0b" }}>
@@ -14976,7 +15228,7 @@ function FacultyMentorDashboardView({
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {meetings.filter(m => m.campusId === String(sessionUser?.spokeId || sessionUser?.campusId || "3")).map(meet => (
-                  <div key={meet.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-glass)", borderRadius: "8px" }}>
+                  <div key={meet.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-glass)", borderRadius: "8px" }}>
                     <div>
                       <div style={{ fontSize: "10px", color: "#f59e0b", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
                         {meet.cadenceType || "General Sync"}
@@ -14995,582 +15247,1314 @@ function FacultyMentorDashboardView({
             </div>
           )}
 
-          {/* Create Sprints Team Form */}
-          <div className="glass-panel" style={{ padding: "24px" }}>
-            <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <FaPlus size={16} style={{ color: "var(--primary)" }} /> Create Student Team
-            </h3>
-            
-            <form onSubmit={handleCreateTeam} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {/* Projects You Are Handling (Assigned Projects) */}
+          <div className="glass-panel" style={{ padding: "26px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                  Team Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. KLE Jetson Edge AI Team A"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  className="form-input"
-                  style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                  Select Project *
-                </label>
-                <select
-                  value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId(e.target.value)}
-                  className="form-input"
-                  style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
-                  required
-                >
-                  <option value="">-- Choose Project --</option>
-                  {assignedProjects.map(proj => (
-                    <option key={proj._id || proj.id} value={proj._id || proj.id}>
-                      [{proj.company}] {proj.title}
-                    </option>
-                  ))}
-                </select>
-                {assignedProjects.length === 0 && (
-                  <span style={{ fontSize: "11.5px", color: "#ef4444", marginTop: "4px", display: "block" }}>
-                    No projects have been assigned to you yet.
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                  Select Student Developers *
-                </label>
-                <div style={{
-                  maxHeight: "150px",
-                  overflowY: "auto",
-                  border: "1px solid var(--border-glass)",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  background: "rgba(255,255,255,0.005)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px"
-                }}>
-                  {students.map(student => (
-                    <label key={student.accountId} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedStudentIds.includes(student.accountId)}
-                        onChange={() => handleStudentCheckboxChange(student.accountId)}
-                      />
-                      <span>{student.displayName} ({student.emailAddress})</span>
-                    </label>
-                  ))}
-                  {students.length === 0 && (
-                    <span style={{ color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic" }}>No students found in your campus spoke.</span>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                    Sub-Faculty Mentor (Optional)
-                  </label>
-                  <select
-                    value={subMentorId}
-                    onChange={(e) => setSubMentorId(e.target.value)}
-                    className="form-input"
-                    style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
-                  >
-                    <option value="">-- Select Sub-Mentor --</option>
-                    {subMentorOptions.map(m => (
-                      <option key={m.accountId} value={m.accountId}>{m.displayName}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                    Team Leader *
-                  </label>
-                  <select
-                    value={teamLeaderId}
-                    onChange={(e) => setTeamLeaderId(e.target.value)}
-                    className="form-input"
-                    style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
-                    required
-                  >
-                    <option value="">-- Designate Leader --</option>
-                    {selectedStudentsObjects.map(s => (
-                      <option key={s.accountId} value={s.accountId}>{s.displayName}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isCreatingTeam}
-                className="btn-primary"
-                style={{
-                  padding: "10px",
-                  background: "var(--accent)",
-                  border: "none",
-                  borderRadius: "8px",
-                  color: "white",
-                  fontWeight: "750",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                  boxShadow: "0 4px 12px rgba(255, 140, 0, 0.22)",
-                  marginTop: "8px"
-                }}
-              >
-                {isCreatingTeam ? "Creating Student Team..." : "Create Student Team"}
-              </button>
-            </form>
-          </div>
-
-        </div>
-
-        {/* Right Column: Assigned Projects list and Active Teams list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          
-          {/* Assigned Projects */}
-          <div className="glass-panel" style={{ padding: "24px" }}>
-            <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <FaBriefcase size={16} style={{ color: "#3b82f6" }} /> Assigned Projects
-            </h3>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {assignedProjects.map(proj => (
-                <div key={proj._id || proj.id} style={{
-                  padding: "14px",
-                  background: "rgba(255,255,255,0.01)",
-                  border: "1px solid var(--border-glass)",
-                  borderRadius: "10px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px"
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <CompanyLogo company={proj.company} size={28} />
-                      <h4 style={{ margin: 0, fontSize: "13.5px", fontWeight: "800" }}>{proj.title}</h4>
-                    </div>
-                    <span style={{ fontSize: "11px", color: "var(--text-muted)", marginLeft: "auto" }}>Due: <strong>{proj.proposedDueDate}</strong></span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: "12px", color: "var(--text-dim)", lineHeight: "1.4" }}>
-                    {proj.description}
-                  </p>
-                </div>
-              ))}
-              {assignedProjects.length === 0 && (
-                <div style={{ padding: "20px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                  No projects assigned to you yet.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Active Teams Managed */}
-          <div className="glass-panel" style={{ padding: "24px" }}>
-            <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <FaUsers size={18} style={{ color: "#8b5cf6" }} /> Managed Student Teams
-            </h3>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {existingTeams.map(team => {
-                const linkedProj = assignedProjects.find(p => p._id === team.projectId || p.id === team.projectId);
-                return (
-                  <div key={team._id || team.id} style={{
-                    padding: "16px",
-                    background: "rgba(255,255,255,0.015)",
-                    border: "1px solid var(--border-glass)",
-                    borderRadius: "12px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px"
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FaBriefcase size={17} style={{ color: "#3b82f6" }} /> Projects You Are Handling
+                  <span style={{
+                    fontSize: "11.5px",
+                    fontWeight: "800",
+                    background: "rgba(59, 130, 246, 0.1)",
+                    color: "#3b82f6",
+                    border: "1px solid rgba(59, 130, 246, 0.2)",
+                    padding: "2px 8px",
+                    borderRadius: "6px"
                   }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "850", color: "var(--text-main)" }}>
-                        {team.name}
-                      </h4>
-                      <button
-                        onClick={() => handleDisbandTeam(team._id || team.id)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          fontSize: "11px",
-                          fontWeight: "700",
-                          padding: "2px 6px"
-                        }}
-                      >
-                        Disband
-                      </button>
-                    </div>
+                    {assignedProjects.length}
+                  </span>
+                </h3>
+                <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
+                  Click on any project to view complete specifications, scope, problem statement document, and mentor checklist.
+                </p>
+              </div>
+            </div>
 
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      Project: <strong style={{ color: "var(--text-main)" }}>{linkedProj ? linkedProj.title : "Unresolved Project"}</strong>
-                    </div>
-                    {team.githubRepo && (
-                      <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                        GitHub Space: <a href={team.githubRepo} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", fontWeight: "700" }}>{team.githubRepo}</a>
-                      </div>
-                    )}
+            {assignedProjects.length > 0 ? (
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                gap: "16px"
+              }}>
+                {assignedProjects.map(proj => {
+                  const pId = proj._id || proj.id;
+                  const assignedTeam = existingTeams.find(t => t.projectId === pId);
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "11.5px" }}>
-                      <div style={{ padding: "6px 10px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", border: "1px solid var(--border-glass)" }}>
-                        <span style={{ color: "var(--text-muted)", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: "750" }}>Team Leader</span>
-                        <span style={{ fontWeight: "600", color: "var(--text-main)" }}>{team.teamLeader?.displayName || "N/A"}</span>
-                      </div>
-                      <div style={{ padding: "6px 10px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", border: "1px solid var(--border-glass)" }}>
-                        <span style={{ color: "var(--text-muted)", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: "750" }}>Sub-Faculty Mentor</span>
-                        <span style={{ fontWeight: "600", color: "var(--text-main)" }}>{team.subMentor?.displayName || "None"}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px" }}>
-                      <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Cohort Members:</span>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
-                        {team.members?.map(m => (
-                          <span key={m.accountId} style={{
-                            fontSize: "11px",
-                            padding: "4px 8px",
-                            background: "rgba(99, 102, 241, 0.08)",
-                            color: "var(--primary)",
-                            border: "1px solid rgba(99, 102, 241, 0.15)",
-                            borderRadius: "6px"
-                          }}>
-                            {m.displayName}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {team.finalProgress && team.finalProgress.status !== "Pending" ? (
-                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px", fontSize: "12px" }}>
-                        <span style={{ fontSize: "10.5px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase", display: "block" }}>Final Work Progress</span>
-                        <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                          <div>
-                            Report URL: <a href={team.finalProgress.reportUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", fontWeight: "600" }}>{team.finalProgress.reportUrl}</a>
-                          </div>
-                          {team.finalProgress.facultyComments && (
-                            <div style={{ color: "var(--text-muted)" }}>Comments: <em>"{team.finalProgress.facultyComments}"</em></div>
-                          )}
-                          {team.finalProgress.grade && (
-                            <div style={{ color: "var(--text-muted)" }}>Assigned Grade: <strong style={{ color: "var(--accent)" }}>{team.finalProgress.grade}</strong></div>
-                          )}
-                          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "2px" }}>
-                            Status: 
+                  return (
+                    <div
+                      key={pId}
+                      onClick={() => setProjectDetailsModal(proj)}
+                      style={{
+                        border: "1px solid var(--border-glass)",
+                        borderRadius: "14px",
+                        background: "rgba(255, 255, 255, 0.02)",
+                        padding: "18px 20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.02)"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(59, 130, 246, 0.06)";
+                        e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.35)";
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.02)";
+                        e.currentTarget.style.borderColor = "var(--border-glass)";
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }}
+                    >
+                      {/* Card Header */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                          <CompanyLogo company={proj.company} size={36} />
+                          <div style={{ minWidth: 0 }}>
                             <span style={{
-                              fontSize: "9px",
-                              fontWeight: "900",
-                              background: team.finalProgress.status === "Evaluated" ? "rgba(45, 212, 191, 0.08)" : "rgba(251, 146, 60, 0.08)",
-                              color: team.finalProgress.status === "Evaluated" ? "#2dd4bf" : "var(--accent)",
-                              border: team.finalProgress.status === "Evaluated" ? "1px solid rgba(45, 212, 191, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)",
-                              padding: "2px 6px",
-                              borderRadius: "3px",
-                              textTransform: "uppercase"
-                            }}>{team.finalProgress.status}</span>
-                          </div>
-                          {team.finalProgress.status === "Evaluated" && (
-                            <div style={{
-                              background: "rgba(45, 212, 191, 0.03)",
-                              borderLeft: "3px solid #2dd4bf",
-                              padding: "8px 10px",
-                              borderRadius: "0 6px 6px 0",
-                              marginTop: "6px"
+                              fontSize: "10.5px",
+                              fontWeight: "800",
+                              color: "var(--primary, #3b529a)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px"
                             }}>
-                              <div style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-main)" }}>
-                                Rating: {Array.from({ length: team.finalProgress.rating }).map((_, i) => (
-                                  <span key={i} style={{ color: "#fbbf24" }}>★</span>
-                                ))} ({team.finalProgress.rating}/5)
-                              </div>
-                              {team.finalProgress.companyGrade && (
-                                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                                  Project Grade: <strong style={{ color: "var(--accent)" }}>{team.finalProgress.companyGrade}</strong>
-                                </div>
-                              )}
-                              {team.finalProgress.companyFeedback && (
-                                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                                  Feedback: <strong>{team.finalProgress.companyFeedback}</strong>
-                                </div>
-                              )}
-                              <span style={{ fontSize: "9.5px", color: "var(--text-dim)", display: "block", marginTop: "4px" }}>Reviewed by {team.finalProgress.evaluatedBy}</span>
-                            </div>
-                          )}
+                              {proj.company || "Enterprise Partner"}
+                            </span>
+                            <h4 style={{
+                              margin: "2px 0 0 0",
+                              fontSize: "14.5px",
+                              fontWeight: "800",
+                              color: "var(--text-main)",
+                              lineHeight: "1.3"
+                            }}>
+                              {proj.title}
+                            </h4>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px" }}>
-                        <button
-                          onClick={() => handleSubmitFinalProgressClick(team._id || team.id)}
-                          style={{
-                            padding: "6px 12px",
-                            background: "rgba(249, 115, 22, 0.08)",
-                            border: "1px solid rgba(249, 115, 22, 0.2)",
+
+                        {proj.status && (
+                          <span style={{
+                            fontSize: "10px",
+                            fontWeight: "800",
+                            background: "rgba(16, 185, 129, 0.1)",
+                            border: "1px solid rgba(16, 185, 129, 0.25)",
+                            color: "#10b981",
+                            padding: "3px 8px",
                             borderRadius: "6px",
-                            color: "var(--accent)",
+                            whiteSpace: "nowrap",
+                            textTransform: "uppercase"
+                          }}>
+                            {proj.status}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Description Preview */}
+                      {proj.description && (
+                        <p style={{
+                          margin: 0,
+                          fontSize: "12.5px",
+                          color: "var(--text-muted)",
+                          lineHeight: "1.5",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden"
+                        }}>
+                          {proj.description}
+                        </p>
+                      )}
+
+                      {/* Metadata row */}
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                        fontSize: "11.5px",
+                        color: "var(--text-muted)",
+                        paddingTop: "6px",
+                        borderTop: "1px solid var(--border-glass)"
+                      }}>
+                        {proj.duration && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <FaClock size={11} style={{ color: "#6366f1" }} />
+                            <span>{proj.duration}</span>
+                          </span>
+                        )}
+                        {proj.proposedDueDate && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <FaCalendarAlt size={11} style={{ color: "#2563eb" }} />
+                            <span>Due: {proj.proposedDueDate}</span>
+                          </span>
+                        )}
+                        {assignedTeam ? (
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            color: "#8b5cf6",
+                            fontWeight: "700"
+                          }}>
+                            <FaUsers size={11} />
+                            <span>Team: {assignedTeam.name}</span>
+                          </span>
+                        ) : (
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            color: "var(--accent, #f97316)",
+                            fontWeight: "600",
+                            fontSize: "11px"
+                          }}>
+                            <span>No team assigned yet</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* View details and project-specific Kanban button */}
+                      <div style={{
+                        marginTop: "4px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "8px"
+                      }}>
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenProjectKanban(proj, e)}
+                          style={{
+                            padding: "5px 12px",
+                            borderRadius: "6px",
+                            background: "rgba(99, 102, 241, 0.08)",
+                            border: "1px solid rgba(99, 102, 241, 0.25)",
+                            color: "#6366f1",
                             fontSize: "11px",
                             fontWeight: "750",
                             cursor: "pointer",
-                            width: "100%",
-                            textAlign: "center"
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px"
                           }}
+                          title={`Open Kanban board for ${proj.title}`}
                         >
-                          Submit Final Work Progress
+                          <FaClipboardList size={11} />
+                          <span>Project Kanban</span>
                         </button>
+
+                        <span style={{
+                          fontSize: "11.5px",
+                          fontWeight: "750",
+                          color: "var(--primary, #3b529a)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px"
+                        }}>
+                          <span>View Details & Scope</span>
+                          <FaChevronRight size={11} />
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-              {existingTeams.length === 0 && (
-                <div style={{ padding: "20px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
-                  No active custom sprints teams created yet.
-                </div>
-              )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{
+                textAlign: "center",
+                padding: "48px 24px",
+                border: "1px dashed var(--border-glass)",
+                borderRadius: "14px",
+                color: "var(--text-dim)",
+                fontSize: "13.5px"
+              }}>
+                <FaBriefcase size={28} style={{ opacity: 0.35, marginBottom: "8px" }} />
+                <p style={{ margin: 0, fontWeight: "700", color: "var(--text-muted)" }}>No projects currently assigned to you.</p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "12px" }}>
+                  Projects allocated by the Central Moderator or Campus Coordinator will appear in this portfolio.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Student Deliverables Verification Queue */}
+          <div className="glass-panel" style={{ padding: "26px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FaClipboardList size={18} style={{ color: "var(--accent)" }} /> Spoke Deliverables Verification Queue
+                  <span style={{
+                    fontSize: "11.5px",
+                    fontWeight: "800",
+                    background: "rgba(249, 115, 22, 0.1)",
+                    color: "var(--accent)",
+                    border: "1px solid rgba(249, 115, 22, 0.2)",
+                    padding: "2px 8px",
+                    borderRadius: "6px"
+                  }}>
+                    {spokeSubmissions.length}
+                  </span>
+                </h3>
+                <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
+                  Review submitted student deliverables, assign academic grades, and dispatch evaluation feedback.
+                </p>
+              </div>
+
+              <button
+                onClick={handleRunAiVerificationSweep}
+                style={{
+                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  color: "#fff",
+                  border: "none",
+                  padding: "9px 18px",
+                  borderRadius: "8px",
+                  fontSize: "12.5px",
+                  fontWeight: "750",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
+                }}
+              >
+                <span>🤖 Run AI Verification Sweep</span>
+              </button>
+            </div>
+
+            {spokeSubmissions.length > 0 ? (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", color: "var(--text-main)", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid var(--border-glass)", color: "var(--text-dim)" }}>
+                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Student Developer</th>
+                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Sprint Task ID</th>
+                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Artifact Access</th>
+                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Grade</th>
+                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Review Status</th>
+                      <th style={{ padding: "12px 10px", fontWeight: "750", textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spokeSubmissions.map((sub) => {
+                      const badgeBg = sub.status === "Approved" ? "rgba(45, 212, 191, 0.08)" : sub.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.08)" : "rgba(251, 146, 60, 0.08)";
+                      const badgeColor = sub.status === "Approved" ? "#2dd4bf" : sub.status === "Re-work Requested" ? "#ef4444" : "var(--accent)";
+                      const badgeBorder = sub.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.2)" : sub.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)";
+
+                      return (
+                        <tr key={sub._id} style={{ borderBottom: "1px solid var(--border-glass)" }}>
+                          <td style={{ padding: "14px 10px", fontWeight: "600" }}>{sub.studentName}</td>
+                          <td style={{ padding: "14px 10px" }}>
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{sub.taskId}</strong>
+                              {sub.comments && <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>"{sub.comments}"</span>}
+                            </div>
+                          </td>
+                          <td style={{ padding: "14px 10px" }}>
+                            <a 
+                              href={sub.fileUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={{
+                                color: "var(--primary)",
+                                fontWeight: "750",
+                                textDecoration: "none"
+                              }}
+                            >
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaLink /> {sub.fileName}</span>
+                            </a>
+                          </td>
+                          <td style={{ padding: "14px 10px" }}>
+                            {sub.grade ? (
+                              <strong style={{ color: "var(--accent)", fontSize: "14px" }}>{sub.grade}</strong>
+                            ) : (
+                              <span style={{ color: "var(--text-dim)", fontStyle: "italic" }}>Ungraded</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "14px 10px" }}>
+                            <span style={{
+                              fontSize: "9px",
+                              fontWeight: "900",
+                              background: badgeBg,
+                              color: badgeColor,
+                              border: badgeBorder,
+                              padding: "2px 6px",
+                              borderRadius: "3px",
+                              textTransform: "uppercase"
+                            }}>{sub.status}</span>
+                          </td>
+                          <td style={{ padding: "14px 10px", textAlign: "right" }}>
+                            {sub.status === "Awaiting Review" ? (
+                              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                                <button 
+                                  onClick={() => {
+                                    const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
+                                    if (grade !== null) {
+                                      const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
+                                      if (feedback !== null) {
+                                        handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
+                                      }
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "6px 12px",
+                                    background: "rgba(45, 212, 191, 0.15)",
+                                    border: "1px solid rgba(45, 212, 191, 0.3)",
+                                    borderRadius: "6px",
+                                    color: "#2dd4bf",
+                                    fontSize: "11px",
+                                    fontWeight: "800",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  Approve & Grade
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
+                                    if (feedback !== null) {
+                                      handleUpdateSubmissionStatus(sub._id, "Re-work Requested", feedback || "Please revise task artifacts.");
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "6px 12px",
+                                    background: "rgba(239, 68, 68, 0.15)",
+                                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                                    borderRadius: "6px",
+                                    color: "#ef4444",
+                                    fontSize: "11px",
+                                    fontWeight: "800",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  Flag Re-work
+                                </button>
+                              </div>
+                            ) : sub.status === "Re-work Requested" ? (
+                              <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "flex-end" }}>
+                                <span style={{
+                                  fontSize: "11px", 
+                                  color: "#ef4444", 
+                                  fontWeight: "750",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px"
+                                }}>
+                                  <FaExclamationTriangle size={12} />
+                                  <span>Revision Required</span>
+                                </span>
+                                <button 
+                                  onClick={() => {
+                                    const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
+                                    if (grade !== null) {
+                                      const feedback = prompt("Enter evaluation comments:", "Re-evaluated and approved! Meets all criteria.");
+                                      if (feedback !== null) {
+                                        handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
+                                      }
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "6px 12px",
+                                    background: "rgba(45, 212, 191, 0.15)",
+                                    border: "1px solid rgba(45, 212, 191, 0.3)",
+                                    borderRadius: "6px",
+                                    color: "#2dd4bf",
+                                    fontSize: "11px",
+                                    fontWeight: "800",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s ease"
+                                  }}
+                                >
+                                  Re-evaluate & Approve
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+                                <span style={{
+                                  fontSize: "11px", 
+                                  color: "#2dd4bf", 
+                                  fontWeight: "600",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px"
+                                }}>
+                                  <FaCheck size={11} />
+                                  <span>Verified Completed</span>
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm("Are you sure you want to delete this submission?")) {
+                                      handleDeleteSubmission(sub._id);
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "4px 6px",
+                                    background: "rgba(239, 68, 68, 0.08)",
+                                    border: "1px solid rgba(239, 68, 68, 0.2)",
+                                    borderRadius: "4px",
+                                    color: "#ef4444",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    verticalAlign: "middle",
+                                    transition: "var(--transition-smooth)",
+                                    marginLeft: "8px"
+                                  }}
+                                  title="Delete old submission history"
+                                >
+                                  <FaTrashAlt size={10} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: "center",
+                padding: "40px 20px",
+                border: "1px dashed var(--border-glass)",
+                borderRadius: "12px",
+                color: "var(--text-dim)",
+                fontSize: "13px"
+              }}>
+                No deliverables have been submitted by Spoke student developers for review yet.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: CREATE & MANAGE TEAMS */}
+      {currentView === "teams" && (
+        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* Teams Header Banner */}
+          <div className="glass-panel" style={{
+            padding: "22px 28px",
+            background: "linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(99, 102, 241, 0.04))",
+            border: "1px solid var(--border-glass)",
+            borderRadius: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "16px"
+          }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "800",
+                  color: "var(--accent, #f97316)",
+                  background: "rgba(249, 115, 22, 0.1)",
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  textTransform: "uppercase"
+                }}>
+                  Team Operations
+                </span>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "750",
+                  color: "#6366f1",
+                  background: "rgba(99, 102, 241, 0.1)",
+                  padding: "3px 8px",
+                  borderRadius: "6px"
+                }}>
+                  {existingTeams.length} Active Teams
+                </span>
+              </div>
+              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "900", color: "var(--text-main)", letterSpacing: "-0.5px" }}>
+                Create & Manage Student Teams
+              </h2>
+              <p style={{ margin: "6px 0 0 0", fontSize: "13.5px", color: "var(--text-muted)" }}>
+                Assemble student sprint teams for assigned projects, designate team leaders, and evaluate final team milestones.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <button
+                onClick={() => setActiveView && setActiveView("dashboard")}
+                className="btn-secondary"
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: "750"
+                }}
+              >
+                <FaChartPie size={14} />
+                <span>Back to Overview</span>
+              </button>
             </div>
           </div>
 
-        </div>
+          {/* Teams Grid: Form on Left, Managed Teams on Right */}
+          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.5fr", gap: "24px", alignItems: "flex-start" }}>
+            
+            {/* Left Column: Create Team Form */}
+            <div className="glass-panel" style={{ padding: "24px" }}>
+              <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
+                <FaPlus size={16} style={{ color: "var(--primary)" }} /> Form a Student Sprint Team
+              </h3>
+              
+              <form onSubmit={handleCreateTeam} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                    Team Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. KLE Jetson Edge AI Team A"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    className="form-input"
+                    style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
+                    required
+                  />
+                </div>
 
-      </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                    Select Project *
+                  </label>
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="form-input"
+                    style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
+                    required
+                  >
+                    <option value="">-- Choose Project --</option>
+                    {assignedProjects.map(proj => (
+                      <option key={proj._id || proj.id} value={proj._id || proj.id}>
+                        [{proj.company}] {proj.title}
+                      </option>
+                    ))}
+                  </select>
+                  {assignedProjects.length === 0 && (
+                    <span style={{ fontSize: "11.5px", color: "#ef4444", marginTop: "4px", display: "block" }}>
+                      No projects have been assigned to you yet.
+                    </span>
+                  )}
+                </div>
 
-      {/* Student Deliverables Verification Queue */}
-      <div className="glass-panel" style={{ padding: "24px", marginTop: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
-          <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-            <FaClipboardList size={18} style={{ color: "var(--accent)" }} /> Spoke Deliverables Verification Queue
-          </h3>
-          <button
-            onClick={handleRunAiVerificationSweep}
-            style={{
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              color: "#fff",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: "8px",
-              fontSize: "12px",
-              fontWeight: "750",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
-            }}
-          >
-            <span>🤖 Run AI Verification Sweep</span>
-          </button>
-        </div>
-        {spokeSubmissions.length > 0 ? (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", color: "var(--text-main)", textAlign: "left" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border-glass)", color: "var(--text-dim)" }}>
-                  <th style={{ padding: "12px 8px", fontWeight: "750" }}>Student Developer</th>
-                  <th style={{ padding: "12px 8px", fontWeight: "750" }}>Sprint Task ID</th>
-                  <th style={{ padding: "12px 8px", fontWeight: "750" }}>Artifact Access</th>
-                  <th style={{ padding: "12px 8px", fontWeight: "750" }}>Grade</th>
-                  <th style={{ padding: "12px 8px", fontWeight: "750" }}>Review Status</th>
-                  <th style={{ padding: "12px 8px", fontWeight: "750", textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {spokeSubmissions.map((sub) => {
-                  const badgeBg = sub.status === "Approved" ? "rgba(45, 212, 191, 0.08)" : sub.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.08)" : "rgba(251, 146, 60, 0.08)";
-                  const badgeColor = sub.status === "Approved" ? "#2dd4bf" : sub.status === "Re-work Requested" ? "#ef4444" : "var(--accent)";
-                  const badgeBorder = sub.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.2)" : sub.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)";
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>
+                      Select Student Developers *
+                    </label>
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--primary)" }}>
+                      {selectedStudentIds.length} Selected
+                    </span>
+                  </div>
+                  <div style={{
+                    maxHeight: "180px",
+                    overflowY: "auto",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "8px",
+                    padding: "10px",
+                    background: "rgba(255,255,255,0.005)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px"
+                  }}>
+                    {students.map(student => (
+                      <label key={student.accountId} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedStudentIds.includes(student.accountId)}
+                          onChange={() => handleStudentCheckboxChange(student.accountId)}
+                        />
+                        <span>{student.displayName} ({student.emailAddress})</span>
+                      </label>
+                    ))}
+                    {students.length === 0 && (
+                      <span style={{ color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic" }}>No students found in your campus spoke.</span>
+                    )}
+                  </div>
+                </div>
 
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                      Sub-Faculty Mentor (Optional)
+                    </label>
+                    <select
+                      value={subMentorId}
+                      onChange={(e) => setSubMentorId(e.target.value)}
+                      className="form-input"
+                      style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
+                    >
+                      <option value="">-- Select Sub-Mentor --</option>
+                      {subMentorOptions.map(m => (
+                        <option key={m.accountId} value={m.accountId}>{m.displayName}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                      Team Leader *
+                    </label>
+                    <select
+                      value={teamLeaderId}
+                      onChange={(e) => setTeamLeaderId(e.target.value)}
+                      className="form-input"
+                      style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
+                      required
+                    >
+                      <option value="">-- Designate Leader --</option>
+                      {selectedStudentsObjects.map(s => (
+                        <option key={s.accountId} value={s.accountId}>{s.displayName}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingTeam}
+                  className="btn-primary"
+                  style={{
+                    padding: "11px",
+                    background: "var(--accent, #f97316)",
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "white",
+                    fontWeight: "750",
+                    fontSize: "13.5px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
+                    marginTop: "8px"
+                  }}
+                >
+                  {isCreatingTeam ? "Creating Student Team..." : "Create Student Team"}
+                </button>
+              </form>
+            </div>
+
+            {/* Right Column: Managed Teams List */}
+            <div className="glass-panel" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FaUsers size={18} style={{ color: "#8b5cf6" }} /> Managed Student Teams
+                  <span style={{
+                    fontSize: "11.5px",
+                    fontWeight: "800",
+                    background: "rgba(139, 92, 246, 0.1)",
+                    color: "#8b5cf6",
+                    border: "1px solid rgba(139, 92, 246, 0.2)",
+                    padding: "2px 8px",
+                    borderRadius: "6px"
+                  }}>
+                    {existingTeams.length}
+                  </span>
+                </h3>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {existingTeams.map(team => {
+                  const linkedProj = assignedProjects.find(p => p._id === team.projectId || p.id === team.projectId);
                   return (
-                    <tr key={sub._id} style={{ borderBottom: "1px solid var(--border-glass)" }}>
-                      <td style={{ padding: "14px 8px", fontWeight: "600" }}>{sub.studentName}</td>
-                      <td style={{ padding: "14px 8px" }}>
-                        <div style={{ display: "flex", flexDirection: "column" }}>
-                          <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{sub.taskId}</strong>
-                          {sub.comments && <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>"{sub.comments}"</span>}
-                        </div>
-                      </td>
-                      <td style={{ padding: "14px 8px" }}>
-                        <a 
-                          href={sub.fileUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          style={{
-                            color: "var(--primary)",
-                            fontWeight: "750",
-                            textDecoration: "none"
-                          }}
-                        >
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaLink /> {sub.fileName}</span>
-                        </a>
-                      </td>
-                      <td style={{ padding: "14px 8px" }}>
-                        {sub.grade ? (
-                          <strong style={{ color: "var(--accent)", fontSize: "14px" }}>{sub.grade}</strong>
-                        ) : (
-                          <span style={{ color: "var(--text-dim)", fontStyle: "italic" }}>Ungraded</span>
-                        )}
-                      </td>
-                      <td style={{ padding: "14px 8px" }}>
-                        <span style={{
-                          fontSize: "9px",
-                          fontWeight: "900",
-                          background: badgeBg,
-                          color: badgeColor,
-                          border: badgeBorder,
-                          padding: "2px 6px",
-                          borderRadius: "3px",
-                          textTransform: "uppercase"
-                        }}>{sub.status}</span>
-                      </td>
-                      <td style={{ padding: "14px 8px", textAlign: "right" }}>
-                        {sub.status === "Awaiting Review" ? (
-                          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                            <button 
-                              onClick={() => {
-                                const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                if (grade !== null) {
-                                  const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
-                                  if (feedback !== null) {
-                                    handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
-                                  }
-                                }
-                              }}
-                              style={{
-                                padding: "6px 12px",
-                                background: "rgba(45, 212, 191, 0.15)",
-                                border: "1px solid rgba(45, 212, 191, 0.3)",
-                                borderRadius: "6px",
-                                color: "#2dd4bf",
-                                fontSize: "11px",
-                                fontWeight: "800",
-                                cursor: "pointer"
-                              }}
-                            >
-                              Approve & Grade
-                            </button>
-                            <button 
-                              onClick={() => {
-                                const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
-                                if (feedback !== null) {
-                                  handleUpdateSubmissionStatus(sub._id, "Re-work Requested", feedback || "Please revise task artifacts.");
-                                }
-                              }}
-                              style={{
-                                padding: "6px 12px",
-                                background: "rgba(239, 68, 68, 0.15)",
-                                border: "1px solid rgba(239, 68, 68, 0.3)",
-                                borderRadius: "6px",
-                                color: "#ef4444",
-                                fontSize: "11px",
-                                fontWeight: "800",
-                                cursor: "pointer"
-                              }}
-                            >
-                              Flag Re-work
-                            </button>
-                          </div>
-                        ) : sub.status === "Re-work Requested" ? (
-                          <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "flex-end" }}>
-                            <span style={{
-                              fontSize: "11px", 
-                              color: "#ef4444", 
-                              fontWeight: "750",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px"
-                            }}>
-                              <FaExclamationTriangle size={12} />
-                              <span>Revision Required</span>
-                            </span>
-                            <button 
-                              onClick={() => {
-                                const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                if (grade !== null) {
-                                  const feedback = prompt("Enter evaluation comments:", "Re-evaluated and approved! Meets all criteria.");
-                                  if (feedback !== null) {
-                                    handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
-                                  }
-                                }
-                              }}
-                              style={{
-                                padding: "6px 12px",
-                                background: "rgba(45, 212, 191, 0.15)",
-                                border: "1px solid rgba(45, 212, 191, 0.3)",
-                                borderRadius: "6px",
-                                color: "#2dd4bf",
-                                fontSize: "11px",
-                                fontWeight: "800",
-                                cursor: "pointer",
-                                transition: "all 0.2s ease"
-                              }}
-                            >
-                              Re-evaluate & Approve
-                            </button>
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
-                            <span style={{
-                              fontSize: "11px", 
-                              color: "#2dd4bf", 
-                              fontWeight: "600",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px"
-                            }}>
-                              <FaCheck size={11} />
-                              <span>Verified Completed</span>
-                            </span>
+                    <div key={team._id || team.id} style={{
+                      padding: "18px",
+                      background: "rgba(255,255,255,0.015)",
+                      border: "1px solid var(--border-glass)",
+                      borderRadius: "12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                        <h4 style={{ margin: 0, fontSize: "14.5px", fontWeight: "850", color: "var(--text-main)" }}>
+                          {team.name}
+                        </h4>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          {linkedProj && (
                             <button
-                              onClick={() => {
-                                if (window.confirm("Are you sure you want to delete this submission?")) {
-                                  handleDeleteSubmission(sub._id);
-                                }
-                              }}
+                              type="button"
+                              onClick={(e) => handleOpenProjectKanban(linkedProj, e)}
                               style={{
-                                padding: "4px 6px",
-                                background: "rgba(239, 68, 68, 0.08)",
-                                border: "1px solid rgba(239, 68, 68, 0.2)",
-                                borderRadius: "4px",
-                                color: "#ef4444",
+                                background: "rgba(99, 102, 241, 0.08)",
+                                border: "1px solid rgba(99, 102, 241, 0.25)",
+                                borderRadius: "6px",
+                                color: "#6366f1",
                                 cursor: "pointer",
+                                fontSize: "11px",
+                                fontWeight: "750",
+                                padding: "4px 10px",
                                 display: "inline-flex",
                                 alignItems: "center",
-                                verticalAlign: "middle",
-                                transition: "var(--transition-smooth)",
-                                marginLeft: "8px"
+                                gap: "5px"
                               }}
-                              title="Delete old submission history"
+                              title={`Open Kanban board for ${linkedProj.title}`}
                             >
-                              <FaTrashAlt size={10} />
+                              <FaClipboardList size={11} />
+                              <span>Project Board</span>
                             </button>
+                          )}
+                          <button
+                            onClick={() => handleDisbandTeam(team._id || team.id)}
+                            style={{
+                              background: "rgba(239, 68, 68, 0.08)",
+                              border: "1px solid rgba(239, 68, 68, 0.25)",
+                              borderRadius: "6px",
+                              color: "#ef4444",
+                              cursor: "pointer",
+                              fontSize: "11px",
+                              fontWeight: "750",
+                              padding: "4px 8px"
+                            }}
+                          >
+                            Disband Team
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: "12.5px", color: "var(--text-muted)" }}>
+                        Project: <strong style={{ color: "var(--text-main)" }}>{linkedProj ? linkedProj.title : "Unresolved Project"}</strong>
+                      </div>
+                      {team.githubRepo && (
+                        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                          GitHub Space: <a href={team.githubRepo} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", fontWeight: "700" }}>{team.githubRepo}</a>
+                        </div>
+                      )}
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "11.5px" }}>
+                        <div style={{ padding: "8px 10px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", border: "1px solid var(--border-glass)" }}>
+                          <span style={{ color: "var(--text-muted)", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: "750" }}>Team Leader</span>
+                          <span style={{ fontWeight: "600", color: "var(--text-main)" }}>{team.teamLeader?.displayName || "N/A"}</span>
+                        </div>
+                        <div style={{ padding: "8px 10px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", border: "1px solid var(--border-glass)" }}>
+                          <span style={{ color: "var(--text-muted)", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: "750" }}>Sub-Faculty Mentor</span>
+                          <span style={{ fontWeight: "600", color: "var(--text-main)" }}>{team.subMentor?.displayName || "None"}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Cohort Members:</span>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "4px" }}>
+                          {team.members?.map(m => (
+                            <span key={m.accountId} style={{
+                              fontSize: "11px",
+                              padding: "4px 8px",
+                              background: "rgba(99, 102, 241, 0.08)",
+                              color: "var(--primary)",
+                              border: "1px solid rgba(99, 102, 241, 0.15)",
+                              borderRadius: "6px"
+                            }}>
+                              {m.displayName}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {team.finalProgress && team.finalProgress.status !== "Pending" ? (
+                        <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px", fontSize: "12px" }}>
+                          <span style={{ fontSize: "10.5px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase", display: "block" }}>Final Work Progress</span>
+                          <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <div>
+                              Report URL: <a href={team.finalProgress.reportUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", fontWeight: "600" }}>{team.finalProgress.reportUrl}</a>
+                            </div>
+                            {team.finalProgress.facultyComments && (
+                              <div style={{ color: "var(--text-muted)" }}>Comments: <em>"{team.finalProgress.facultyComments}"</em></div>
+                            )}
+                            {team.finalProgress.grade && (
+                              <div style={{ color: "var(--text-muted)" }}>Assigned Grade: <strong style={{ color: "var(--accent)" }}>{team.finalProgress.grade}</strong></div>
+                            )}
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "2px" }}>
+                              Status: 
+                              <span style={{
+                                fontSize: "9px",
+                                fontWeight: "900",
+                                background: team.finalProgress.status === "Evaluated" ? "rgba(45, 212, 191, 0.08)" : "rgba(251, 146, 60, 0.08)",
+                                color: team.finalProgress.status === "Evaluated" ? "#2dd4bf" : "var(--accent)",
+                                border: team.finalProgress.status === "Evaluated" ? "1px solid rgba(45, 212, 191, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)",
+                                padding: "2px 6px",
+                                borderRadius: "3px",
+                                textTransform: "uppercase"
+                              }}>{team.finalProgress.status}</span>
+                            </div>
+                            {team.finalProgress.status === "Evaluated" && (
+                              <div style={{
+                                background: "rgba(45, 212, 191, 0.03)",
+                                borderLeft: "3px solid #2dd4bf",
+                                padding: "8px 10px",
+                                borderRadius: "0 6px 6px 0",
+                                marginTop: "6px"
+                              }}>
+                                <div style={{ fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", color: "var(--text-main)" }}>
+                                  Rating: {Array.from({ length: team.finalProgress.rating }).map((_, i) => (
+                                    <span key={i} style={{ color: "#fbbf24" }}>★</span>
+                                  ))} ({team.finalProgress.rating}/5)
+                                </div>
+                                {team.finalProgress.companyGrade && (
+                                  <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                                    Project Grade: <strong style={{ color: "var(--accent)" }}>{team.finalProgress.companyGrade}</strong>
+                                  </div>
+                                )}
+                                {team.finalProgress.companyFeedback && (
+                                  <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                                    Feedback: <strong>{team.finalProgress.companyFeedback}</strong>
+                                  </div>
+                                )}
+                                <span style={{ fontSize: "9.5px", color: "var(--text-dim)", display: "block", marginTop: "4px" }}>Reviewed by {team.finalProgress.evaluatedBy}</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </td>
-                    </tr>
+                        </div>
+                      ) : (
+                        <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px" }}>
+                          <button
+                            onClick={() => handleSubmitFinalProgressClick(team._id || team.id)}
+                            style={{
+                              padding: "7px 12px",
+                              background: "rgba(249, 115, 22, 0.08)",
+                              border: "1px solid rgba(249, 115, 22, 0.2)",
+                              borderRadius: "6px",
+                              color: "var(--accent)",
+                              fontSize: "11.5px",
+                              fontWeight: "750",
+                              cursor: "pointer",
+                              width: "100%",
+                              textAlign: "center"
+                            }}
+                          >
+                            Submit Final Work Progress
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+                {existingTeams.length === 0 && (
+                  <div style={{
+                    padding: "36px 20px",
+                    textAlign: "center",
+                    color: "var(--text-dim)",
+                    border: "1px dashed var(--border-glass)",
+                    borderRadius: "12px",
+                    fontSize: "13px"
+                  }}>
+                    <FaUsers size={24} style={{ opacity: 0.35, marginBottom: "6px" }} />
+                    <p style={{ margin: 0, fontWeight: "700", color: "var(--text-muted)" }}>No student sprint teams created yet.</p>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "11.5px" }}>Use the form on the left to assemble and launch your first team.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
-        ) : (
-          <div style={{
-            textAlign: "center",
-            padding: "40px 20px",
-            border: "1px dashed var(--border-glass)",
-            borderRadius: "12px",
-            color: "var(--text-dim)",
-            fontSize: "13px"
-          }}>
-            No deliverables have been submitted by Spoke student developers for review yet.
+        </div>
+      )}
+
+      {/* Project Details Popup Screen Modal (Almost Full Screen - Theme Adaptive) */}
+      {projectDetailsModal && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setProjectDetailsModal(null);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.55)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            boxSizing: "border-box"
+          }}
+        >
+          <div
+            className="fade-in"
+            style={{
+              background: "var(--bg-card, #ffffff)",
+              border: "1px solid var(--border-subtle, #e2e8f0)",
+              borderRadius: "20px",
+              width: "95vw",
+              maxWidth: "1400px",
+              height: "92vh",
+              maxHeight: "94vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.2), 0 2px 10px rgba(0, 0, 0, 0.06)",
+              animation: "fadeIn 0.2s ease-out",
+              overflow: "hidden"
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: "20px 32px",
+              borderBottom: "1px solid var(--border-subtle, #e2e8f0)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "16px",
+              background: "var(--bg-card, #ffffff)",
+              flexShrink: 0
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: 0 }}>
+                <CompanyLogo company={projectDetailsModal.company} size={46} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <span style={{
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      color: "var(--primary, #3b529a)",
+                      background: "rgba(59, 82, 154, 0.08)",
+                      border: "1px solid rgba(59, 82, 154, 0.2)",
+                      padding: "3px 10px",
+                      borderRadius: "6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px"
+                    }}>
+                      {projectDetailsModal.company || "Industry Partner"}
+                    </span>
+                    {projectDetailsModal.status && (
+                      <span style={{
+                        fontSize: "11px",
+                        fontWeight: "750",
+                        padding: "3px 10px",
+                        borderRadius: "6px",
+                        background: "rgba(249, 115, 22, 0.1)",
+                        border: "1px solid rgba(249, 115, 22, 0.25)",
+                        color: "#ea580c"
+                      }}>
+                        Status: {projectDetailsModal.status}
+                      </span>
+                    )}
+                  </div>
+                  <h2 style={{
+                    margin: "4px 0 0 0",
+                    fontSize: "20px",
+                    fontWeight: "800",
+                    color: "var(--text-main, #0f172a)",
+                    wordBreak: "break-word"
+                  }}>
+                    {projectDetailsModal.title}
+                  </h2>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const proj = projectDetailsModal;
+                    setProjectDetailsModal(null);
+                    handleOpenProjectKanban(proj, e);
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "10px",
+                    background: "rgba(99, 102, 241, 0.1)",
+                    border: "1px solid rgba(99, 102, 241, 0.3)",
+                    color: "#6366f1",
+                    fontSize: "12.5px",
+                    fontWeight: "750",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(99, 102, 241, 0.2)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(99, 102, 241, 0.1)";
+                  }}
+                  title="Open Kanban board for this specific project"
+                >
+                  <FaClipboardList size={13} />
+                  <span>Open Project Kanban</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setProjectDetailsModal(null)}
+                  style={{
+                    background: "var(--bg-content, #f8fafc)",
+                    border: "1px solid var(--border-subtle, #e2e8f0)",
+                    color: "var(--text-muted, #475569)",
+                    cursor: "pointer",
+                    borderRadius: "10px",
+                    width: "38px",
+                    height: "38px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    transition: "all 0.2s ease"
+                  }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+                  e.currentTarget.style.color = "#ef4444";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "var(--bg-content, #f8fafc)";
+                  e.currentTarget.style.color = "var(--text-muted, #475569)";
+                }}
+                title="Close modal"
+              >
+                <FaTimes size={18} />
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+            {/* Scrollable Content Body */}
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "28px 32px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "24px",
+              background: "var(--bg-content, #f8fafc)"
+            }}>
+              {/* Metric Cards Banner */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "16px"
+              }}>
+                <div style={{
+                  padding: "16px 20px",
+                  background: "var(--bg-card, #ffffff)",
+                  border: "1px solid var(--border-subtle, #e2e8f0)",
+                  borderRadius: "12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+                }}>
+                  <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted, #475569)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <FaCalendarAlt size={12} style={{ color: "#2563eb" }} /> Target Deadline
+                  </span>
+                  <span style={{ fontSize: "15px", fontWeight: "800", color: "var(--text-main, #0f172a)" }}>
+                    {projectDetailsModal.proposedDueDate || "Not specified"}
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: "16px 20px",
+                  background: "var(--bg-card, #ffffff)",
+                  border: "1px solid var(--border-subtle, #e2e8f0)",
+                  borderRadius: "12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+                }}>
+                  <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted, #475569)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <FaClock size={12} style={{ color: "#6366f1" }} /> Sprint Duration
+                  </span>
+                  <span style={{ fontSize: "15px", fontWeight: "800", color: "#6366f1" }}>
+                    {projectDetailsModal.duration || "N/A"}
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: "16px 20px",
+                  background: "var(--bg-card, #ffffff)",
+                  border: "1px solid var(--border-subtle, #e2e8f0)",
+                  borderRadius: "12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+                }}>
+                  <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted, #475569)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <FaBuilding size={12} style={{ color: "#ea580c" }} /> Sponsoring Enterprise
+                  </span>
+                  <span style={{ fontSize: "15px", fontWeight: "800", color: "var(--text-main, #0f172a)" }}>
+                    {projectDetailsModal.company || "Industry Partner"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Two Column Layout for Scope & Attachments */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 2.3fr) minmax(0, 1.2fr)",
+                gap: "24px",
+                alignItems: "start"
+              }}>
+                {/* Left Column: Full Description & Scope */}
+                <div style={{
+                  background: "var(--bg-card, #ffffff)",
+                  border: "1px solid var(--border-subtle, #e2e8f0)",
+                  borderRadius: "14px",
+                  padding: "24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+                }}>
+                  <h3 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "var(--text-main, #0f172a)", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <FaBriefcase size={16} style={{ color: "var(--primary, #3b529a)" }} /> Project Scope & Implementation Requirements
+                  </h3>
+                  <div style={{
+                    fontSize: "14px",
+                    lineHeight: "1.75",
+                    color: "var(--text-main, #0f172a)",
+                    whiteSpace: "pre-wrap",
+                    padding: "18px 20px",
+                    background: "var(--bg-content, #f8fafc)",
+                    border: "1px solid var(--border-subtle, #e2e8f0)",
+                    borderRadius: "10px"
+                  }}>
+                    {projectDetailsModal.description || "No detailed description provided for this project."}
+                  </div>
+                </div>
+
+                {/* Right Column: Problem Statement Document & Mentor Guidance */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  {/* Problem Statement Card */}
+                  <div style={{
+                    background: "var(--bg-card, #ffffff)",
+                    border: "1px solid rgba(99, 102, 241, 0.25)",
+                    borderRadius: "14px",
+                    padding: "22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <div style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "8px",
+                        background: "rgba(99, 102, 241, 0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#6366f1"
+                      }}>
+                        <FaLink size={16} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "var(--text-main, #0f172a)" }}>
+                          Problem Statement
+                        </h4>
+                        <span style={{ fontSize: "11.5px", color: "var(--text-muted, #475569)" }}>
+                          External specification & requirements
+                        </span>
+                      </div>
+                    </div>
+
+                    {projectDetailsModal.problemStatementUrl ? (
+                      <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted, #475569)", lineHeight: "1.5" }}>
+                          Click the link below to review official problem statements and project guidelines.
+                        </p>
+                        <a
+                          href={projectDetailsModal.problemStatementUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: "10px 16px",
+                            borderRadius: "8px",
+                            background: "linear-gradient(135deg, #3b529a, #6366f1)",
+                            color: "#fff",
+                            fontSize: "12.5px",
+                            fontWeight: "750",
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            boxShadow: "0 4px 14px rgba(59, 82, 154, 0.25)",
+                            marginTop: "4px"
+                          }}
+                        >
+                          <span>Open Problem Statement</span>
+                          <FaChevronRight size={12} />
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "12px", color: "var(--text-dim, #94a3b8)", fontStyle: "italic", marginTop: "4px" }}>
+                        No external document link provided for this project.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mentor Allocation Quick Checklist */}
+                  <div style={{
+                    background: "var(--bg-card, #ffffff)",
+                    border: "1px solid var(--border-subtle, #e2e8f0)",
+                    borderRadius: "14px",
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+                  }}>
+                    <h4 style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "var(--text-main, #0f172a)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Mentor Checklist
+                    </h4>
+                    <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "12px", color: "var(--text-muted, #475569)", lineHeight: "1.7" }}>
+                      <li>Ensure a student team leader is designated.</li>
+                      <li>Allocate Sub-Faculty Mentor if additional support is needed.</li>
+                      <li>Review weekly sprint deliverables against these project requirements.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: "16px 32px",
+              borderTop: "1px solid var(--border-subtle, #e2e8f0)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "var(--bg-card, #ffffff)",
+              flexShrink: 0
+            }}>
+              <span style={{ fontSize: "12px", color: "var(--text-dim, #94a3b8)" }}>
+                Click anywhere outside or press Close to return to your dashboard.
+              </span>
+              <button
+                type="button"
+                onClick={() => setProjectDetailsModal(null)}
+                style={{
+                  padding: "9px 24px",
+                  borderRadius: "8px",
+                  background: "var(--primary, #3b529a)",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "12.5px",
+                  fontWeight: "750",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 2px 8px rgba(59, 82, 154, 0.25)"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = "0.9";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "1";
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

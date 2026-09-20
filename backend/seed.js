@@ -86,8 +86,14 @@ async function main() {
 
   // 2.7 Seed Students
   const students = [
-    { email: 'rahulsharma@kle.edu', name: 'Rahul Sharma', role: 'STUDENT', spokeId: '3' },
-    { email: 'priyapatel@kle.edu', name: 'Priya Patel', role: 'STUDENT', spokeId: '3' },
+    { email: 'manasa@kle.edu', name: 'Manasa Vasare', role: 'STUDENT', spokeId: '3' },
+    { email: 'divya@kle.edu', name: 'Divya Kumari', role: 'STUDENT', spokeId: '3' },
+    { email: 'vineet@kle.edu', name: 'Vineet Kulkarni', role: 'STUDENT', spokeId: '3' },
+    { email: 'renuka@kle.edu', name: 'Renuka Kagadal', role: 'STUDENT', spokeId: '3' },
+    { email: 'vageesh@kle.edu', name: 'Vageesh Mathad', role: 'STUDENT', spokeId: '3' },
+    { email: 'mehak@kle.edu', name: 'Mehak Sayed', role: 'STUDENT', spokeId: '3' },
+    { email: 'parth@kle.edu', name: 'Parth Karpe', role: 'STUDENT', spokeId: '3' },
+    { email: 'nupur@kle.edu', name: 'Nupur', role: 'STUDENT', spokeId: '3' },
     { email: 'snehajoshi@coep.edu', name: 'Sneha Joshi', role: 'STUDENT', spokeId: '101' },
     { email: 'amitwaghmare@coep.edu', name: 'Amit Waghmare', role: 'STUDENT', spokeId: '101' },
     { email: 'nikhilrane@mmcoep.edu', name: 'Nikhil Rane', role: 'STUDENT', spokeId: '102' },

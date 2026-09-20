@@ -38,7 +38,9 @@ This document provides all verified and working login credentials for each dashb
 
 | Campus / Department | Email | Password | Role / Persona Key | Description & Key Actions |
 | :--- | :--- | :--- | :--- | :--- |
-| **KLE Faculty Mentor** *(Prof. Deshpande)* | `mentor@kle.edu` | `mentor123` | `faculty-mentor` | **Create student teams**, assign students to projects, **review & grade phase deliverable submissions**. |
+| **KLE Faculty Mentor** *(Prof. Pooja P Shettar)* | `mentor@kle.edu` | `mentor123` | `faculty-mentor` | **Create student teams**, assign students to projects, **review & grade phase deliverable submissions**. |
+| **KLE Faculty Mentor 2** *(Prof. Amit Kachavimath)* | `mentor2@kle.edu` | `mentor123` | `faculty-mentor` | KLE Faculty Mentor (Spoke 3). |
+| **KLE Faculty Mentor 3** *(Prof. Sneha Varur)* | `mentor3@kle.edu` | `mentor123` | `faculty-mentor` | KLE Faculty Mentor (Spoke 3). |
 | **COEP Faculty Mentor** *(Dr. Meena Deshmukh)* | `mentor@coep.edu` | `mentor123` | `faculty-mentor` | Review COEP student submissions and track phase milestones. |
 | **MMCOEP Faculty Mentor** *(Dr. Kavita Joshi)* | `mentor@mmcoep.edu` | `mentor123` | `faculty-mentor` | Review MMCOEP student submissions. |
 | **RIT Faculty Mentor** *(Dr. Suresh Desai)* | `mentor@rit.edu` | `mentor123` | `faculty-mentor` | Review RIT student submissions. |
@@ -49,7 +51,14 @@ This document provides all verified and working login credentials for each dashb
 
 | Campus Spoke | Email | Password | Role / Persona Key | Description & Key Actions |
 | :--- | :--- | :--- | :--- | :--- |
-| **KLE Student** *(Rahul Sharma)* | `student@kle.edu` *(or `rahul@kle.edu`)* | `student123` | `spoke-kle` | View **Sprint Kanban Board**, drag tasks (live sync with Jira), **upload phase deliverables / files**, use Team Chat. |
+| **KLE Student 1** *(Manasa Vasare)* | `manasa@kle.edu` *(or `student@kle.edu`)* | `student123` | `spoke-kle` | View **Sprint Kanban Board**, drag tasks (live sync with Jira), **upload phase deliverables / files**, use Team Chat. |
+| **KLE Student 2** *(Divya Kumari)* | `divya@kle.edu` | `student123` | `spoke-kle` | KLE Student Developer (Spoke 3). |
+| **KLE Student 3** *(Vineet Kulkarni)* | `vineet@kle.edu` | `student123` | `spoke-kle` | KLE Student Developer (Spoke 3). |
+| **KLE Student 4** *(Renuka Kagadal)* | `renuka@kle.edu` | `student123` | `spoke-kle` | KLE Student Developer (Spoke 3). |
+| **KLE Student 5** *(Vageesh Mathad)* | `vageesh@kle.edu` | `student123` | `spoke-kle` | KLE Student Developer (Spoke 3). |
+| **KLE Student 6** *(Mehak Sayed)* | `mehak@kle.edu` | `student123` | `spoke-kle` | KLE Student Developer (Spoke 3). |
+| **KLE Student 7** *(Parth Karpe)* | `parth@kle.edu` | `student123` | `spoke-kle` | KLE Student Developer (Spoke 3). |
+| **KLE Student 8** *(Nupur)* | `nupur@kle.edu` | `student123` | `spoke-kle` | KLE Student Developer (Spoke 3). |
 | **COEP Student** *(Sneha Joshi)* | `student@coep.edu` *(or `sneha@coep.edu`)* | `student123` | `spoke-coep` | Work on COEP sprint cards and submit deliverables. |
 | **MMCOEP Student** *(Nikhil Rane)* | `nikhil@mmcoep.edu` | `student123` | `spoke-mmcoep` | Work on MMCOEP sprint cards and submit deliverables. |
 | **RIT Student** *(Tejas Shinde)* | `student@rit.edu` *(or `tejas@rit.edu`)* | `student123` | `spoke-rit` | Work on RIT sprint cards and submit deliverables. |
