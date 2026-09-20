@@ -101,4 +101,15 @@ model User {
   createdAt   DateTime @default(now())
   otpCode     String?
   otpExpiry   DateTime?
-}
+}
+
+model Spoke {
+  id        String   @id // Unique campus code, e.g. "3", "101", "102", "103"
+  name      String   // Institution name, e.g. "KLE Spoke"
+  key       String   @default("AK") // Jira Agile project key
+  live      Boolean  @default(true)
+  boardId   Int?     @default(2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

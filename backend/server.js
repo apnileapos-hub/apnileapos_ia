@@ -4720,9 +4720,35 @@ async function seedDefaultMeetings() {
   }
 }
 
+async function seedDefaultSpokes() {
+  try {
+    const spokeCount = await prisma.spoke.count();
+    if (spokeCount === 0) {
+      console.log("🌱 [SEEDING] No campus spokes found. Seeding initial partner institutions...");
+      const initialSpokes = [
+        { id: "3", name: "KLE Technological University", key: "AK", live: true, boardId: 2 },
+        { id: "101", name: "COEP Tech University", key: "AK", live: true, boardId: 2 },
+        { id: "102", name: "MMCOEP", key: "AK", live: true, boardId: 2 },
+        { id: "103", name: "RIT", key: "AK", live: true, boardId: 2 }
+      ];
+      for (const s of initialSpokes) {
+        await prisma.spoke.upsert({
+          where: { id: s.id },
+          update: s,
+          create: s
+        });
+      }
+      console.log("🌱 [SEEDING SUCCESS] Seeded 4 default campus spokes into PostgreSQL!");
+    }
+  } catch (err) {
+    console.error("❌ [SEEDING ERROR] Failed to seed default spokes:", err.message);
+  }
+}
+
 // Connect to PostgreSQL
 (async () => {
   console.log("🌱 Skipped PostgreSQL connection (Migrated to Prisma)");
+  await seedDefaultSpokes();
   await seedDefaultUsers();
   // await seedDefaultProjects();
   await seedDefaultTasks();
@@ -5731,6 +5757,85 @@ app.delete("/submissions/:id", authenticateToken, async (req, res) => {
     res.status(500).json({
       error: "Failed to delete student submission"
     });
+  }
+});
+
+// ==========================================
+// DYNAMIC CAMPUS SPOKES MANAGEMENT ENDPOINTS
+// ==========================================
+
+// GET /api/spokes - Retrieve all dynamic campus spokes from PostgreSQL
+app.get("/api/spokes", async (req, res) => {
+  try {
+    const dbSpokes = await prisma.spoke.findMany({
+      orderBy: { id: "asc" }
+    });
+    if (dbSpokes && dbSpokes.length > 0) {
+      return res.json(dbSpokes);
+    }
+    // Fallback to default constants if DB table is empty
+    const fallback = Object.entries(SPOKES).map(([id, s]) => ({
+      id,
+      name: s.name,
+      key: s.key || "AK",
+      live: s.live !== false,
+      boardId: s.boardId || 2
+    }));
+    res.json(fallback);
+  } catch (err) {
+    console.error("Error fetching spokes:", err);
+    res.status(500).json({ error: "Failed to fetch spokes" });
+  }
+});
+
+// POST /api/spokes - Add or update a campus spoke (Central Admin / Moderator)
+app.post("/api/spokes", authenticateToken, async (req, res) => {
+  try {
+    const { id, name, key, live, boardId } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Spoke institution name is required." });
+    }
+    const spokeId = (id || `spoke-${Date.now()}`).toString().trim();
+    const newSpoke = await prisma.spoke.upsert({
+      where: { id: spokeId },
+      update: {
+        name: name.trim(),
+        key: (key || "AK").trim().toUpperCase(),
+        live: live !== false,
+        boardId: boardId ? parseInt(boardId) : 2
+      },
+      create: {
+        id: spokeId,
+        name: name.trim(),
+        key: (key || "AK").trim().toUpperCase(),
+        live: live !== false,
+        boardId: boardId ? parseInt(boardId) : 2
+      }
+    });
+    // Update runtime in-memory SPOKES for live sync
+    SPOKES[spokeId] = {
+      name: newSpoke.name,
+      key: newSpoke.key,
+      live: newSpoke.live,
+      boardId: newSpoke.boardId
+    };
+    res.json({ success: true, spoke: newSpoke });
+  } catch (err) {
+    console.error("Error creating campus spoke:", err);
+    res.status(500).json({ error: "Failed to create campus spoke." });
+  }
+});
+
+// DELETE /api/spokes/:id - Delete a campus spoke
+app.delete("/api/spokes/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.spoke.delete({ where: { id } });
+    delete SPOKES[id];
+    res.json({ success: true, message: "Campus spoke removed successfully." });
+  } catch (err) {
+    console.error("Error deleting campus spoke:", err);
+    res.status(500).json({ error: "Failed to delete campus spoke." });
   }
 });
 

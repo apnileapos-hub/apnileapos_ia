@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -710,6 +710,38 @@ function App() {
   const [connectionStatus, setConnectionStatus] = useState("Connecting...");
   const [hasError, setHasError] = useState(false);
 
+  // Dynamic Spoke Management (PostgreSQL synced via /api/spokes)
+  const [spokesList, setSpokesList] = useState([]);
+  const [dynamicSpokes, setDynamicSpokes] = useState(SPOKES);
+  const [dynamicCampusLabels, setDynamicCampusLabels] = useState(CAMPUS_LABELS);
+  const [moderatorActiveTab, setModeratorActiveTab] = useState("proposals");
+
+  const fetchSpokes = useCallback(async () => {
+    try {
+      const res = await axios.get("http://localhost:5001/api/spokes");
+      if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+        setSpokesList(res.data);
+        const map = { ...SPOKES };
+        const labels = { ...CAMPUS_LABELS };
+        res.data.forEach(s => {
+          map[s.id] = { name: s.name, key: s.key || "AK", live: s.live !== false, boardId: s.boardId || 2 };
+          if (!labels[s.id]) {
+            const slug = s.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            labels[s.id] = slug + "-spoke";
+          }
+        });
+        setDynamicSpokes(map);
+        setDynamicCampusLabels(labels);
+      }
+    } catch (err) {
+      console.warn("Using default static spokes as fallback:", err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSpokes();
+  }, [fetchSpokes]);
+
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showChatDrawer, setShowChatDrawer] = useState(false);
   const [showCohortModal, setShowCohortModal] = useState(false);
@@ -803,11 +835,15 @@ function App() {
     if (activeWorkspace === "spoke-mmcoep") return "102";
     if (activeWorkspace === "spoke-rit") return "103";
     if (activeWorkspace === "spoke-kle") return "3";
+    if (activeWorkspace && activeWorkspace.startsWith("spoke-")) {
+      const id = activeWorkspace.replace("spoke-", "");
+      if (dynamicSpokes[id]) return id;
+    }
     if (activeWorkspace === "faculty-mentor" && sessionUser) {
       return String(sessionUser.spokeId || sessionUser.campusId || "3");
     }
     return "3"; // default playground or fallback
-  }, [activeWorkspace, sessionUser]);
+  }, [activeWorkspace, sessionUser, dynamicSpokes]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -1783,7 +1819,7 @@ function App() {
   const proposedProjectsForSpoke = useMemo(() => {
     if (activeWorkspace === "hub" || activeWorkspace === "moderator" || activeWorkspace === "meetings" || activeWorkspace === "playground") return [];
     const campusId = currentBoardId;
-    const spoke = SPOKES[campusId];
+    const spoke = dynamicSpokes[campusId] || SPOKES[campusId];
     if (!spoke) return [];
     return moderatorProjects.filter(p => {
       if (p.allocations && p.allocations.length > 0) {
@@ -5319,10 +5355,11 @@ function App() {
                             transition: "var(--transition-smooth)"
                           }}
                         >
-                          <option value="3">KLE Spoke (Hub Campus)</option>
-                          <option value="101">COEP Spoke</option>
-                          <option value="102">MMCOEP Spoke</option>
-                          <option value="103">RIT Spoke</option>
+                          {(spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, s]) => ({ id, ...s }))).map(sp => (
+                            <option key={sp.id} value={sp.id}>
+                              {sp.name} {sp.id === "3" ? "(Hub Campus)" : ""}
+                            </option>
+                          ))}
                         </select>
                         <div style={{
                           position: "absolute",
@@ -5716,7 +5753,7 @@ function App() {
                         ? "Project Manager" 
                         : newPersona === "faculty-mentor" 
                           ? "Faculty Mentor" 
-                          : SPOKES[newPersona.replace("spoke-", "")]?.name || newPersona;
+                          : (dynamicSpokes[newPersona.replace("spoke-", "")]?.name || (newPersona === "spoke-kle" ? "KLE Spoke" : newPersona === "spoke-coep" ? "COEP Spoke" : newPersona === "spoke-mmcoep" ? "MMCOEP Spoke" : newPersona === "spoke-rit" ? "RIT Spoke" : newPersona));
                     triggerToast(`Switched Profile: Active permissions set to ${name}`);
                   }}
                   style={{
@@ -5736,10 +5773,14 @@ function App() {
                   <option value="moderator" style={{ background: "var(--bg-sidebar)" }}>Moderator</option>
                   <option value="project-manager" style={{ background: "var(--bg-sidebar)" }}>Project Manager</option>
                   <option value="faculty-mentor" style={{ background: "var(--bg-sidebar)" }}>Faculty Mentor</option>
-                  <option value="spoke-kle" style={{ background: "var(--bg-sidebar)" }}>KLE Coordinator</option>
-                  <option value="spoke-coep" style={{ background: "var(--bg-sidebar)" }}>COEP Coordinator</option>
-                  <option value="spoke-mmcoep" style={{ background: "var(--bg-sidebar)" }}>MMCOEP Coordinator</option>
-                  <option value="spoke-rit" style={{ background: "var(--bg-sidebar)" }}>RIT Coordinator</option>
+                  {Object.entries(dynamicSpokes).map(([id, spoke]) => {
+                    const val = id === "3" ? "spoke-kle" : id === "101" ? "spoke-coep" : id === "102" ? "spoke-mmcoep" : id === "103" ? "spoke-rit" : ("spoke-" + id);
+                    return (
+                      <option key={id} value={val} style={{ background: "var(--bg-sidebar)" }}>
+                        {spoke.name.replace(/ Spoke$/i, '').replace(/ Campus$/i, '').replace(/ Technological University$/i, ' Tech')} Coordinator
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             )}
@@ -5838,11 +5879,24 @@ function App() {
             {currentPersona === "moderator" && (
               <>
                 <SidebarNavItem
-                  active={activeWorkspace === "moderator"}
+                  active={activeWorkspace === "moderator" && moderatorActiveTab !== "spokes"}
                   icon={<FaBriefcase size={16} />}
                   label="Central Moderation Portal"
                   collapsed={false}
-                  onClick={() => setActiveWorkspace("moderator")}
+                  onClick={() => {
+                    setActiveWorkspace("moderator");
+                    setModeratorActiveTab("proposals");
+                  }}
+                />
+                <SidebarNavItem
+                  active={activeWorkspace === "moderator" && moderatorActiveTab === "spokes"}
+                  icon={<FaBuilding style={{ fontSize: "16px" }} />}
+                  label="Campus Spokes"
+                  collapsed={false}
+                  onClick={() => {
+                    setActiveWorkspace("moderator");
+                    setModeratorActiveTab("spokes");
+                  }}
                 />
                 <SidebarNavItem
                   active={activeWorkspace === "meetings"}
@@ -5854,55 +5908,27 @@ function App() {
               </>
             )}
 
-            {/* Spoke Campuses list */}
-            {(isCentralAdmin || currentPersona === "spoke-kle") && (
-              <SidebarNavItem
-                active={activeWorkspace === "spoke-kle"}
-                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
-                label={sessionUser?.role === "Student Developer" ? "KLE Student Hub" : "KLE Campus"}
-                collapsed={false}
-                onClick={() => {
-                  setActiveWorkspace("spoke-kle");
-                  setActiveView("dashboard");
-                }}
-              />
-            )}
-            {(isCentralAdmin || currentPersona === "spoke-coep") && (
-              <SidebarNavItem
-                active={activeWorkspace === "spoke-coep"}
-                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
-                label={sessionUser?.role === "Student Developer" ? "COEP Student Hub" : "COEP Campus"}
-                collapsed={false}
-                onClick={() => {
-                  setActiveWorkspace("spoke-coep");
-                  setActiveView("dashboard");
-                }}
-              />
-            )}
-            {(isCentralAdmin || currentPersona === "spoke-mmcoep") && (
-              <SidebarNavItem
-                active={activeWorkspace === "spoke-mmcoep"}
-                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
-                label={sessionUser?.role === "Student Developer" ? "MMCOEP Student Hub" : "MMCOEP Campus"}
-                collapsed={false}
-                onClick={() => {
-                  setActiveWorkspace("spoke-mmcoep");
-                  setActiveView("dashboard");
-                }}
-              />
-            )}
-            {(isCentralAdmin || currentPersona === "spoke-rit") && (
-              <SidebarNavItem
-                active={activeWorkspace === "spoke-rit"}
-                icon={sessionUser?.role === "Student Developer" ? <FaGraduationCap /> : <FaBuilding />}
-                label={sessionUser?.role === "Student Developer" ? "RIT Student Hub" : "RIT Campus"}
-                collapsed={false}
-                onClick={() => {
-                  setActiveWorkspace("spoke-rit");
-                  setActiveView("dashboard");
-                }}
-              />
-            )}
+            {/* Spoke Campuses list (Dynamic from PostgreSQL) */}
+            {Object.entries(dynamicSpokes).map(([spokeId, spoke]) => {
+              const ws = spokeId === "3" ? "spoke-kle" : spokeId === "101" ? "spoke-coep" : spokeId === "102" ? "spoke-mmcoep" : spokeId === "103" ? "spoke-rit" : ("spoke-" + spokeId);
+              const canView = isCentralAdmin || currentPersona === ws || (sessionUser && String(sessionUser.campusId || sessionUser.spokeId) === String(spokeId));
+              if (!canView) return null;
+              const isStudent = sessionUser?.role === "Student Developer";
+              const cleanName = spoke.name.replace(/ Spoke$/i, '').replace(/ Campus$/i, '').replace(/ Technological University$/i, ' Tech');
+              return (
+                <SidebarNavItem
+                  key={spokeId}
+                  active={activeWorkspace === ws}
+                  icon={isStudent ? <FaGraduationCap /> : <FaBuilding />}
+                  label={isStudent ? (cleanName + " Student Hub") : (cleanName + " Campus")}
+                  collapsed={false}
+                  onClick={() => {
+                    setActiveWorkspace(ws);
+                    setActiveView("dashboard");
+                  }}
+                />
+              );
+            })}
             
             <hr style={{ border: "none", borderTop: "1px solid var(--sidebar-border)", margin: "12px 16px 12px 0" }} />
 
@@ -5990,7 +6016,7 @@ function App() {
                   const suffix = (sessionUser?.role === "Project Mentor" || activeWorkspace === "project-mentor") ? "Project Mentor" : "Sponsor";
                   wsName = `${company} ${suffix}`;
                 } else {
-                  wsName = SPOKES[currentBoardId]?.name || "Spoke";
+                  wsName = (dynamicSpokes[currentBoardId] || SPOKES[currentBoardId])?.name || "Spoke";
                 }
                 
                 return activeView === "dashboard"
@@ -6355,6 +6381,11 @@ function App() {
               setEditDueDate(proj.proposedDueDate ? proj.proposedDueDate.split("T")[0] : "2026-08-25");
             }}
             onDeleteClick={(proj) => handleDeleteProject(proj._id || proj.id)}
+            spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, s]) => ({ id, ...s }))}
+            onRefreshSpokes={fetchSpokes}
+            triggerToast={triggerToast}
+            activeTab={moderatorActiveTab}
+            setActiveTab={setModeratorActiveTab}
           />
         ) : sessionUser?.role === "Corporate Partner" || sessionUser?.role === "Project Mentor" || activeWorkspace === "sponsor-nvidia" || activeWorkspace === "project-mentor" ? (
           <CorporateSponsorDashboardView
@@ -6378,7 +6409,7 @@ function App() {
             }}
             triggerToast={triggerToast}
             sessionUser={sessionUser}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, spoke]) => ({ id, ...spoke }))}
             tasks={tasks}
             meetings={meetings}
           />
@@ -6388,14 +6419,14 @@ function App() {
             loading={isModeratorLoading}
             onRefresh={() => fetchModeratorProjects(false)}
             triggerToast={triggerToast}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, spoke]) => ({ id, ...spoke }))}
             onDeleteProject={(proj) => handleDeleteProject(proj._id || proj.id)}
           />
         ) : activeWorkspace === "faculty-mentor" && (activeView === "dashboard" || activeView === "teams") ? (
           <FacultyMentorDashboardView
             sessionUser={sessionUser}
             triggerToast={triggerToast}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, spoke]) => ({ id, ...spoke }))}
             allSubmissions={allSubmissions}
             handleUpdateSubmissionStatus={handleUpdateSubmissionStatus}
             meetings={meetings}
@@ -6413,7 +6444,7 @@ function App() {
             meetings={meetings}
             loading={isMeetingsLoading}
             onRefresh={() => fetchMeetings(false)}
-            spokes={Object.entries(SPOKES).map(([id, spoke]) => ({ id, ...spoke }))}
+            spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, spoke]) => ({ id, ...spoke }))}
             triggerToast={triggerToast}
             moderatorProjects={moderatorProjects}
           />
@@ -6722,7 +6753,7 @@ function App() {
                           Welcome Back, {sessionUser?.displayName}!
                         </h2>
                         <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-                          Student Developer at <strong style={{ color: "var(--primary)" }}>{SPOKES[currentBoardId]?.name || "Our Campus Spoke"}</strong>. Track your active sprint tasks, review mentor feedback, and submit your deliverables.
+                          Student Developer at <strong style={{ color: "var(--primary)" }}>{(dynamicSpokes[currentBoardId] || SPOKES[currentBoardId])?.name || "Our Campus Spoke"}</strong>. Track your active sprint tasks, review mentor feedback, and submit your deliverables.
                         </p>
                       </div>
                       <span style={{
@@ -6742,7 +6773,7 @@ function App() {
                     {/* Student Accountable Metrics Card Row */}
                     {(() => {
                       const mySpokeTasks = tasks.filter(t => {
-                        const spokeLabel = CAMPUS_LABELS[currentBoardId];
+                        const spokeLabel = dynamicCampusLabels[currentBoardId] || CAMPUS_LABELS[currentBoardId];
                         const labels = t.fields?.labels || [];
                         return labels.includes(spokeLabel);
                       });
@@ -6955,7 +6986,7 @@ function App() {
                         {/* 1. Active Tasks Assigned to Me */}
                         {(() => {
                           const mySpokeTasks = tasks.filter(t => {
-                            const spokeLabel = CAMPUS_LABELS[currentBoardId];
+                            const spokeLabel = dynamicCampusLabels[currentBoardId] || CAMPUS_LABELS[currentBoardId];
                             const labels = t.fields?.labels || [];
                             return labels.includes(spokeLabel);
                           });
@@ -7948,7 +7979,7 @@ function App() {
                         gap: "20px"
                       }}>
                           <h3 style={{ fontSize: "16px", fontWeight: "800", color: "var(--text-main)", margin: "0 0 10px 0" }}>
-                            Active Projects Allocated to {SPOKES[currentBoardId]?.name || "Our Campus"}
+                            Active Projects Allocated to {(dynamicSpokes[currentBoardId] || SPOKES[currentBoardId])?.name || "Our Campus"}
                           </h3>
 
                           {acceptedProjectsForSpoke.length > 0 ? (
@@ -8168,7 +8199,7 @@ function App() {
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
                           <div>
                             <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "var(--text-main)" }}>
-                              🏛️ {SPOKES[currentBoardId]?.name || "This Spoke"} — Active Projects &amp; Teams
+                              🏛️ {(dynamicSpokes[currentBoardId] || SPOKES[currentBoardId])?.name || "This Spoke"} — Active Projects &amp; Teams
                             </h3>
                             <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
                               All projects your spoke is working on, with teams, student members, and collaboration spaces.
@@ -9814,12 +9845,7 @@ function App() {
               <div>
                 <label style={modalLabelStyle}>Target Institution Campus *</label>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px", background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-glass)", borderRadius: "8px" }}>
-                  {[
-                    { id: "3", name: "KLE Spoke (Live Jira - Key: AK)" },
-                    { id: "101", name: "COEP Spoke (Live Jira - Key: AK)" },
-                    { id: "102", name: "MMCOEP Spoke (Live Jira - Key: AK)" },
-                    { id: "103", name: "RIT Spoke (Live Jira - Key: AK)" }
-                  ].map(campus => (
+                  {(spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, s]) => ({ id, ...s }))).map(campus => (
                     <label key={campus.id} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "13.5px", color: "var(--text-main)", userSelect: "none" }}>
                       <input
                         type="checkbox"
@@ -11824,10 +11850,85 @@ function ProgressBadge({ pct }) {
 // MODERATOR PORTAL COMPONENTS
 // ==========================================
 
-function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, onIngestClick, onEditClick, onDeleteClick }) {
-  const [activeTab, setActiveTab] = useState("proposals"); // "proposals" or "deadlines"
+function ModeratorDashboardView({
+  projects,
+  loading,
+  onRefresh,
+  onAssignClick,
+  onIngestClick,
+  onEditClick,
+  onDeleteClick,
+  spokes = [],
+  onRefreshSpokes,
+  triggerToast,
+  activeTab: controlledActiveTab,
+  setActiveTab: setControlledActiveTab
+}) {
+  const [internalActiveTab, setInternalActiveTab] = useState("proposals");
+  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
+  const setActiveTab = setControlledActiveTab || setInternalActiveTab;
+
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditResults, setAuditResults] = useState(null);
+
+  // Spokes Management State
+  const [showAddSpokeModal, setShowAddSpokeModal] = useState(false);
+  const [newSpokeName, setNewSpokeName] = useState("");
+  const [newSpokeId, setNewSpokeId] = useState("");
+  const [newSpokeKey, setNewSpokeKey] = useState("AK");
+  const [newSpokeBoardId, setNewSpokeBoardId] = useState("2");
+  const [isSubmittingSpoke, setIsSubmittingSpoke] = useState(false);
+  const [deletingSpokeId, setDeletingSpokeId] = useState(null);
+
+  const handleAddSpoke = async (e) => {
+    e.preventDefault();
+    if (!newSpokeName.trim()) {
+      if (triggerToast) triggerToast("❌ Campus spoke institution name is required.");
+      return;
+    }
+    setIsSubmittingSpoke(true);
+    try {
+      const cleanId = newSpokeId.trim() || ("spoke-" + Date.now().toString().slice(-4));
+      const res = await axios.post("http://localhost:5001/api/spokes", {
+        id: cleanId,
+        name: newSpokeName.trim(),
+        key: (newSpokeKey || "AK").trim().toUpperCase(),
+        boardId: parseInt(newSpokeBoardId) || 2,
+        live: true
+      });
+      if (res.data && res.data.spoke) {
+        if (triggerToast) triggerToast("✅ Successfully onboarded partner campus: " + res.data.spoke.name + "!");
+        setShowAddSpokeModal(false);
+        setNewSpokeName("");
+        setNewSpokeId("");
+        setNewSpokeKey("AK");
+        setNewSpokeBoardId("2");
+        if (onRefreshSpokes) onRefreshSpokes();
+      }
+    } catch (err) {
+      if (triggerToast) triggerToast("❌ Failed to onboard spoke: " + (err.response?.data?.error || err.message));
+    } finally {
+      setIsSubmittingSpoke(false);
+    }
+  };
+
+  const handleDeleteSpoke = async (spokeId, spokeName) => {
+    if (spokeId === "3") {
+      if (triggerToast) triggerToast("⚠️ Anchor campus (KLE Hub) cannot be removed.");
+      return;
+    }
+    if (!window.confirm("Are you sure you want to delete and unlink " + spokeName + " (ID: " + spokeId + ")?")) return;
+    setDeletingSpokeId(spokeId);
+    try {
+      await axios.delete("http://localhost:5001/api/spokes/" + spokeId);
+      if (triggerToast) triggerToast("🗑️ Removed partner campus: " + spokeName);
+      if (onRefreshSpokes) onRefreshSpokes();
+    } catch (err) {
+      if (triggerToast) triggerToast("❌ Failed to delete spoke: " + (err.response?.data?.error || err.message));
+    } finally {
+      setDeletingSpokeId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -11918,6 +12019,26 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
           }}
         >
           <span>Deadlines & Alerts</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("spokes")}
+          style={{
+            background: activeTab === "spokes" ? "rgba(16, 185, 129, 0.08)" : "transparent",
+            border: "1px solid " + (activeTab === "spokes" ? "#10b981" : "var(--border-glass)"),
+            color: activeTab === "spokes" ? "var(--text-main)" : "var(--text-muted)",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            fontSize: "12.5px",
+            fontWeight: "700",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}
+        >
+          <FaBuilding size={13} style={{ color: activeTab === "spokes" ? "#10b981" : "inherit" }} />
+          <span>Campus Spokes Management ({spokes?.length || 0})</span>
         </button>
       </div>
 
@@ -12136,7 +12257,7 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
             </table>
           </div>
         </div>
-      ) : (
+      ) : activeTab === "deadlines" ? (
         /* Deadlines & Alerts */
         <div style={{ display: "flex", flexDirection: "column", gap: "30px" }}>
           {/* Auditor Trigger Control Card */}
@@ -12393,6 +12514,433 @@ function ModeratorDashboardView({ projects, loading, onRefresh, onAssignClick, o
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      ) : (
+        /* Campus Spokes Management Panel */
+        <div className="glass-panel" style={{ padding: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "14px" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "10px",
+                  background: "rgba(16, 185, 129, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#10b981"
+                }}>
+                  <FaBuilding size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: "18px", fontWeight: "800", color: "var(--text-main)", margin: 0 }}>
+                    Connected Partner Campus Spokes
+                  </h3>
+                  <p style={{ fontSize: "12.5px", color: "var(--text-muted)", margin: "3px 0 0 0" }}>
+                    Dynamic academic institutions persisted in PostgreSQL database. Manage partner spokes, Jira board IDs, and project keys.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <button
+                onClick={onRefreshSpokes}
+                className="btn-secondary"
+                style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px" }}
+              >
+                <FaSyncAlt size={12} />
+                <span>Refresh Spokes</span>
+              </button>
+              <button
+                onClick={() => setShowAddSpokeModal(true)}
+                className="btn-primary"
+                style={{
+                  padding: "8px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "12.5px",
+                  background: "#10b981",
+                  borderColor: "#10b981",
+                  boxShadow: "0 4px 14px rgba(16, 185, 129, 0.25)",
+                  cursor: "pointer"
+                }}
+              >
+                <Plus size={14} />
+                <span>Onboard Campus Spoke</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Spokes Grid / Table */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+              <thead>
+                <tr style={{ borderBottom: "1.5px solid var(--border-glass)" }}>
+                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700" }}>Campus / University</th>
+                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>Spoke ID</th>
+                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>Jira Key</th>
+                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>Board ID</th>
+                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>Integration Status</th>
+                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>Network Tier</th>
+                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: "700", textAlign: "center" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spokes && spokes.length > 0 ? (
+                  spokes.map((spoke, idx) => {
+                    const isHub = spoke.id === "3";
+                    return (
+                      <tr
+                        key={spoke.id}
+                        style={{
+                          borderBottom: "1px solid var(--border-glass)",
+                          background: idx % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent",
+                          transition: "var(--transition-smooth)"
+                        }}
+                        className="table-row-hover"
+                      >
+                        <td style={{ padding: "16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            <div style={{
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "10px",
+                              background: isHub ? "rgba(99, 102, 241, 0.15)" : "rgba(16, 185, 129, 0.1)",
+                              color: isHub ? "var(--primary)" : "#10b981",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: "800",
+                              fontSize: "14px",
+                              flexShrink: 0
+                            }}>
+                              <FaGraduationCap size={18} />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: "750", color: "var(--text-main)", fontSize: "13.5px" }}>
+                                {spoke.name}
+                              </div>
+                              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                                {isHub ? "Core Foundation Hub Spoke" : "Satellite Academic Partner"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          <span style={{
+                            fontFamily: "var(--mono)",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid var(--border-glass)",
+                            fontSize: "12px",
+                            fontWeight: "700"
+                          }}>
+                            {spoke.id}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          <span style={{
+                            fontFamily: "var(--mono)",
+                            color: "var(--primary)",
+                            fontWeight: "800",
+                            fontSize: "12px"
+                          }}>
+                            {spoke.key || "AK"}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          <span style={{
+                            fontFamily: "var(--mono)",
+                            color: "var(--text-muted)",
+                            fontSize: "12px"
+                          }}>
+                            #{spoke.boardId || 2}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            background: spoke.live !== false ? "rgba(16, 185, 129, 0.1)" : "rgba(251, 146, 60, 0.1)",
+                            color: spoke.live !== false ? "#10b981" : "var(--accent)",
+                            border: ("1px solid " + (spoke.live !== false ? "rgba(16, 185, 129, 0.25)" : "rgba(251, 146, 60, 0.25)"))
+                          }}>
+                            <span style={{
+                              width: "6px",
+                              height: "6px",
+                              borderRadius: "50%",
+                              background: spoke.live !== false ? "#10b981" : "var(--accent)"
+                            }} className={spoke.live !== false ? "pulse-glow" : ""}></span>
+                            {spoke.live !== false ? "Live Jira Synced" : "Mock Space"}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          <span style={{
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                            background: isHub ? "rgba(99, 102, 241, 0.1)" : "rgba(255,255,255,0.03)",
+                            color: isHub ? "var(--primary)" : "var(--text-muted)",
+                            border: "1px solid var(--border-glass)"
+                          }}>
+                            {isHub ? "Anchor Hub" : "Partner Spoke"}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "16px", textAlign: "center" }}>
+                          {isHub ? (
+                            <span style={{ fontSize: "11.5px", color: "var(--text-dim)", fontStyle: "italic" }}>
+                              Protected Hub
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleDeleteSpoke(spoke.id, spoke.name)}
+                              disabled={deletingSpokeId === spoke.id}
+                              style={{
+                                background: "rgba(239, 68, 68, 0.08)",
+                                border: "1px solid rgba(239, 68, 68, 0.25)",
+                                color: "#ef4444",
+                                padding: "6px 12px",
+                                borderRadius: "6px",
+                                fontSize: "11.5px",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px"
+                              }}
+                              title="Delete this spoke institution and remove from PostgreSQL"
+                            >
+                              <Trash2 size={12} />
+                              <span>{deletingSpokeId === spoke.id ? "Removing..." : "Remove"}</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={7} style={{ padding: "30px", textAlign: "center", color: "var(--text-dim)" }}>
+                      No partner campus spokes loaded. Click 'Onboard Campus Spoke' to connect a new institution.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Onboard Campus Spoke Modal */}
+      {showAddSpokeModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.75)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+          padding: "20px"
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: "520px",
+            width: "100%",
+            padding: "28px",
+            borderRadius: "16px",
+            border: "1px solid var(--border-glass)",
+            background: "var(--bg-surface)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.5)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  background: "rgba(16, 185, 129, 0.15)",
+                  color: "#10b981",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
+                  <FaBuilding size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: "17px", fontWeight: "800", color: "var(--text-main)", margin: 0 }}>
+                    Onboard Partner Campus Spoke
+                  </h3>
+                  <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "2px 0 0 0" }}>
+                    Connect a new university into the PostgreSQL database
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddSpokeModal(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "4px"
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSpoke} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "var(--text-main)", marginBottom: "6px" }}>
+                  University / Spoke Institution Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. RV College of Engineering"
+                  value={newSpokeName}
+                  onChange={(e) => setNewSpokeName(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background: "var(--bg-input)",
+                    border: "1px solid var(--border-glass)",
+                    color: "var(--text-main)",
+                    fontSize: "13.5px",
+                    outline: "none"
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "var(--text-main)", marginBottom: "6px" }}>
+                    Campus Spoke ID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 104 or rvce"
+                    value={newSpokeId}
+                    onChange={(e) => setNewSpokeId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      background: "var(--bg-input)",
+                      border: "1px solid var(--border-glass)",
+                      color: "var(--text-main)",
+                      fontSize: "13.5px",
+                      outline: "none"
+                    }}
+                  />
+                  <span style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "4px", display: "block" }}>
+                    Unique identifier (e.g. 104)
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "var(--text-main)", marginBottom: "6px" }}>
+                    Jira Project Key
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="AK"
+                    value={newSpokeKey}
+                    onChange={(e) => setNewSpokeKey(e.target.value.toUpperCase())}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      background: "var(--bg-input)",
+                      border: "1px solid var(--border-glass)",
+                      color: "var(--text-main)",
+                      fontSize: "13.5px",
+                      outline: "none",
+                      fontFamily: "var(--mono)"
+                    }}
+                  />
+                  <span style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "4px", display: "block" }}>
+                    Default shared key: AK
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12.5px", fontWeight: "700", color: "var(--text-main)", marginBottom: "6px" }}>
+                  Jira Board ID
+                </label>
+                <input
+                  type="number"
+                  placeholder="2"
+                  value={newSpokeBoardId}
+                  onChange={(e) => setNewSpokeBoardId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background: "var(--bg-input)",
+                    border: "1px solid var(--border-glass)",
+                    color: "var(--text-main)",
+                    fontSize: "13.5px",
+                    outline: "none",
+                    fontFamily: "var(--mono)"
+                  }}
+                />
+                <span style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "4px", display: "block" }}>
+                  Target Jira Kanban Board (Default: 2)
+                </span>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddSpokeModal(false)}
+                  className="btn-secondary"
+                  style={{ padding: "9px 16px", fontSize: "13px" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingSpoke}
+                  className="btn-primary"
+                  style={{
+                    padding: "9px 20px",
+                    fontSize: "13px",
+                    background: "#10b981",
+                    borderColor: "#10b981",
+                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
+                    cursor: "pointer"
+                  }}
+                >
+                  {isSubmittingSpoke ? "Onboarding Spoke..." : "Save to PostgreSQL"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
