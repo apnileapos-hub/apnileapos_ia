@@ -7967,21 +7967,7 @@ function App() {
                               const progressPct = totalT > 0 ? Math.round((doneT / totalT) * 100) : 0;
 
                               return (
-                                <div key={proj.id} className="glass-panel hover-lift" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", cursor: "pointer" }} onClick={(e) => { 
-                                  if(e.target.tagName !== "BUTTON" && e.target.closest("button") === null) { 
-                                    const alloc = proj.allocations ? proj.allocations.find(a => a.targetCampusId === currentBoardId) : null;
-                                    if (alloc && alloc.customBoardId) {
-                                        setActiveCustomBoardId(alloc.customBoardId);
-                                        fetchJiraTasks(false, alloc.customBoardId);
-                                        setFilterProject("All");
-                                    } else {
-                                        setActiveCustomBoardId(null);
-                                        setFilterProject(`[${proj.company}] ${proj.title}`); 
-                                    }
-                                    setActiveView("kanban"); 
-                                    window.scrollTo(0, 0); 
-                                  } 
-                                }}>
+                                <div key={proj.id} className="glass-panel" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                       <CompanyLogo company={proj.company} size={36} />
@@ -7990,25 +7976,61 @@ function App() {
                                         <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>Sponsor: <strong>{proj.company}</strong> • Epic: <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{epicKey || "PNLP-3"}</strong></span>
                                       </div>
                                     </div>
-                                    <button
-                                      onClick={() => handleDeleteProject(proj._id || proj.id)}
-                                      className="btn-secondary"
-                                      style={{
-                                        padding: "6px 12px",
-                                        fontSize: "12px",
-                                        color: "#ef4444",
-                                        borderColor: "rgba(239, 68, 68, 0.3)",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "6px",
-                                        borderRadius: "8px",
-                                        background: "rgba(239, 68, 68, 0.05)",
-                                        cursor: "pointer"
-                                      }}
-                                      title="Delete Project Completely"
-                                    >
-                                      <FaTrashAlt size={12} /> Delete Project
-                                    </button>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const alloc = proj.allocations ? proj.allocations.find(a => a.targetCampusId === currentBoardId) : null;
+                                          if (alloc && alloc.customBoardId) {
+                                            setActiveCustomBoardId(alloc.customBoardId);
+                                            fetchJiraTasks(false, alloc.customBoardId);
+                                            setFilterProject("All");
+                                          } else {
+                                            setActiveCustomBoardId(null);
+                                            setFilterProject(`[${proj.company}] ${proj.title}`);
+                                          }
+                                          setActiveView("kanban");
+                                          window.scrollTo(0, 0);
+                                        }}
+                                        style={{
+                                          background: "rgba(99, 102, 241, 0.08)",
+                                          border: "1px solid rgba(99, 102, 241, 0.25)",
+                                          borderRadius: "8px",
+                                          color: "#6366f1",
+                                          cursor: "pointer",
+                                          fontSize: "12px",
+                                          fontWeight: "750",
+                                          padding: "6px 12px",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "6px"
+                                        }}
+                                        title={`Open Kanban Board for ${proj.title}`}
+                                      >
+                                        <FaClipboardList size={12} />
+                                        <span>View Kanban Board</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteProject(proj._id || proj.id)}
+                                        className="btn-secondary"
+                                        style={{
+                                          padding: "6px 12px",
+                                          fontSize: "12px",
+                                          color: "#ef4444",
+                                          borderColor: "rgba(239, 68, 68, 0.3)",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "6px",
+                                          borderRadius: "8px",
+                                          background: "rgba(239, 68, 68, 0.05)",
+                                          cursor: "pointer"
+                                        }}
+                                        title="Delete Project Completely"
+                                      >
+                                        <FaTrashAlt size={12} /> Delete Project
+                                      </button>
+                                    </div>
                                   </div>
                                   <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text-muted)", lineHeight: "1.4" }}>{proj.description}</p>
                                   <div style={{
@@ -8070,7 +8092,10 @@ function App() {
                                             <div>
                                                <select
                                                 value=""
+                                                onClick={(e) => e.stopPropagation()}
+                                                onMouseDown={(e) => e.stopPropagation()}
                                                 onChange={async (e) => {
+                                                  e.stopPropagation();
                                                   const mentorId = e.target.value;
                                                   if (!mentorId) return;
                                                   try {

@@ -5864,11 +5864,24 @@ app.post("/api/project/:projectId/spoke/:spokeId/faculty-mentor", authenticateTo
     if (!project) return res.status(404).json({
       error: "Corporate project not found."
     });
-    const mentorUser = await prisma.user.findUnique({
-      where: {
-        id: mentorId
-      }
-    });
+    let mentorUser = null;
+    try {
+      mentorUser = await prisma.user.findUnique({
+        where: {
+          id: mentorId
+        }
+      });
+    } catch (e) {}
+    if (!mentorUser) {
+      mentorUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: mentorId },
+            { displayName: { contains: mentorId, mode: "insensitive" } }
+          ]
+        }
+      });
+    }
     if (!mentorUser) return res.status(404).json({
       error: "Faculty mentor user not found."
     });
