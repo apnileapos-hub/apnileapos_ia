@@ -5627,10 +5627,10 @@ function App() {
                   onClick={() => {
                     setActiveWorkspace(currentPersona);
                     setActiveView("dashboard");
-                    triggerToast(`Switched Workspace: ${sessionUser?.role === "Student Developer" ? "Student Dashboard" : "Spoke Dashboard"}`);
+                    triggerToast(`Switched Workspace: ${sessionUser?.role === "Faculty Mentor" ? "Faculty Mentor Portal" : sessionUser?.role === "Student Developer" ? "Student Dashboard" : "Spoke Dashboard"}`);
                   }}
                   className={`sidebar-rail-icon ${(activeWorkspace === currentPersona && activeView === "dashboard") ? "active" : ""}`}
-                  title={sessionUser?.role === "Student Developer" ? "Student Dashboard" : "Spoke Dashboard"}
+                  title={sessionUser?.role === "Faculty Mentor" ? "Faculty Mentor Portal" : sessionUser?.role === "Student Developer" ? "Student Dashboard" : "Spoke Dashboard"}
                 >
                   <FaHome size={20} />
                 </div>
@@ -5835,100 +5835,104 @@ function App() {
               </>
             )}
 
-            {/* Section 3: Campuses & Roles */}
-            <div style={{ fontSize: "9px", fontWeight: "850", textTransform: "uppercase", color: "var(--sidebar-text-dim)", letterSpacing: "1px", paddingLeft: "12px", marginTop: "4px", marginBottom: "4px" }}>
-              {sessionUser?.role === "Student Developer" ? "Student Workspace" : "Campuses & Roles"}
-            </div>
-
-            {((isCentralAdmin && currentPersona !== "executive") || currentPersona === "project-manager") && (
-              <SidebarNavItem
-                active={activeWorkspace === "project-manager"}
-                icon={<FaClipboardList style={{ fontSize: "16px" }} />}
-                label="Project Manager Portal"
-                collapsed={false}
-                onClick={() => {
-                  setActiveWorkspace("project-manager");
-                  setActiveView("dashboard");
-                }}
-              />
-            )}
-
-            {((isCentralAdmin && currentPersona !== "executive" && currentPersona !== "faculty-mentor")) && (
-              <SidebarNavItem
-                active={activeWorkspace === "faculty-mentor"}
-                icon={<FaGraduationCap style={{ fontSize: "16px" }} />}
-                label="Faculty Mentor Portal"
-                collapsed={false}
-                onClick={() => {
-                  setActiveWorkspace("faculty-mentor");
-                  setActiveView("dashboard");
-                }}
-              />
-            )}
-            
-            {isCentralAdmin && (
-              <SidebarNavItem
-                active={activeWorkspace === "hub"}
-                icon={<FaGlobe style={{ fontSize: "16px" }} />}
-                label="Main Dashboard"
-                collapsed={false}
-                onClick={() => setActiveWorkspace("hub")}
-              />
-            )}
-
-            {currentPersona === "moderator" && (
+            {/* Section 3: Campuses & Roles (Hidden for Faculty Mentors) */}
+            {sessionUser?.role !== "Faculty Mentor" && currentPersona !== "faculty-mentor" && activeWorkspace !== "faculty-mentor" && (
               <>
-                <SidebarNavItem
-                  active={activeWorkspace === "moderator" && moderatorActiveTab !== "spokes"}
-                  icon={<FaBriefcase size={16} />}
-                  label="Central Moderation Portal"
-                  collapsed={false}
-                  onClick={() => {
-                    setActiveWorkspace("moderator");
-                    setModeratorActiveTab("proposals");
-                  }}
-                />
-                <SidebarNavItem
-                  active={activeWorkspace === "moderator" && moderatorActiveTab === "spokes"}
-                  icon={<FaBuilding style={{ fontSize: "16px" }} />}
-                  label="Campus Spokes"
-                  collapsed={false}
-                  onClick={() => {
-                    setActiveWorkspace("moderator");
-                    setModeratorActiveTab("spokes");
-                  }}
-                />
-                <SidebarNavItem
-                  active={activeWorkspace === "meetings"}
-                  icon={<FaCalendarAlt style={{ fontSize: "16px" }} />}
-                  label="Meetings"
-                  collapsed={false}
-                  onClick={() => setActiveWorkspace("meetings")}
-                />
+                <div style={{ fontSize: "9px", fontWeight: "850", textTransform: "uppercase", color: "var(--sidebar-text-dim)", letterSpacing: "1px", paddingLeft: "12px", marginTop: "4px", marginBottom: "4px" }}>
+                  {sessionUser?.role === "Student Developer" ? "Student Workspace" : "Campuses & Roles"}
+                </div>
+
+                {((isCentralAdmin && currentPersona !== "executive") || currentPersona === "project-manager") && (
+                  <SidebarNavItem
+                    active={activeWorkspace === "project-manager"}
+                    icon={<FaClipboardList style={{ fontSize: "16px" }} />}
+                    label="Project Manager Portal"
+                    collapsed={false}
+                    onClick={() => {
+                      setActiveWorkspace("project-manager");
+                      setActiveView("dashboard");
+                    }}
+                  />
+                )}
+
+                {((isCentralAdmin && currentPersona !== "executive" && currentPersona !== "faculty-mentor")) && (
+                  <SidebarNavItem
+                    active={activeWorkspace === "faculty-mentor"}
+                    icon={<FaGraduationCap style={{ fontSize: "16px" }} />}
+                    label="Faculty Mentor Portal"
+                    collapsed={false}
+                    onClick={() => {
+                      setActiveWorkspace("faculty-mentor");
+                      setActiveView("dashboard");
+                    }}
+                  />
+                )}
+                
+                {isCentralAdmin && (
+                  <SidebarNavItem
+                    active={activeWorkspace === "hub"}
+                    icon={<FaGlobe style={{ fontSize: "16px" }} />}
+                    label="Main Dashboard"
+                    collapsed={false}
+                    onClick={() => setActiveWorkspace("hub")}
+                  />
+                )}
+
+                {currentPersona === "moderator" && (
+                  <>
+                    <SidebarNavItem
+                      active={activeWorkspace === "moderator" && moderatorActiveTab !== "spokes"}
+                      icon={<FaBriefcase size={16} />}
+                      label="Central Moderation Portal"
+                      collapsed={false}
+                      onClick={() => {
+                        setActiveWorkspace("moderator");
+                        setModeratorActiveTab("proposals");
+                      }}
+                    />
+                    <SidebarNavItem
+                      active={activeWorkspace === "moderator" && moderatorActiveTab === "spokes"}
+                      icon={<FaBuilding style={{ fontSize: "16px" }} />}
+                      label="Campus Spokes"
+                      collapsed={false}
+                      onClick={() => {
+                        setActiveWorkspace("moderator");
+                        setModeratorActiveTab("spokes");
+                      }}
+                    />
+                    <SidebarNavItem
+                      active={activeWorkspace === "meetings"}
+                      icon={<FaCalendarAlt style={{ fontSize: "16px" }} />}
+                      label="Meetings"
+                      collapsed={false}
+                      onClick={() => setActiveWorkspace("meetings")}
+                    />
+                  </>
+                )}
+
+                {/* Spoke Campuses list (Dynamic from PostgreSQL) */}
+                {Object.entries(dynamicSpokes).map(([spokeId, spoke]) => {
+                  const ws = spokeId === "3" ? "spoke-kle" : spokeId === "101" ? "spoke-coep" : spokeId === "102" ? "spoke-mmcoep" : spokeId === "103" ? "spoke-rit" : ("spoke-" + spokeId);
+                  const canView = (isCentralAdmin || currentPersona === ws || (sessionUser?.role === "Student Developer" && String(sessionUser.campusId || sessionUser.spokeId) === String(spokeId)) || (sessionUser?.role === "Spoke Coordinator" && String(sessionUser.campusId || sessionUser.spokeId) === String(spokeId))) && sessionUser?.role !== "Faculty Mentor" && currentPersona !== "faculty-mentor" && activeWorkspace !== "faculty-mentor";
+                  if (!canView) return null;
+                  const isStudent = sessionUser?.role === "Student Developer";
+                  const cleanName = spoke.name.replace(/ Spoke$/i, '').replace(/ Campus$/i, '').replace(/ Technological University$/i, ' Tech');
+                  return (
+                    <SidebarNavItem
+                      key={spokeId}
+                      active={activeWorkspace === ws}
+                      icon={isStudent ? <FaGraduationCap /> : <FaBuilding />}
+                      label={isStudent ? (cleanName + " Student Hub") : (cleanName + " Campus")}
+                      collapsed={false}
+                      onClick={() => {
+                        setActiveWorkspace(ws);
+                        setActiveView("dashboard");
+                      }}
+                    />
+                  );
+                })}
               </>
             )}
-
-            {/* Spoke Campuses list (Dynamic from PostgreSQL) */}
-            {Object.entries(dynamicSpokes).map(([spokeId, spoke]) => {
-              const ws = spokeId === "3" ? "spoke-kle" : spokeId === "101" ? "spoke-coep" : spokeId === "102" ? "spoke-mmcoep" : spokeId === "103" ? "spoke-rit" : ("spoke-" + spokeId);
-              const canView = isCentralAdmin || currentPersona === ws || (sessionUser && String(sessionUser.campusId || sessionUser.spokeId) === String(spokeId));
-              if (!canView) return null;
-              const isStudent = sessionUser?.role === "Student Developer";
-              const cleanName = spoke.name.replace(/ Spoke$/i, '').replace(/ Campus$/i, '').replace(/ Technological University$/i, ' Tech');
-              return (
-                <SidebarNavItem
-                  key={spokeId}
-                  active={activeWorkspace === ws}
-                  icon={isStudent ? <FaGraduationCap /> : <FaBuilding />}
-                  label={isStudent ? (cleanName + " Student Hub") : (cleanName + " Campus")}
-                  collapsed={false}
-                  onClick={() => {
-                    setActiveWorkspace(ws);
-                    setActiveView("dashboard");
-                  }}
-                />
-              );
-            })}
             
             <hr style={{ border: "none", borderTop: "1px solid var(--sidebar-border)", margin: "12px 16px 12px 0" }} />
 
