@@ -5808,6 +5808,13 @@ function App() {
                       collapsed={false}
                       onClick={() => setActiveView("teams")}
                     />
+                    <SidebarNavItem
+                      active={activeView === "meetings"}
+                      icon={<FaCalendarAlt size={16} />}
+                      label="Create Meeting"
+                      collapsed={false}
+                      onClick={() => setActiveView("meetings")}
+                    />
                   </>
                 ) : (
                   <>
@@ -6013,6 +6020,7 @@ function App() {
                   wsName = "Project Manager";
                 } else if (activeWorkspace === "faculty-mentor") {
                   if (activeView === "teams") return "Faculty Mentor - Create & Manage Teams";
+                  if (activeView === "meetings") return "Faculty Mentor - Team Meetings & Syncs";
                   if (activeView === "kanban") return "Faculty Mentor Task Board";
                   return "Faculty Mentor Overview";
                 } else if (activeWorkspace?.startsWith("sponsor-") || activeWorkspace === "project-mentor" || sessionUser?.role === "Corporate Partner" || sessionUser?.role === "Project Mentor") {
@@ -6039,6 +6047,8 @@ function App() {
                 ? "Track your active sprint tasks, team project deliverables, mentor feedback, and upcoming deadlines."
                 : activeWorkspace === "faculty-mentor" && activeView === "teams"
                 ? "Assemble student sprint teams, designate student leaders, and evaluate final project milestones."
+                : activeWorkspace === "faculty-mentor" && activeView === "meetings"
+                ? "Schedule team sprint syncs, review agendas, and conduct virtual evaluations with your student teams."
                 : activeWorkspace === "faculty-mentor" && activeView === "dashboard"
                 ? "Monitor assigned industry projects, verify deliverables, and track campus progress."
                 : activeView === "dashboard" 
@@ -6443,7 +6453,7 @@ function App() {
             fetchJiraTasks={fetchJiraTasks}
             setFilterProject={setFilterProject}
           />
-        ) : activeWorkspace === "meetings" ? (
+        ) : activeWorkspace === "meetings" || (activeWorkspace === "faculty-mentor" && activeView === "meetings") ? (
           <MeetingsPortalView
             meetings={meetings}
             loading={isMeetingsLoading}
@@ -6451,6 +6461,8 @@ function App() {
             spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, spoke]) => ({ id, ...spoke }))}
             triggerToast={triggerToast}
             moderatorProjects={moderatorProjects}
+            sessionUser={sessionUser}
+            isFacultyMentor={activeWorkspace === "faculty-mentor" || sessionUser?.role === "Faculty Mentor"}
           />
         ) : (
           <>
@@ -14153,7 +14165,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
 // COLLABORATIVE Sync Meetings PORTAL VIEW
 // ==========================================
 
-function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast, moderatorProjects = [] }) {
+function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast, moderatorProjects = [], sessionUser, isFacultyMentor = false }) {
   const getSpokeProjectStatus = (spokeName) => {
     const activeProjs = moderatorProjects.filter(p => p.assignedTo === spokeName && (p.status === "Active" || p.status.startsWith("Assigned") || p.status.includes("BREACHED")));
     const proposedProjs = moderatorProjects.filter(p => p.assignedTo === spokeName && p.status === "Proposed");
@@ -14167,7 +14179,8 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
     return `Awaiting Projects`;
   };
   const [newTitle, setNewTitle] = useState("");
-  const [newCampusIds, setNewCampusIds] = useState(["3"]);
+  const defaultSpokeId = sessionUser?.spokeId ? String(sessionUser.spokeId) : (spokes[0]?.id ? String(spokes[0].id) : "3");
+  const [newCampusIds, setNewCampusIds] = useState([defaultSpokeId]);
   const [selectionMode, setSelectionMode] = useState("manual");
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [newDate, setNewDate] = useState("2026-05-27");
@@ -14175,7 +14188,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   const [newLink, setNewLink] = useState("");
   const [videoPlatform, setVideoPlatform] = useState("jitsi");
   const [newAgenda, setNewAgenda] = useState("");
-  const [newCadenceType, setNewCadenceType] = useState("Weekly College PM Update");
+  const [newCadenceType, setNewCadenceType] = useState(isFacultyMentor ? "Team Sprint Sync" : "Weekly College PM Update");
   const [isScheduling, setIsScheduling] = useState(false);
   const [remindLoading, setRemindLoading] = useState(null); // id of meeting loading reminder
   
@@ -14211,6 +14224,10 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
 
     setIsScheduling(true);
     try {
+      const generatedLink = videoPlatform === "jitsi"
+        ? (newLink.trim() || `https://meet.jit.si/ApniLeap-${encodeURIComponent((newTitle || "Sprint").trim().replace(/[^a-zA-Z0-9]/g, '-'))}-${Date.now()}`)
+        : (newLink.trim() || "https://teams.microsoft.com/");
+
       // Create a meeting for EACH selected campus
       for (const campusId of newCampusIds) {
         await axios.post("http://localhost:5001/meetings", {
@@ -14218,13 +14235,13 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
           campusId: campusId,
           date: newDate,
           time: newTime,
-          link: newLink,
+          link: generatedLink,
           agenda: newAgenda,
           cadenceType: newCadenceType
         });
       }
 
-      triggerToast("Campus sync meeting(s) scheduled successfully!");
+      triggerToast("Meeting scheduled successfully!");
       setNewTitle("");
       setNewLink("");
       setNewAgenda("");
@@ -14688,10 +14705,12 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
       {/* RIGHT COLUMN: Schedule Form */}
       <div className="glass-panel" style={{ padding: "24px" }}>
         <h3 style={{ fontSize: "18px", fontWeight: "700", color: "var(--text-main)", marginBottom: "6px" }}>
-          Schedule FIP Campus Sync
+          {isFacultyMentor ? "Schedule Team Sprint Sync" : "Schedule FIP Campus Sync"}
         </h3>
         <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "20px" }}>
-          Establish sync channels for review of sprint deliverables.
+          {isFacultyMentor 
+            ? "Establish live sync channels and virtual reviews for your student teams." 
+            : "Establish sync channels for review of sprint deliverables."}
         </p>
 
         <form onSubmit={handleScheduleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -14706,6 +14725,9 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
               onChange={(e) => setNewCadenceType(e.target.value)}
               style={{ width: "100%", padding: "10px 12px", fontSize: "13px", marginBottom: "16px", background: "rgba(99, 102, 241, 0.05)", border: "1px solid var(--primary)", color: "var(--text-main)", borderRadius: "6px" }}
             >
+              <option value="Team Sprint Sync">Team Sprint Sync</option>
+              <option value="Faculty Mentor Review">Faculty Mentor Review</option>
+              <option value="Student Project Milestone Review">Student Project Milestone Review</option>
               <option value="Weekly College PM Update">Weekly College PM Update</option>
               <option value="Weekly ApniLeap Cohort Checkpoint">Weekly ApniLeap Cohort Checkpoint</option>
               <option value="Bi-weekly Program Director Review">Bi-weekly Program Director Review</option>
@@ -14724,7 +14746,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
               className="form-input"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="e.g. KLE Bi-weekly Sprint Sync"
+              placeholder={isFacultyMentor ? "e.g. Phase 1 Architecture Review & Demo" : "e.g. KLE Bi-weekly Sprint Sync"}
               style={{ width: "100%", padding: "10px 12px", fontSize: "13px" }}
             />
           </div>
@@ -15656,6 +15678,28 @@ function FacultyMentorDashboardView({
             <FaUsers size={15} />
             <span>Create & Manage Teams ({existingTeams.length})</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView && setActiveView("meetings")}
+            style={{
+              padding: "9px 18px",
+              borderRadius: "10px",
+              border: "1px solid transparent",
+              background: "transparent",
+              color: "var(--text-muted)",
+              fontWeight: "750",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease"
+            }}
+          >
+            <FaCalendarAlt size={14} />
+            <span>Team Meetings & Syncs ({meetings.filter(m => String(m.campusId) === String(spokeId)).length})</span>
+          </button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -15717,6 +15761,23 @@ function FacultyMentorDashboardView({
               </p>
             </div>
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => setActiveView && setActiveView("meetings")}
+                className="btn-secondary"
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: "750",
+                  cursor: "pointer"
+                }}
+              >
+                <FaCalendarAlt size={14} />
+                <span>Schedule Meeting</span>
+              </button>
               <button
                 onClick={() => setActiveView && setActiveView("teams")}
                 className="btn-primary"
@@ -16578,6 +16639,29 @@ function FacultyMentorDashboardView({
                               <span>Project Board</span>
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (setActiveView) setActiveView("meetings");
+                            }}
+                            style={{
+                              background: "rgba(249, 115, 22, 0.08)",
+                              border: "1px solid rgba(249, 115, 22, 0.25)",
+                              borderRadius: "6px",
+                              color: "var(--accent, #f97316)",
+                              cursor: "pointer",
+                              fontSize: "11px",
+                              fontWeight: "750",
+                              padding: "4px 10px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px"
+                            }}
+                            title={`Schedule sync meeting for team ${team.name}`}
+                          >
+                            <FaCalendarAlt size={11} />
+                            <span>Schedule Sync</span>
+                          </button>
                           <button
                             onClick={() => handleDisbandTeam(team._id || team.id)}
                             style={{

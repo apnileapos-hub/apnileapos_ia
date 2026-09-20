@@ -4,6 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 // Force Google DNS to bypass local router DNS issues with PostgreSQL SRV querySrv
@@ -1497,7 +1498,6 @@ app.delete("/tasks/:key", authenticateToken, async (req, res) => {
     });
   }
 });
-const nodemailer = require("nodemailer");
 
 // SMTP Email Gateway for Task Reminders (Real & Simulated Fallback)
 app.post("/tasks/send-reminder", async (req, res) => {
@@ -3115,145 +3115,149 @@ app.post("/meetings", async (req, res) => {
       }
     });
     // Dynamically notify Spoke members about the new scheduled meeting
-    const spoke = SPOKES[campusId];
-    if (spoke) {
-      const notifyCoordinators = new Set();
+    try {
+      const spoke = SPOKES[campusId];
+      if (spoke) {
+        const notifyCoordinators = new Set();
 
-      // 1. Query live JIRA assignable users (if JIRA is online)
-      if (spoke.live && shouldCheckJira()) {
-        try {
-          const auth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
-          const jiraRes = await axios.get(`${process.env.JIRA_DOMAIN}/rest/api/2/user/assignable/search?project=AK`, {
-            headers: {
-              Authorization: `Basic ${auth}`,
-              Accept: "application/json"
-            },
-            timeout: 30000
-          });
-          if (Array.isArray(jiraRes.data)) {
-            jiraRes.data.forEach(u => {
-              if (u.emailAddress) {
-                notifyCoordinators.add(u.emailAddress.toLowerCase().trim());
-              }
+        // 1. Query live JIRA assignable users (if JIRA is online)
+        if (spoke.live && shouldCheckJira()) {
+          try {
+            const auth = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
+            const jiraRes = await axios.get(`${process.env.JIRA_DOMAIN}/rest/api/2/user/assignable/search?project=AK`, {
+              headers: {
+                Authorization: `Basic ${auth}`,
+                Accept: "application/json"
+              },
+              timeout: 10000
             });
+            if (Array.isArray(jiraRes.data)) {
+              jiraRes.data.forEach(u => {
+                if (u.emailAddress) {
+                  notifyCoordinators.add(u.emailAddress.toLowerCase().trim());
+                }
+              });
+            }
+          } catch (err) {
+            console.warn("Failed live JIRA members query in schedule endpoint:", err.message);
           }
-        } catch (err) {
-          console.warn("Failed live JIRA members query in schedule endpoint:", err.message);
         }
-      }
 
-      // 2. Query persistent PostgreSQL database users matching this spoke
-      const personaMap = {
-        "3": "spoke-kle",
-        "101": "spoke-coep",
-        "102": "spoke-mmcoep",
-        "103": "spoke-rit"
-      };
-      const targetPersona = personaMap[campusId];
-      if (targetPersona) {
-        const dbUsers = await prisma.user.findMany({
-          where: {
-            persona: targetPersona
-          }
-        });
-        dbUsers.forEach(u => {
-          if (u.email) {
-            notifyCoordinators.add(u.email.toLowerCase().trim());
-          }
-        });
-      }
-
-      // 3. Query simulated campus spoke members
-      const simulated = CAMPUS_TEAM_MEMBERS[campusId] || [];
-      simulated.forEach(u => {
-        const email = u.emailAddress || u.email;
-        if (email) {
-          notifyCoordinators.add(email.toLowerCase().trim());
+        // 2. Query persistent PostgreSQL database users matching this spoke
+        const personaMap = {
+          "3": "spoke-kle",
+          "101": "spoke-coep",
+          "102": "spoke-mmcoep",
+          "103": "spoke-rit"
+        };
+        const targetPersona = personaMap[campusId];
+        if (targetPersona) {
+          const dbUsers = await prisma.user.findMany({
+            where: {
+              persona: targetPersona
+            }
+          });
+          dbUsers.forEach(u => {
+            if (u.email) {
+              notifyCoordinators.add(u.email.toLowerCase().trim());
+            }
+          });
         }
-      });
-      const recipientList = Array.from(notifyCoordinators);
-      const redirectEmail = process.env.SMTP_REDIRECT_TO || null;
-      const finalTo = redirectEmail ? redirectEmail : recipientList.join(", ");
-      const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
-      let transporter;
-      if (hasSmtpConfig) {
-        transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || "465"),
-          secure: process.env.SMTP_SECURE === "true",
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
+
+        // 3. Query simulated campus spoke members
+        const simulated = CAMPUS_TEAM_MEMBERS[campusId] || [];
+        simulated.forEach(u => {
+          const email = u.emailAddress || u.email;
+          if (email) {
+            notifyCoordinators.add(email.toLowerCase().trim());
           }
         });
-      }
-      if (transporter && finalTo) {
-        const redirectBannerHtml = "";
-        const htmlTemplate = `
-          <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background-color: #f9fafb; padding: 40px 20px; color: #1f2937; min-height: 100%;">
-            <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-              <!-- Header -->
-              <div style="background: #2563eb; padding: 32px 30px; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">ApniLeap Hub</h1>
-                <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.5px; color: #e0e7ff;">New Meeting Scheduled</p>
-              </div>
-              
-              <!-- Body -->
-              <div style="padding: 40px 30px; line-height: 1.6;">
-                ${redirectBannerHtml}
-                <h2 style="margin-top: 0; color: #111827; font-size: 20px; font-weight: 600; letter-spacing: -0.5px;">Meeting Invitation</h2>
-                <p style="font-size: 15px; color: #4b5563; margin-bottom: 24px;">
-                  A new sync meeting has been scheduled for <strong style="color: #2563eb;">${spoke.name}</strong>. Please find the details and join link below.
-                </p>
+        const recipientList = Array.from(notifyCoordinators);
+        const redirectEmail = process.env.SMTP_REDIRECT_TO || null;
+        const finalTo = redirectEmail ? redirectEmail : recipientList.join(", ");
+        const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+        let transporter;
+        if (hasSmtpConfig) {
+          transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || "465"),
+            secure: process.env.SMTP_SECURE === "true",
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS
+            }
+          });
+        }
+        if (transporter && finalTo) {
+          const redirectBannerHtml = "";
+          const htmlTemplate = `
+            <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background-color: #f9fafb; padding: 40px 20px; color: #1f2937; min-height: 100%;">
+              <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                <!-- Header -->
+                <div style="background: #2563eb; padding: 32px 30px; text-align: center;">
+                  <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">ApniLeap Hub</h1>
+                  <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.5px; color: #e0e7ff;">New Meeting Scheduled</p>
+                </div>
+                
+                <!-- Body -->
+                <div style="padding: 40px 30px; line-height: 1.6;">
+                  ${redirectBannerHtml}
+                  <h2 style="margin-top: 0; color: #111827; font-size: 20px; font-weight: 600; letter-spacing: -0.5px;">Meeting Invitation</h2>
+                  <p style="font-size: 15px; color: #4b5563; margin-bottom: 24px;">
+                    A new sync meeting has been scheduled for <strong style="color: #2563eb;">${spoke.name}</strong>. Please find the details and join link below.
+                  </p>
 
-                <!-- Sync Card -->
-                <div style="background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; margin-bottom: 32px;">
-                  <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 700;">Meeting Details</h3>
-                  <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-weight: 500; width: 100px;">Title:</td>
-                      <td style="padding: 8px 0; color: #111827; font-weight: 600;">${title}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Time:</td>
-                      <td style="padding: 8px 0; color: #2563eb; font-weight: 600;">${date} at ${time}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 8px 0; color: #6b7280; font-weight: 500; vertical-align: top;">Agenda:</td>
-                      <td style="padding: 8px 0; color: #374151;">${agenda || "General campus sync."}</td>
-                    </tr>
-                  </table>
+                  <!-- Sync Card -->
+                  <div style="background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; margin-bottom: 32px;">
+                    <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 700;">Meeting Details</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-weight: 500; width: 100px;">Title:</td>
+                        <td style="padding: 8px 0; color: #111827; font-weight: 600;">${title}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Time:</td>
+                        <td style="padding: 8px 0; color: #2563eb; font-weight: 600;">${date} at ${time}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-weight: 500; vertical-align: top;">Agenda:</td>
+                        <td style="padding: 8px 0; color: #374151;">${agenda || "General campus sync."}</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <!-- Action Button -->
+                  <div style="text-align: center; margin-top: 10px;">
+                    <a href="${newMeeting.link}" target="_blank" style="background: #2563eb; color: #ffffff; padding: 14px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block;">
+                      Join Meeting
+                    </a>
+                  </div>
                 </div>
 
-                <!-- Action Button -->
-                <div style="text-align: center; margin-top: 10px;">
-                  <a href="${newMeeting.link}" target="_blank" style="background: #2563eb; color: #ffffff; padding: 14px 32px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block;">
-                    Join Meeting
-                  </a>
+                <!-- Footer -->
+                <div style="background-color: #f9fafb; padding: 24px 30px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; line-height: 1.5;">
+                  This notification was dispatched automatically by ApniLeap Hub.<br/>
+                  Please do not reply directly to this email.
                 </div>
-              </div>
-
-              <!-- Footer -->
-              <div style="background-color: #f9fafb; padding: 24px 30px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af; line-height: 1.5;">
-                This notification was dispatched automatically by ApniLeap Hub.<br/>
-                Please do not reply directly to this email.
               </div>
             </div>
-          </div>
-        `;
-        try {
-          await transporter.sendMail({
-            from: `"${process.env.SMTP_FROM_NAME || 'ApniLeap Hub'}" <${process.env.SMTP_USER}>`,
-            to: finalTo,
-            subject: `📅 [Meeting Scheduled] Sync Invitation: ${title} (${spoke.name})`,
-            text: `Meeting: ${title}\nCampus: ${spoke.name}\nTime: ${date} at ${time}\nJoin Link: ${newMeeting.link}\nAgenda: ${agenda || "General campus sync."}\n\n(Demo Mode - Originally addressed to: ${recipientList.join(", ")})`,
-            html: htmlTemplate
-          });
-          console.log(`[MEETING-SCHEDULE] Notification email successfully sent to ${finalTo}`);
-        } catch (emailErr) {
-          console.warn("[MEETING-SCHEDULE] Failed to send email, but meeting was created:", emailErr.message);
+          `;
+          try {
+            await transporter.sendMail({
+              from: `"${process.env.SMTP_FROM_NAME || 'ApniLeap Hub'}" <${process.env.SMTP_USER}>`,
+              to: finalTo,
+              subject: `📅 [Meeting Scheduled] Sync Invitation: ${title} (${spoke.name})`,
+              text: `Meeting: ${title}\nCampus: ${spoke.name}\nTime: ${date} at ${time}\nJoin Link: ${newMeeting.link}\nAgenda: ${agenda || "General campus sync."}\n\n(Demo Mode - Originally addressed to: ${recipientList.join(", ")})`,
+              html: htmlTemplate
+            });
+            console.log(`[MEETING-SCHEDULE] Notification email successfully sent to ${finalTo}`);
+          } catch (emailErr) {
+            console.warn("[MEETING-SCHEDULE] Failed to send email, but meeting was created:", emailErr.message);
+          }
         }
       }
+    } catch (notifErr) {
+      console.warn("[MEETING-SCHEDULE] Notification dispatch error (meeting was saved):", notifErr.message);
     }
     res.json({
       success: true,
