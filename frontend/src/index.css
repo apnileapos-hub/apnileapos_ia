@@ -175,7 +175,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Legibility scale enhancements: Lift text across all cards, tables, and dashboards so it feels distinctly larger and clearer */
-[style*="font-size: 9px"], [style*="font-size:9px"] {
+[style*="font-size: 9px"], [style*="font-size:9px"], [style*="font-size: 9.5px"], [style*="font-size:9.5px"] {
   font-size: 12px !important;
 }
 [style*="font-size: 10px"], [style*="font-size:10px"], [style*="font-size: 10.5px"], [style*="font-size:10.5px"] {
