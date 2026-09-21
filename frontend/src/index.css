@@ -139,6 +139,12 @@ body, div, nav, aside, main, header, section, span, h1, h2, h3, h4, h5, h6, p, b
               box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+html {
+  font-size: 16px;
+  zoom: 1.08; /* Scales all text & UI comfortably larger across the whole application */
+  -webkit-text-size-adjust: 100%;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -148,6 +154,7 @@ body, div, nav, aside, main, header, section, span, h1, h2, h3, h4, h5, h6, p, b
 
 input, select, textarea, button, optgroup, option {
   font-family: var(--font-sans);
+  font-size: inherit;
 }
 
 body {
@@ -158,7 +165,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.011em;
-  line-height: 1.5;
+  line-height: 1.55;
+  font-size: 15px;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
