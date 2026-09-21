@@ -4808,7 +4808,7 @@ app.post("/api/login", async (req, res) => {
             });
         }
         
-        const recipient = process.env.SMTP_REDIRECT_TO || process.env.SMTP_USER || user.email;
+        const recipient = user.email;
         const mailOptions = {
             from: process.env.SMTP_FROM || '"ApniLeap Auth" <noreply@apnileap.com>',
             to: recipient,
