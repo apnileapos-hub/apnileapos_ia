@@ -17377,11 +17377,11 @@ function FacultyMentorDashboardView({
 
                       {/* Scrollable Students Grid List */}
                       <div style={{
-                        maxHeight: "220px",
+                        maxHeight: "260px",
                         overflowY: "auto",
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                        gap: "6px",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                        gap: "8px",
                         paddingRight: "4px"
                       }}>
                         {filteredStudents.map(student => {
@@ -17395,13 +17395,13 @@ function FacultyMentorDashboardView({
                               }}
                               style={{
                                 display: "flex",
-                                alignItems: "center",
-                                gap: "10px",
-                                padding: "7px 10px",
-                                borderRadius: "6px",
+                                alignItems: "flex-start",
+                                gap: "12px",
+                                padding: "10px 14px",
+                                borderRadius: "8px",
                                 cursor: "pointer",
                                 background: isSelected ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.02)",
-                                border: isSelected ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid var(--border-glass)",
+                                border: isSelected ? "1.5px solid rgba(99, 102, 241, 0.45)" : "1px solid var(--border-glass)",
                                 transition: "all 0.15s ease"
                               }}
                               onMouseEnter={(e) => {
@@ -17415,28 +17415,26 @@ function FacultyMentorDashboardView({
                                 type="checkbox"
                                 checked={isSelected}
                                 readOnly
-                                style={{ cursor: "pointer", pointerEvents: "none", accentColor: "var(--primary)" }}
+                                style={{ marginTop: "3px", cursor: "pointer", pointerEvents: "none", accentColor: "var(--primary)" }}
                               />
-                              <span style={{
-                                fontSize: "12.5px",
-                                fontWeight: isSelected ? "750" : "500",
-                                color: isSelected ? "var(--primary)" : "var(--text-main)",
-                                flex: 1,
-                                minWidth: 0,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap"
-                              }}>
-                                {student.displayName}
-                              </span>
-                              <span style={{
-                                fontSize: "11px",
-                                color: "var(--text-dim)",
-                                marginLeft: "8px",
-                                flexShrink: 0
-                              }}>
-                                ({student.emailAddress})
-                              </span>
+                              <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, gap: "2px" }}>
+                                <span style={{
+                                  fontSize: "13px",
+                                  fontWeight: isSelected ? "800" : "650",
+                                  color: isSelected ? "var(--primary)" : "var(--text-main)",
+                                  lineHeight: 1.3
+                                }}>
+                                  {student.displayName}
+                                </span>
+                                <span style={{
+                                  fontSize: "11.5px",
+                                  color: isSelected ? "var(--primary)" : "var(--text-dim)",
+                                  lineHeight: 1.3,
+                                  wordBreak: "break-all"
+                                }}>
+                                  {student.emailAddress}
+                                </span>
+                              </div>
                             </div>
                           );
                         })}
