@@ -16860,256 +16860,11 @@ function FacultyMentorDashboardView({
                         )}
                       </div>
 
-                      {/* View Deliverables Line (Collapsible & Clean) */}
-                      {(() => {
-                        const projDeliverables = getDeliverablesForProject(proj);
-                        const pendingDeliverables = projDeliverables.filter(d => d.status === "Awaiting Review");
-                        const isExpanded = !!expandedDeliverables[pId];
-
-                        return (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                            {/* Interactive "View Deliverables" Line */}
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedDeliverables(prev => ({
-                                  ...prev,
-                                  [pId]: !prev[pId]
-                                }));
-                              }}
-                              style={{
-                                padding: "8px 12px",
-                                background: isExpanded
-                                  ? "rgba(59, 130, 246, 0.08)"
-                                  : pendingDeliverables.length > 0
-                                    ? "rgba(249, 115, 22, 0.08)"
-                                    : "rgba(255, 255, 255, 0.02)",
-                                border: isExpanded
-                                  ? "1px solid rgba(59, 130, 246, 0.3)"
-                                  : pendingDeliverables.length > 0
-                                    ? "1px solid rgba(249, 115, 22, 0.28)"
-                                    : "1px solid var(--border-glass)",
-                                borderRadius: "8px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                cursor: "pointer",
-                                transition: "all 0.2s ease"
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = "var(--primary, #3b529a)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = isExpanded
-                                  ? "rgba(59, 130, 246, 0.3)"
-                                  : pendingDeliverables.length > 0
-                                    ? "rgba(249, 115, 22, 0.28)"
-                                    : "var(--border-glass)";
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <FaClipboardList size={13} style={{ color: pendingDeliverables.length > 0 ? "var(--accent)" : "var(--primary)" }} />
-                                <span style={{ fontSize: "12px", fontWeight: "750", color: "var(--text-main)" }}>
-                                  View Deliverables
-                                </span>
-                                <span style={{
-                                  fontSize: "10px",
-                                  fontWeight: "800",
-                                  padding: "1px 6px",
-                                  borderRadius: "5px",
-                                  background: pendingDeliverables.length > 0 ? "rgba(249, 115, 22, 0.15)" : "rgba(16, 185, 129, 0.15)",
-                                  color: pendingDeliverables.length > 0 ? "var(--accent)" : "#10b981"
-                                }}>
-                                  {projDeliverables.length} Total {pendingDeliverables.length > 0 ? `(${pendingDeliverables.length} Pending)` : ""}
-                                </span>
-                              </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "750", color: "var(--primary)" }}>
-                                <span>{isExpanded ? "Hide" : "Click to view"}</span>
-                                {isExpanded ? <FaChevronUp size={11} /> : <FaChevronDown size={11} />}
-                              </div>
-                            </div>
-
-                            {/* When clicked, it expands and shows the deliverables! */}
-                            {isExpanded && (
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                className="fade-in"
-                                style={{
-                                  padding: "10px",
-                                  background: "rgba(255, 255, 255, 0.02)",
-                                  borderRadius: "10px",
-                                  border: "1px solid var(--border-glass)",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: "8px"
-                                }}
-                              >
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted)" }}>
-                                    Submitted Deliverables ({projDeliverables.length})
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeliverablesModalProject(proj)}
-                                    style={{
-                                      background: "transparent",
-                                      border: "none",
-                                      color: "var(--primary)",
-                                      fontSize: "11px",
-                                      fontWeight: "750",
-                                      cursor: "pointer",
-                                      padding: "2px 6px",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: "4px"
-                                    }}
-                                  >
-                                    <span>Full View</span>
-                                    <FaChevronRight size={10} />
-                                  </button>
-                                </div>
-
-                                {projDeliverables.length > 0 ? (
-                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                    {projDeliverables.map(del => {
-                                      const isPending = del.status === "Awaiting Review";
-                                      return (
-                                        <div
-                                          key={del._id || del.id}
-                                          style={{
-                                            padding: "10px 12px",
-                                            background: "var(--bg-card, rgba(255,255,255,0.02))",
-                                            borderRadius: "8px",
-                                            border: isPending ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid var(--border-glass)",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: "7px"
-                                          }}
-                                        >
-                                          {/* Top Row: Student, Task ID, Status */}
-                                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                              <strong style={{ fontSize: "12.5px", color: "var(--text-main)" }}>{del.studentName}</strong>
-                                              <span style={{ fontSize: "10.5px", color: "var(--primary)", fontFamily: "var(--mono)", fontWeight: "700" }}>#{del.taskId}</span>
-                                            </div>
-                                            <span style={{
-                                              fontSize: "9.5px",
-                                              fontWeight: "850",
-                                              padding: "2px 6px",
-                                              borderRadius: "4px",
-                                              background: del.status === "Approved" ? "rgba(45, 212, 191, 0.12)" : del.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.12)" : "rgba(249, 115, 22, 0.12)",
-                                              color: del.status === "Approved" ? "#2dd4bf" : del.status === "Re-work Requested" ? "#ef4444" : "var(--accent)"
-                                            }}>
-                                              {del.status}
-                                            </span>
-                                          </div>
-
-                                          {/* Middle Row: Artifact link & Grade */}
-                                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
-                                            <a
-                                              href={del.fileUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              style={{
-                                                fontSize: "11px",
-                                                color: "var(--primary)",
-                                                fontWeight: "700",
-                                                textDecoration: "none",
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                maxWidth: "230px",
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                gap: "4px"
-                                              }}
-                                              title={del.fileName}
-                                            >
-                                              📄 {del.fileName}
-                                            </a>
-                                            {del.grade && (
-                                              <span style={{ fontSize: "11px", fontWeight: "800", color: "#10b981" }}>
-                                                Grade: {del.grade}
-                                              </span>
-                                            )}
-                                          </div>
-
-                                          {/* Bottom Row: Actions (Full width, distinct row - never overlaps!) */}
-                                          {isPending && (
-                                            <div style={{ display: "flex", gap: "6px", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "6px" }}>
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                                  if (grade !== null) {
-                                                    const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
-                                                    if (feedback !== null) {
-                                                      handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
-                                                    }
-                                                  }
-                                                }}
-                                                style={{
-                                                  flex: 1,
-                                                  padding: "5px 8px",
-                                                  background: "rgba(45, 212, 191, 0.15)",
-                                                  border: "1px solid rgba(45, 212, 191, 0.3)",
-                                                  borderRadius: "5px",
-                                                  color: "#2dd4bf",
-                                                  fontSize: "11px",
-                                                  fontWeight: "800",
-                                                  cursor: "pointer",
-                                                  textAlign: "center"
-                                                }}
-                                              >
-                                                ✓ Approve
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
-                                                  if (feedback !== null) {
-                                                    handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
-                                                  }
-                                                }}
-                                                style={{
-                                                  flex: 1,
-                                                  padding: "5px 8px",
-                                                  background: "rgba(239, 68, 68, 0.15)",
-                                                  border: "1px solid rgba(239, 68, 68, 0.3)",
-                                                  borderRadius: "5px",
-                                                  color: "#ef4444",
-                                                  fontSize: "11px",
-                                                  fontWeight: "800",
-                                                  cursor: "pointer",
-                                                  textAlign: "center"
-                                                }}
-                                              >
-                                                ↺ Re-work
-                                              </button>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <span style={{ fontSize: "11px", color: "var(--text-dim)", fontStyle: "italic", padding: "6px 0" }}>
-                                    No deliverables submitted for this project yet.
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {/* View details and project-specific Kanban button */}
+                      {/* View details, Kanban, and Deliverables buttons */}
                       <div style={{
-                        marginTop: "4px",
+                        marginTop: "auto",
+                        paddingTop: "12px",
+                        borderTop: "1px solid var(--border-glass)",
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
@@ -17139,26 +16894,49 @@ function FacultyMentorDashboardView({
                         </button>
 
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeliverablesModalProject(proj);
-                            }}
-                            style={{
-                              fontSize: "11.5px",
-                              fontWeight: "750",
-                              color: getDeliverablesForProject(proj).filter(d => d.status === "Awaiting Review").length > 0 ? "var(--accent, #f97316)" : "var(--primary, #3b529a)",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              cursor: "pointer"
-                            }}
-                            title="Open Deliverables Modal"
-                          >
-                            <FaClipboardList size={11} />
-                            <span>Deliverables ({getDeliverablesForProject(proj).length})</span>
-                            <FaChevronRight size={10} />
-                          </span>
+                          {(() => {
+                            const projDeliverables = getDeliverablesForProject(proj);
+                            const pendingCount = projDeliverables.filter(d => d.status === "Awaiting Review").length;
+                            return (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeliverablesModalProject(proj);
+                                }}
+                                style={{
+                                  background: pendingCount > 0 ? "rgba(249, 115, 22, 0.1)" : "rgba(59, 82, 154, 0.06)",
+                                  border: pendingCount > 0 ? "1.5px solid rgba(249, 115, 22, 0.35)" : "1px solid rgba(59, 82, 154, 0.2)",
+                                  borderRadius: "6px",
+                                  padding: "5px 10px",
+                                  fontSize: "11.5px",
+                                  fontWeight: "750",
+                                  color: pendingCount > 0 ? "var(--accent, #f97316)" : "var(--primary, #3b529a)",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  cursor: "pointer",
+                                  transition: "all 0.2s ease"
+                                }}
+                                title="Click to view deliverables for this project"
+                              >
+                                <FaClipboardList size={11} />
+                                <span>View Deliverables ({projDeliverables.length})</span>
+                                {pendingCount > 0 && (
+                                  <span style={{
+                                    fontSize: "9.5px",
+                                    fontWeight: "900",
+                                    padding: "1px 5px",
+                                    borderRadius: "4px",
+                                    background: "#ef4444",
+                                    color: "#ffffff"
+                                  }}>
+                                    {pendingCount} Pending
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })()}
 
                           <span style={{
                             fontSize: "11.5px",
