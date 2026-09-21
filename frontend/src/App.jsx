@@ -16568,14 +16568,29 @@ function FacultyMentorDashboardView({
                       Recent Student Deliverables Awaiting Verification
                     </strong>
                     <span style={{
-                      fontSize: "10.5px",
-                      fontWeight: "850",
-                      background: "#ef4444",
+                      fontSize: "10px",
+                      fontWeight: "800",
+                      background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                       color: "#ffffff",
-                      padding: "2px 7px",
-                      borderRadius: "6px"
+                      padding: "2px 8px",
+                      borderRadius: "9999px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4.5px",
+                      boxShadow: "0 1px 3px rgba(220, 38, 38, 0.35)",
+                      whiteSpace: "nowrap",
+                      lineHeight: 1
                     }}>
-                      {spokeSubmissions.filter(s => s.status === "Awaiting Review").length} Pending
+                      <span style={{
+                        width: "4.5px",
+                        height: "4.5px",
+                        borderRadius: "50%",
+                        background: "#ffffff",
+                        display: "inline-block",
+                        boxShadow: "0 0 3px #ffffff",
+                        flexShrink: 0
+                      }} />
+                      <span>{spokeSubmissions.filter(s => s.status === "Awaiting Review").length} Pending</span>
                     </span>
                   </div>
                   <div style={{ fontSize: "12.5px", color: "var(--text-muted)", display: "flex", gap: "14px", flexWrap: "wrap", alignItems: "center" }}>
@@ -16892,7 +16907,10 @@ function FacultyMentorDashboardView({
                             cursor: "pointer",
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: "5px"
+                            gap: "5px",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                            transition: "all 0.15s ease"
                           }}
                           title={`Open Kanban board for ${proj.title}`}
                         >
@@ -16900,7 +16918,7 @@ function FacultyMentorDashboardView({
                           <span>Project Kanban</span>
                         </button>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "nowrap" }}>
                           {(() => {
                             const projDeliverables = getDeliverablesForProject(proj);
                             const pendingCount = projDeliverables.filter(d => d.status === "Awaiting Review").length;
@@ -16912,35 +16930,77 @@ function FacultyMentorDashboardView({
                                   setDeliverablesModalProject(proj);
                                 }}
                                 style={{
-                                  background: pendingCount > 0 ? "rgba(249, 115, 22, 0.1)" : "rgba(59, 82, 154, 0.06)",
-                                  border: pendingCount > 0 ? "1.5px solid rgba(249, 115, 22, 0.35)" : "1px solid rgba(59, 82, 154, 0.2)",
-                                  borderRadius: "6px",
-                                  padding: "5px 10px",
-                                  fontSize: "11.5px",
+                                  background: pendingCount > 0 ? "rgba(239, 68, 68, 0.06)" : "rgba(59, 130, 246, 0.05)",
+                                  border: pendingCount > 0 ? "1px solid rgba(239, 68, 68, 0.25)" : "1px solid rgba(59, 130, 246, 0.2)",
+                                  borderRadius: "7px",
+                                  padding: "4.5px 9px",
+                                  fontSize: "11px",
                                   fontWeight: "750",
-                                  color: pendingCount > 0 ? "var(--accent, #f97316)" : "var(--primary, #3b529a)",
+                                  color: pendingCount > 0 ? "var(--text-main, #0f172a)" : "var(--primary, #3b529a)",
                                   display: "inline-flex",
                                   alignItems: "center",
-                                  gap: "5px",
+                                  gap: "6px",
                                   cursor: "pointer",
-                                  transition: "all 0.2s ease"
+                                  whiteSpace: "nowrap",
+                                  flexShrink: 0,
+                                  transition: "all 0.15s ease",
+                                  boxShadow: pendingCount > 0 ? "0 1px 3px rgba(239, 68, 68, 0.08)" : "none"
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = pendingCount > 0 ? "rgba(239, 68, 68, 0.12)" : "rgba(59, 130, 246, 0.12)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = pendingCount > 0 ? "rgba(239, 68, 68, 0.06)" : "rgba(59, 130, 246, 0.05)";
                                 }}
                                 title="Click to view deliverables for this project"
                               >
-                                <FaClipboardList size={11} />
-                                <span>View Deliverables ({projDeliverables.length})</span>
-                                {pendingCount > 0 && (
+                                <FaClipboardList size={11} style={{ color: pendingCount > 0 ? "#ef4444" : "var(--primary, #3b529a)", flexShrink: 0 }} />
+                                <span style={{ whiteSpace: "nowrap" }}>View Deliverables ({projDeliverables.length})</span>
+                                {pendingCount > 0 ? (
                                   <span style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4.5px",
                                     fontSize: "9.5px",
-                                    fontWeight: "900",
-                                    padding: "1px 5px",
-                                    borderRadius: "4px",
-                                    background: "#ef4444",
-                                    color: "#ffffff"
+                                    fontWeight: "800",
+                                    padding: "2px 7.5px",
+                                    borderRadius: "9999px",
+                                    background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                                    color: "#ffffff",
+                                    boxShadow: "0 1px 3px rgba(220, 38, 38, 0.35)",
+                                    whiteSpace: "nowrap",
+                                    letterSpacing: "0.2px",
+                                    lineHeight: 1
                                   }}>
-                                    {pendingCount} Pending
+                                    <span style={{
+                                      width: "4.5px",
+                                      height: "4.5px",
+                                      borderRadius: "50%",
+                                      background: "#ffffff",
+                                      display: "inline-block",
+                                      boxShadow: "0 0 3px #ffffff",
+                                      flexShrink: 0
+                                    }} />
+                                    <span>{pendingCount} Pending</span>
                                   </span>
-                                )}
+                                ) : projDeliverables.length > 0 ? (
+                                  <span style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                    fontSize: "9.5px",
+                                    fontWeight: "800",
+                                    padding: "1.5px 6px",
+                                    borderRadius: "9999px",
+                                    background: "rgba(16, 185, 129, 0.12)",
+                                    color: "#059669",
+                                    border: "1px solid rgba(16, 185, 129, 0.25)",
+                                    whiteSpace: "nowrap",
+                                    lineHeight: 1
+                                  }}>
+                                    <span>✓ Graded</span>
+                                  </span>
+                                ) : null}
                               </button>
                             );
                           })()}
@@ -16951,7 +17011,9 @@ function FacultyMentorDashboardView({
                             color: "var(--primary, #3b529a)",
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: "4px"
+                            gap: "4px",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0
                           }}>
                             <span>Details</span>
                             <FaChevronRight size={10} />
