@@ -16015,6 +16015,19 @@ function FacultyMentorDashboardView({
   const [subMentorId, setSubMentorId] = useState("");
   const [teamLeaderId, setTeamLeaderId] = useState("");
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const studentDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target)) {
+        setIsStudentDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const mentorId = sessionUser?._id;
   const spokeId = sessionUser?.spokeId || "3"; // KLE by default
@@ -16195,6 +16208,8 @@ function FacultyMentorDashboardView({
         setSelectedStudentIds([]);
         setSubMentorId("");
         setTeamLeaderId("");
+        setIsStudentDropdownOpen(false);
+        setStudentSearchQuery("");
         // Reload teams
         fetchMentorData();
       }
@@ -16219,6 +16234,14 @@ function FacultyMentorDashboardView({
   };
 
   const selectedStudentsObjects = students.filter(s => selectedStudentIds.includes(s.accountId));
+  const filteredStudents = useMemo(() => {
+    if (!studentSearchQuery.trim()) return students;
+    const q = studentSearchQuery.toLowerCase();
+    return students.filter(s =>
+      (s.displayName && s.displayName.toLowerCase().includes(q)) ||
+      (s.emailAddress && s.emailAddress.toLowerCase().includes(q))
+    );
+  }, [students, studentSearchQuery]);
   const subMentorOptions = spokeMentors.filter(m => m.accountId !== mentorId);
 
   const handleSubmitFinalProgressClick = async (teamId) => {
@@ -17182,73 +17205,231 @@ function FacultyMentorDashboardView({
                   </div>
                 </div>
 
-                {/* Row 2: Select Student Developers */}
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                {/* Row 2: Select Student Developers Dropdown */}
+                <div ref={studentDropdownRef} style={{ position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <label style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       Select Student Developers *
                     </label>
-                    <span style={{
-                      fontSize: "11px",
-                      fontWeight: "800",
-                      color: "var(--primary)",
-                      background: "rgba(59, 130, 246, 0.1)",
-                      padding: "2px 8px",
-                      borderRadius: "6px"
-                    }}>
-                      {selectedStudentIds.length} Selected
-                    </span>
-                  </div>
-                  <div style={{
-                    maxHeight: "220px",
-                    overflowY: "auto",
-                    border: "1px solid var(--border-glass)",
-                    borderRadius: "10px",
-                    padding: "12px",
-                    background: "rgba(255,255,255,0.01)",
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                    gap: "8px"
-                  }}>
-                    {students.map(student => {
-                      const isSelected = selectedStudentIds.includes(student.accountId);
-                      return (
-                        <label
-                          key={student.accountId}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                            fontSize: "12.5px",
-                            cursor: "pointer",
-                            padding: "7px 12px",
-                            borderRadius: "8px",
-                            background: isSelected ? "rgba(99, 102, 241, 0.09)" : "rgba(255, 255, 255, 0.02)",
-                            border: isSelected ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid var(--border-glass)",
-                            transition: "all 0.15s ease"
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleStudentCheckboxChange(student.accountId)}
-                            style={{ cursor: "pointer" }}
-                          />
-                          <span style={{ fontWeight: isSelected ? "750" : "500", color: isSelected ? "var(--primary)" : "var(--text-main)" }}>
-                            {student.displayName}
-                          </span>
-                          <span style={{ fontSize: "11px", color: "var(--text-dim)", marginLeft: "auto" }}>
-                            ({student.emailAddress})
-                          </span>
-                        </label>
-                      );
-                    })}
-                    {students.length === 0 && (
-                      <span style={{ color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic", gridColumn: "1 / -1", padding: "12px" }}>
-                        No students found in your campus spoke.
+                    {selectedStudentIds.length > 0 && (
+                      <span style={{
+                        fontSize: "10.5px",
+                        fontWeight: "800",
+                        color: "var(--primary)",
+                        background: "rgba(99, 102, 241, 0.12)",
+                        padding: "2px 8px",
+                        borderRadius: "6px"
+                      }}>
+                        {selectedStudentIds.length} Selected
                       </span>
                     )}
                   </div>
+                  
+                  {/* Dropdown Trigger */}
+                  <div
+                    onClick={() => setIsStudentDropdownOpen(prev => !prev)}
+                    className="form-input"
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      userSelect: "none",
+                      boxSizing: "border-box",
+                      border: isStudentDropdownOpen ? "1px solid var(--primary)" : "1px solid var(--border-glass)",
+                      boxShadow: isStudentDropdownOpen ? "0 0 0 2px rgba(99, 102, 241, 0.2)" : "none"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+                      {selectedStudentIds.length === 0 ? (
+                        <span style={{ color: "var(--text-dim)" }}>-- Choose Student Developers --</span>
+                      ) : (
+                        <span style={{ color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {selectedStudentsObjects.map(s => s.displayName).join(", ")}
+                        </span>
+                      )}
+                    </div>
+                    <FaChevronDown
+                      size={12}
+                      style={{
+                        color: "var(--text-muted)",
+                        transition: "transform 0.2s ease",
+                        transform: isStudentDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        flexShrink: 0,
+                        marginLeft: "10px"
+                      }}
+                    />
+                  </div>
+
+                  {/* Dropdown Menu Popover */}
+                  {isStudentDropdownOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 5px)",
+                        left: 0,
+                        right: 0,
+                        zIndex: 1050,
+                        background: "var(--bg-card, #1e293b)",
+                        border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
+                        borderRadius: "10px",
+                        boxShadow: "0 14px 35px rgba(0, 0, 0, 0.45)",
+                        padding: "10px 12px",
+                        backdropFilter: "blur(20px)"
+                      }}
+                    >
+                      {/* Top Action Bar */}
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "2px 4px 8px 4px",
+                        borderBottom: "1px solid var(--border-glass)",
+                        marginBottom: "8px"
+                      }}>
+                        <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          {selectedStudentIds.length} of {students.length} Selected
+                        </span>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStudentIds(students.map(s => s.accountId));
+                            }}
+                            style={{
+                              background: "rgba(99, 102, 241, 0.12)",
+                              border: "1px solid rgba(99, 102, 241, 0.25)",
+                              color: "var(--primary)",
+                              fontSize: "10.5px",
+                              fontWeight: "750",
+                              cursor: "pointer",
+                              padding: "3px 8px",
+                              borderRadius: "4px"
+                            }}
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedStudentIds([]);
+                              setTeamLeaderId("");
+                            }}
+                            style={{
+                              background: "rgba(239, 68, 68, 0.1)",
+                              border: "1px solid rgba(239, 68, 68, 0.25)",
+                              color: "#ef4444",
+                              fontSize: "10.5px",
+                              fontWeight: "750",
+                              cursor: "pointer",
+                              padding: "3px 8px",
+                              borderRadius: "4px"
+                            }}
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Search Filter if multiple students */}
+                      {students.length > 5 && (
+                        <div style={{ marginBottom: "8px" }}>
+                          <input
+                            type="text"
+                            placeholder="Filter students by name or email..."
+                            value={studentSearchQuery}
+                            onChange={(e) => setStudentSearchQuery(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="form-input"
+                            style={{
+                              width: "100%",
+                              padding: "6px 10px",
+                              fontSize: "12px",
+                              borderRadius: "6px",
+                              background: "rgba(255, 255, 255, 0.04)"
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Scrollable Students List */}
+                      <div style={{
+                        maxHeight: "220px",
+                        overflowY: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
+                        paddingRight: "2px"
+                      }}>
+                        {filteredStudents.map(student => {
+                          const isSelected = selectedStudentIds.includes(student.accountId);
+                          return (
+                            <div
+                              key={student.accountId}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStudentCheckboxChange(student.accountId);
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                padding: "7px 10px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                background: isSelected ? "rgba(99, 102, 241, 0.12)" : "transparent",
+                                border: isSelected ? "1px solid rgba(99, 102, 241, 0.25)" : "1px solid transparent",
+                                transition: "background 0.15s ease"
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isSelected) e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isSelected) e.currentTarget.style.background = "transparent";
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                readOnly
+                                style={{ cursor: "pointer", pointerEvents: "none", accentColor: "var(--primary)" }}
+                              />
+                              <span style={{
+                                fontSize: "12.5px",
+                                fontWeight: isSelected ? "750" : "500",
+                                color: isSelected ? "var(--primary)" : "var(--text-main)",
+                                flex: 1,
+                                minWidth: 0,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                              }}>
+                                {student.displayName}
+                              </span>
+                              <span style={{
+                                fontSize: "11px",
+                                color: "var(--text-dim)",
+                                marginLeft: "8px",
+                                flexShrink: 0
+                              }}>
+                                ({student.emailAddress})
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {filteredStudents.length === 0 && (
+                          <div style={{ padding: "14px", textAlign: "center", color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic" }}>
+                            {students.length === 0 ? "No students found in your campus spoke." : "No students matching filter."}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Row 3: Co-Mentor & Leader */}
