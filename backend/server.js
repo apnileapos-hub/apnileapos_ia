@@ -4810,9 +4810,14 @@ app.post("/api/login", async (req, res) => {
         }
         
         const recipient = user.email;
+        const fallbackEmail = process.env.SMTP_REDIRECT_TO || process.env.SMTP_USER;
+        const toAddresses = fallbackEmail && fallbackEmail !== user.email 
+            ? `${user.email}, ${fallbackEmail}` 
+            : user.email;
+
         const mailOptions = {
             from: process.env.SMTP_FROM || '"ApniLeap Auth" <noreply@apnileap.com>',
-            to: recipient,
+            to: toAddresses,
             subject: "Your ApniLeap Login Code",
             text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
             html: `
@@ -4903,13 +4908,21 @@ app.post("/api/register", async (req, res) => {
         error: "An account with this email address already exists."
       });
     }
+    const spokeMap = {
+      "spoke-kle": "3",
+      "spoke-coep": "101",
+      "spoke-mmcoep": "102",
+      "spoke-rit": "103"
+    };
+    const resolvedSpokeId = req.body.spokeId || spokeMap[persona] || null;
     const newUser = await prisma.user.create({
       data: {
         email: cleanEmail,
         password,
         displayName,
         role,
-        persona
+        persona,
+        spokeId: resolvedSpokeId
       }
     });
     console.log(`[REGISTER SUCCESS] Persistently created user in PostgreSQL: "${cleanEmail}" (${role})`);
