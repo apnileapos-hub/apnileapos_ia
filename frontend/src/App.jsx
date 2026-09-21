@@ -6200,10 +6200,6 @@ function App() {
                             setActiveWorkspace("faculty-mentor");
                           }
                           setActiveView("dashboard");
-                          setTimeout(() => {
-                            const queueEl = document.getElementById("deliverables-verification-queue");
-                            if (queueEl) queueEl.scrollIntoView({ behavior: "smooth" });
-                          }, 100);
                         }}
                         style={{
                           background: "none",
@@ -6214,7 +6210,7 @@ function App() {
                           cursor: "pointer"
                         }}
                       >
-                        View Deliverables Verification Queue →
+                        View Project Deliverables →
                       </button>
                     </div>
                   )}
@@ -16595,7 +16591,15 @@ function FacultyMentorDashboardView({
                   </div>
                   <div style={{ fontSize: "12.5px", color: "var(--text-muted)", display: "flex", gap: "14px", flexWrap: "wrap", alignItems: "center" }}>
                     {spokeSubmissions.filter(s => s.status === "Awaiting Review").map(s => (
-                      <span key={s._id || s.id} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <span
+                        key={s._id || s.id}
+                        onClick={() => {
+                          const targetProj = getProjectForSubmission(s) || assignedProjects.find(p => String(p._id || p.id) === String(s.projectId));
+                          if (targetProj) setDeliverablesModalProject(targetProj);
+                        }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+                        title="Click to view deliverables for this project"
+                      >
                         <span>👤</span> <strong>{s.studentName}</strong>: <span style={{ color: "var(--primary)", fontWeight: "700" }}>{s.projectName || getProjectForSubmission(s)?.title || "Project"}</span>
                       </span>
                     ))}
@@ -16605,8 +16609,17 @@ function FacultyMentorDashboardView({
               <button
                 type="button"
                 onClick={() => {
-                  const queueEl = document.getElementById("deliverables-verification-queue");
-                  if (queueEl) queueEl.scrollIntoView({ behavior: "smooth" });
+                  const firstPending = spokeSubmissions.find(s => s.status === "Awaiting Review");
+                  if (firstPending) {
+                    const targetProj = getProjectForSubmission(firstPending) || assignedProjects.find(p => String(p._id || p.id) === String(firstPending.projectId));
+                    if (targetProj) {
+                      setDeliverablesModalProject(targetProj);
+                      return;
+                    }
+                  }
+                  if (assignedProjects.length > 0) {
+                    setDeliverablesModalProject(assignedProjects[0]);
+                  }
                 }}
                 style={{
                   padding: "8px 16px",
@@ -16623,7 +16636,7 @@ function FacultyMentorDashboardView({
                   boxShadow: "0 2px 8px rgba(249, 115, 22, 0.3)"
                 }}
               >
-                <span>Review Deliverables ↓</span>
+                <span>Review Deliverables →</span>
               </button>
             </div>
           )}
@@ -17038,269 +17051,6 @@ function FacultyMentorDashboardView({
                 <p style={{ margin: "4px 0 0 0", fontSize: "12px" }}>
                   Projects allocated by the Central Moderator or Campus Coordinator will appear in this portfolio.
                 </p>
-              </div>
-            )}
-          </div>
-
-          {/* Student Deliverables Verification Queue */}
-          <div id="deliverables-verification-queue" className="glass-panel" style={{ padding: "26px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <FaClipboardList size={18} style={{ color: "var(--accent)" }} /> Spoke Deliverables Verification Queue
-                  <span style={{
-                    fontSize: "11.5px",
-                    fontWeight: "800",
-                    background: "rgba(249, 115, 22, 0.1)",
-                    color: "var(--accent)",
-                    border: "1px solid rgba(249, 115, 22, 0.2)",
-                    padding: "2px 8px",
-                    borderRadius: "6px"
-                  }}>
-                    {spokeSubmissions.length}
-                  </span>
-                </h3>
-                <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
-                  Review submitted student deliverables, assign academic grades, and dispatch evaluation feedback.
-                </p>
-              </div>
-
-              <button
-                onClick={handleRunAiVerificationSweep}
-                style={{
-                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                  color: "#fff",
-                  border: "none",
-                  padding: "9px 18px",
-                  borderRadius: "8px",
-                  fontSize: "12.5px",
-                  fontWeight: "750",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
-                }}
-              >
-                <span>🤖 Run AI Verification Sweep</span>
-              </button>
-            </div>
-
-            {spokeSubmissions.length > 0 ? (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", color: "var(--text-main)", textAlign: "left" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid var(--border-glass)", color: "var(--text-dim)" }}>
-                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Student Developer</th>
-                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Assigned Project</th>
-                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Sprint Task ID</th>
-                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Artifact Access</th>
-                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Grade</th>
-                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Review Status</th>
-                      <th style={{ padding: "12px 10px", fontWeight: "750", textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {spokeSubmissions.map((sub) => {
-                      const badgeBg = sub.status === "Approved" ? "rgba(45, 212, 191, 0.08)" : sub.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.08)" : "rgba(251, 146, 60, 0.08)";
-                      const badgeColor = sub.status === "Approved" ? "#2dd4bf" : sub.status === "Re-work Requested" ? "#ef4444" : "var(--accent)";
-                      const badgeBorder = sub.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.2)" : sub.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)";
-
-                      return (
-                        <tr key={sub._id || sub.id} style={{ borderBottom: "1px solid var(--border-glass)" }}>
-                          <td style={{ padding: "14px 10px", fontWeight: "600" }}>{sub.studentName}</td>
-                          <td style={{ padding: "14px 10px" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                              <strong style={{ color: "var(--text-main)", fontSize: "13px" }}>
-                                {sub.projectName || getProjectForSubmission(sub)?.title || "Assigned Project"}
-                              </strong>
-                              <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "700" }}>
-                                🏢 {sub.company || getProjectForSubmission(sub)?.company || "Enterprise Partner"}
-                              </span>
-                            </div>
-                          </td>
-                          <td style={{ padding: "14px 10px" }}>
-                            <div style={{ display: "flex", flexDirection: "column" }}>
-                              <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{sub.taskId}</strong>
-                              {sub.comments && <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>"{sub.comments}"</span>}
-                            </div>
-                          </td>
-                          <td style={{ padding: "14px 10px" }}>
-                            <a 
-                              href={sub.fileUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              style={{
-                                color: "var(--primary)",
-                                fontWeight: "750",
-                                textDecoration: "none"
-                              }}
-                            >
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FaLink /> {sub.fileName}</span>
-                            </a>
-                          </td>
-                          <td style={{ padding: "14px 10px" }}>
-                            {sub.grade ? (
-                              <strong style={{ color: "var(--accent)", fontSize: "14px" }}>{sub.grade}</strong>
-                            ) : (
-                              <span style={{ color: "var(--text-dim)", fontStyle: "italic" }}>Ungraded</span>
-                            )}
-                          </td>
-                          <td style={{ padding: "14px 10px" }}>
-                            <span style={{
-                              fontSize: "9px",
-                              fontWeight: "900",
-                              background: badgeBg,
-                              color: badgeColor,
-                              border: badgeBorder,
-                              padding: "2px 6px",
-                              borderRadius: "3px",
-                              textTransform: "uppercase"
-                            }}>{sub.status}</span>
-                          </td>
-                          <td style={{ padding: "14px 10px", textAlign: "right" }}>
-                            {sub.status === "Awaiting Review" ? (
-                              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                                <button 
-                                  onClick={() => {
-                                    setEvalModal({
-                                      isOpen: true,
-                                      type: "approve",
-                                      submission: sub,
-                                      grade: sub.grade || "A",
-                                      feedback: "Meets all FIP criteria. Excellent work!"
-                                    });
-                                  }}
-                                  style={{
-                                    padding: "6px 12px",
-                                    background: "rgba(45, 212, 191, 0.15)",
-                                    border: "1px solid rgba(45, 212, 191, 0.3)",
-                                    borderRadius: "6px",
-                                    color: "#2dd4bf",
-                                    fontSize: "11px",
-                                    fontWeight: "800",
-                                    cursor: "pointer"
-                                  }}
-                                >
-                                  Approve & Grade
-                                </button>
-                                <button 
-                                  onClick={() => {
-                                    setEvalModal({
-                                      isOpen: true,
-                                      type: "rework",
-                                      submission: sub,
-                                      grade: "",
-                                      feedback: "Re-work required: please refine your layout controller and revise task artifacts."
-                                    });
-                                  }}
-                                  style={{
-                                    padding: "6px 12px",
-                                    background: "rgba(239, 68, 68, 0.15)",
-                                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                                    borderRadius: "6px",
-                                    color: "#ef4444",
-                                    fontSize: "11px",
-                                    fontWeight: "800",
-                                    cursor: "pointer"
-                                  }}
-                                >
-                                  Flag Re-work
-                                </button>
-                              </div>
-                            ) : sub.status === "Re-work Requested" ? (
-                              <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "flex-end" }}>
-                                <span style={{
-                                  fontSize: "11px", 
-                                  color: "#ef4444", 
-                                  fontWeight: "750",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "6px"
-                                }}>
-                                  <FaExclamationTriangle size={12} />
-                                  <span>Revision Required</span>
-                                </span>
-                                <button 
-                                  onClick={() => {
-                                    setEvalModal({
-                                      isOpen: true,
-                                      type: "approve",
-                                      submission: sub,
-                                      grade: sub.grade || "A",
-                                      feedback: "Re-evaluated and approved! Meets all criteria."
-                                    });
-                                  }}
-                                  style={{
-                                    padding: "6px 12px",
-                                    background: "rgba(45, 212, 191, 0.15)",
-                                    border: "1px solid rgba(45, 212, 191, 0.3)",
-                                    borderRadius: "6px",
-                                    color: "#2dd4bf",
-                                    fontSize: "11px",
-                                    fontWeight: "800",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s ease"
-                                  }}
-                                >
-                                  Re-evaluate & Approve
-                                </button>
-                              </div>
-                            ) : (
-                              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
-                                <span style={{
-                                  fontSize: "11px", 
-                                  color: "#2dd4bf", 
-                                  fontWeight: "600",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "6px"
-                                }}>
-                                  <FaCheck size={11} />
-                                  <span>Verified Completed</span>
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    if (window.confirm("Are you sure you want to delete this submission?")) {
-                                      handleDeleteSubmission(sub._id);
-                                    }
-                                  }}
-                                  style={{
-                                    padding: "4px 6px",
-                                    background: "rgba(239, 68, 68, 0.08)",
-                                    border: "1px solid rgba(239, 68, 68, 0.2)",
-                                    borderRadius: "4px",
-                                    color: "#ef4444",
-                                    cursor: "pointer",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    verticalAlign: "middle",
-                                    transition: "var(--transition-smooth)",
-                                    marginLeft: "8px"
-                                  }}
-                                  title="Delete old submission history"
-                                >
-                                  <FaTrashAlt size={10} />
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div style={{
-                textAlign: "center",
-                padding: "40px 20px",
-                border: "1px dashed var(--border-glass)",
-                borderRadius: "12px",
-                color: "var(--text-dim)",
-                fontSize: "13px"
-              }}>
-                No deliverables have been submitted by Spoke student developers for review yet.
               </div>
             )}
           </div>
@@ -18669,12 +18419,36 @@ function FacultyMentorDashboardView({
                           {projDeliverables.length} Total ({pendingDeliverables.length} Pending Evaluation)
                         </span>
                       </div>
-                      {assignedTeam && (
-                        <span style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: "750", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                          <FaUsers size={12} />
-                          <span>Team: {assignedTeam.name}</span>
-                        </span>
-                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        {assignedTeam && (
+                          <span style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: "750", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                            <FaUsers size={12} />
+                            <span>Team: {assignedTeam.name}</span>
+                          </span>
+                        )}
+                        {pendingDeliverables.length > 0 && typeof handleRunAiVerificationSweep === "function" && (
+                          <button
+                            type="button"
+                            onClick={handleRunAiVerificationSweep}
+                            style={{
+                              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                              color: "#fff",
+                              border: "none",
+                              padding: "5px 12px",
+                              borderRadius: "7px",
+                              fontSize: "11px",
+                              fontWeight: "750",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              boxShadow: "0 2px 6px rgba(99, 102, 241, 0.25)"
+                            }}
+                          >
+                            <span>🤖 Run AI Verification Sweep</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Deliverables Cards */}
