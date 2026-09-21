@@ -140,7 +140,7 @@ body, div, nav, aside, main, header, section, span, h1, h2, h3, h4, h5, h6, p, b
 }
 
 html {
-  font-size: 16.5px;
+  font-size: 17px;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -164,8 +164,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.005em;
-  line-height: 1.6;
-  font-size: 16px;
+  line-height: 1.62;
+  font-size: 16.5px;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
@@ -176,34 +176,37 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Legibility scale enhancements: Lift text across all cards, tables, and dashboards so it feels distinctly larger and clearer */
 [style*="font-size: 9px"], [style*="font-size:9px"] {
-  font-size: 11.5px !important;
+  font-size: 12px !important;
 }
 [style*="font-size: 10px"], [style*="font-size:10px"], [style*="font-size: 10.5px"], [style*="font-size:10.5px"] {
-  font-size: 12.5px !important;
+  font-size: 13px !important;
 }
 [style*="font-size: 11px"], [style*="font-size:11px"] {
-  font-size: 13.5px !important;
-}
-[style*="font-size: 11.5px"], [style*="font-size:11.5px"] {
-  font-size: 13.8px !important;
-}
-[style*="font-size: 12px"], [style*="font-size:12px"] {
   font-size: 14px !important;
 }
+[style*="font-size: 11.5px"], [style*="font-size:11.5px"] {
+  font-size: 14.2px !important;
+}
+[style*="font-size: 12px"], [style*="font-size:12px"] {
+  font-size: 14.8px !important;
+}
 [style*="font-size: 12.5px"], [style*="font-size:12.5px"] {
-  font-size: 14.5px !important;
-}
-[style*="font-size: 13px"], [style*="font-size:13px"] {
-  font-size: 15px !important;
-}
-[style*="font-size: 13.5px"], [style*="font-size:13.5px"] {
   font-size: 15.2px !important;
 }
+[style*="font-size: 13px"], [style*="font-size:13px"] {
+  font-size: 15.8px !important;
+}
+[style*="font-size: 13.5px"], [style*="font-size:13.5px"] {
+  font-size: 16px !important;
+}
 [style*="font-size: 14px"], [style*="font-size:14px"] {
-  font-size: 15.5px !important;
+  font-size: 16.5px !important;
 }
 [style*="font-size: 14.5px"], [style*="font-size:14.5px"] {
-  font-size: 16px !important;
+  font-size: 17px !important;
+}
+[style*="font-size: 15px"], [style*="font-size:15px"] {
+  font-size: 17.5px !important;
 }
 
 
