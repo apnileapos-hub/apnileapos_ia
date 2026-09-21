@@ -99,6 +99,7 @@ model User {
   persona     String
   spokeId     String?
   createdAt   DateTime @default(now())
+  status      String   @default("ACTIVE") // "ACTIVE", "PENDING", "REJECTED"
   otpCode     String?
   otpExpiry   DateTime?
 }

@@ -76,10 +76,14 @@ import {
   School,
   Paperclip,
   Flag,
-  LogOut
+  LogOut,
+  UserCheck,
+  UserX
 } from "lucide-react";
 
 const FaSignOutAlt = LogOut;
+const FaUserCheck = UserCheck;
+const FaUserX = UserX;
 
 // Alias mapping for FontAwesome to Lucide components
 const FaTasks = ListTodo;
@@ -660,10 +664,15 @@ function App() {
   const [signupRole, setSignupRole] = useState("Student Developer"); // "Student Developer" or "Faculty Mentor"
   const [signupError, setSignupError] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
+  const [registrationNotice, setRegistrationNotice] = useState(null); // { title, role, campus, approver, message }
+
+  // Campus Coordinator Pending Faculty Verifications state
+  const [pendingFacultyList, setPendingFacultyList] = useState([]);
+  const [isPendingFacultyLoading, setIsPendingFacultyLoading] = useState(false);
 
   // Navigation & UI States
   const [activeView, setActiveView] = useState("dashboard"); // "dashboard" or "kanban"
-  const [activeCoordinatorTab, setActiveCoordinatorTab] = useState("analytics"); // "analytics", "team", or "projects"
+  const [activeCoordinatorTab, setActiveCoordinatorTab] = useState("analytics"); // "analytics", "team", "projects", or "faculty-approvals"
 
   // Faculty Coordinator Add Team Member form states
   const [newMemberName, setNewMemberName] = useState("");
@@ -1017,6 +1026,47 @@ function App() {
     }
   };
 
+  const fetchPendingFaculty = useCallback(async (boardId = null) => {
+    const targetSpoke = boardId || currentBoardId || "3";
+    try {
+      setIsPendingFacultyLoading(true);
+      const res = await axios.get(`http://localhost:5001/api/spokes/${targetSpoke}/pending-faculty`);
+      setPendingFacultyList(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch pending faculty:", err);
+    } finally {
+      setIsPendingFacultyLoading(false);
+    }
+  }, [currentBoardId]);
+
+  const handleApproveFaculty = async (userId, userName) => {
+    try {
+      const res = await axios.post(`http://localhost:5001/api/users/${userId}/approve`);
+      triggerToast(res.data.message || `Approved ${userName}!`, "success");
+      fetchPendingFaculty();
+      if (typeof fetchJiraTasks === "function") fetchJiraTasks(true);
+    } catch (err) {
+      triggerToast("Failed to approve faculty.", "error");
+    }
+  };
+
+  const handleRejectFaculty = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to decline ${userName}'s faculty registration?`)) return;
+    try {
+      const res = await axios.post(`http://localhost:5001/api/users/${userId}/reject`);
+      triggerToast(res.data.message || `Declined ${userName}.`, "info");
+      fetchPendingFaculty();
+    } catch (err) {
+      triggerToast("Failed to decline faculty.", "error");
+    }
+  };
+
+  useEffect(() => {
+    if (activeWorkspace && activeWorkspace.startsWith("spoke-") && sessionUser?.role !== "Student Developer") {
+      fetchPendingFaculty(currentBoardId);
+    }
+  }, [activeWorkspace, currentBoardId, sessionUser, fetchPendingFaculty]);
+
   const handleSignupSubmit = async (e) => {
     if (e) e.preventDefault();
     setSignupError("");
@@ -1045,22 +1095,47 @@ function App() {
         email: signupEmail,
         password: signupPassword,
         displayName: signupName,
-        role: selectedRole,
-        persona: selectedPersona
+        role: signupRole,
+        persona: selectedPersona,
+        spokeId: signupCampus
       });
 
-      const { user, token } = response.data;
-      setIsAuthenticated(true);
-      setViewMode("dashboard");
-      setSessionUser(user);
-      setCurrentPersona(user.persona);
-      setActiveWorkspace(user.persona);
+      if (response.data.pendingApproval) {
+        // Reset signup inputs
+        setSignupName("");
+        setSignupEmail("");
+        setSignupPassword("");
+        setSignupRole("Student Developer");
+        setShowSignup(false);
 
-      localStorage.setItem("apnileap-auth", "true");
-      localStorage.setItem("apnileap-user", JSON.stringify(user));
-      localStorage.setItem("apnileap-persona", user.persona);
-      if (token) {
+        const approver = signupRole === "Faculty Mentor" ? "Campus Coordinator" : "Faculty Mentor";
+        const campusName = signupCampus === "3" ? "KLE Tech" : signupCampus === "101" ? "COEP" : signupCampus === "102" ? "MMCOEP" : "RIT";
+
+        setRegistrationNotice({
+          title: "Registration Submitted!",
+          role: signupRole,
+          campus: campusName,
+          approver: approver,
+          message: response.data.message || `Your registration was submitted successfully and is pending verification by your campus ${approver}. You will be able to log in once your account is accepted.`
+        });
+
+        triggerToast(`Registration submitted! Pending ${approver} verification.`, "success");
+        return;
+      }
+
+      const { user, token } = response.data;
+      if (user && token) {
+        setIsAuthenticated(true);
+        setViewMode("dashboard");
+        setSessionUser(user);
+        setCurrentPersona(user.persona);
+        setActiveWorkspace(user.persona);
+
+        localStorage.setItem("apnileap-auth", "true");
+        localStorage.setItem("apnileap-user", JSON.stringify(user));
+        localStorage.setItem("apnileap-persona", user.persona);
         localStorage.setItem("apnileap-token", token);
+        triggerToast(`Account created! Welcome to the platform, ${user.displayName}! `);
       }
 
       // Reset signup inputs
@@ -1069,8 +1144,6 @@ function App() {
       setSignupPassword("");
       setSignupRole("Student Developer");
       setShowSignup(false);
-
-      triggerToast(`Account created! Welcome to the platform, ${user.displayName}! `);
     } catch (err) {
       console.error("Signup Failure:", err);
       const errMsg = err.response?.data?.error || "Registration failure. Please check your backend connection.";
@@ -4502,6 +4575,61 @@ function App() {
                   </div>
 
                   <form onSubmit={handleLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                    {registrationNotice && (
+                      <div style={{
+                        padding: "16px",
+                        borderRadius: "12px",
+                        background: "rgba(16, 185, 129, 0.08)",
+                        border: "1px solid rgba(16, 185, 129, 0.25)",
+                        color: "var(--text-main)",
+                        fontSize: "13px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        position: "relative"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: "800", color: "#10b981", fontSize: "14px" }}>
+                            <FaUserCheck size={18} /> {registrationNotice.title}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setRegistrationNotice(null)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "var(--text-muted)",
+                              fontSize: "16px",
+                              padding: "2px 6px"
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p style={{ margin: 0, lineHeight: "1.5", color: "var(--text-muted)", fontSize: "12.5px" }}>
+                          {registrationNotice.message}
+                        </p>
+                        <div style={{
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                          marginTop: "2px",
+                          fontSize: "11.5px",
+                          fontWeight: "700"
+                        }}>
+                          <span style={{ padding: "3px 8px", borderRadius: "6px", background: "rgba(99, 102, 241, 0.1)", color: "var(--primary)" }}>
+                            Campus: {registrationNotice.campus}
+                          </span>
+                          <span style={{ padding: "3px 8px", borderRadius: "6px", background: "rgba(245, 158, 11, 0.1)", color: "#f59e0b" }}>
+                            Role: {registrationNotice.role}
+                          </span>
+                          <span style={{ padding: "3px 8px", borderRadius: "6px", background: "rgba(16, 185, 129, 0.12)", color: "#10b981" }}>
+                            Pending: {registrationNotice.approver} Verification
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     {loginError && (
                       <div style={{
                         padding: "11px 14px",
@@ -5540,6 +5668,13 @@ function App() {
                       collapsed={false}
                       onClick={() => setActiveView("meetings")}
                     />
+                    <SidebarNavItem
+                      active={activeView === "student-approvals"}
+                      icon={<FaUserCheck size={16} />}
+                      label="Student Verifications"
+                      collapsed={false}
+                      onClick={() => setActiveView("student-approvals")}
+                    />
                   </>
                 ) : (
                   <>
@@ -5747,6 +5882,7 @@ function App() {
                 } else if (activeWorkspace === "faculty-mentor") {
                   if (activeView === "teams") return "Faculty Mentor - Create & Manage Teams";
                   if (activeView === "meetings") return "Faculty Mentor - Team Meetings & Syncs";
+                  if (activeView === "student-approvals") return "Faculty Mentor - Student Verifications";
                   if (activeView === "kanban") return "Faculty Mentor Task Board";
                   return "Faculty Mentor Overview";
                 } else if (activeWorkspace?.startsWith("sponsor-") || activeWorkspace === "project-mentor" || sessionUser?.role === "Corporate Partner" || sessionUser?.role === "Project Mentor") {
@@ -5773,6 +5909,8 @@ function App() {
                 ? "Assemble student sprint teams, designate student leaders, and evaluate final project milestones."
                 : activeWorkspace === "faculty-mentor" && activeView === "meetings"
                 ? "Schedule team sprint syncs, review agendas, and conduct virtual evaluations with your student teams."
+                : activeWorkspace === "faculty-mentor" && activeView === "student-approvals"
+                ? "Review and verify newly registered students for your campus spoke before granting workspace access."
                 : activeWorkspace === "faculty-mentor" && activeView === "dashboard"
                 ? "Monitor assigned industry projects, verify deliverables, and track campus progress."
                 : activeView === "dashboard" 
@@ -6160,7 +6298,7 @@ function App() {
             spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, spoke]) => ({ id, ...spoke }))}
             onDeleteProject={(proj) => handleDeleteProject(proj._id || proj.id)}
           />
-        ) : activeWorkspace === "faculty-mentor" && (activeView === "dashboard" || activeView === "teams") ? (
+        ) : activeWorkspace === "faculty-mentor" && (activeView === "dashboard" || activeView === "teams" || activeView === "student-approvals") ? (
           <FacultyMentorDashboardView
             sessionUser={sessionUser}
             triggerToast={triggerToast}
@@ -6172,7 +6310,7 @@ function App() {
             fetchAllSubmissions={fetchAllSubmissions}
             setActiveView={setActiveView}
             handleRunAiVerificationSweep={handleRunAiVerificationSweep}
-            activeSubView={activeView === "teams" ? "teams" : "overview"}
+            activeSubView={activeView === "teams" ? "teams" : activeView === "student-approvals" ? "student-approvals" : "overview"}
             setActiveCustomBoardId={setActiveCustomBoardId}
             fetchJiraTasks={fetchJiraTasks}
             setFilterProject={setFilterProject}
@@ -7215,6 +7353,43 @@ function App() {
                       >
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaUsers /></span> Student Teams & Sprint Board
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCoordinatorTab("faculty-approvals");
+                          fetchPendingFaculty(currentBoardId);
+                        }}
+                        style={{
+                          padding: "8px 18px",
+                          borderRadius: "8px",
+                          border: "1px solid transparent",
+                          background: activeCoordinatorTab === "faculty-approvals" ? "rgba(99, 102, 241, 0.12)" : "transparent",
+                          color: activeCoordinatorTab === "faculty-approvals" ? "var(--primary)" : "var(--text-muted)",
+                          borderColor: activeCoordinatorTab === "faculty-approvals" ? "rgba(99, 102, 241, 0.25)" : "transparent",
+                          fontWeight: "750",
+                          fontSize: "12.5px",
+                          cursor: "pointer",
+                          transition: "var(--transition-smooth)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px"
+                        }}
+                      >
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><FaUserCheck /></span> Faculty Verifications
+                        {pendingFacultyList.length > 0 && (
+                          <span style={{
+                            background: "#ef4444",
+                            color: "#ffffff",
+                            fontSize: "10.5px",
+                            fontWeight: "800",
+                            padding: "1px 7px",
+                            borderRadius: "10px"
+                          }}>
+                            {pendingFacultyList.length}
+                          </span>
+                        )}
+                      </button>
                     </div>
 
                     {/* TAB 1: ANALYTICS & DELIVERABLES */}
@@ -8086,6 +8261,148 @@ function App() {
                         }) : (
                           <div className="glass-panel" style={{ padding: "40px", textAlign: "center", color: "var(--text-dim)", fontStyle: "italic", fontSize: "13px" }}>
                             No active projects allocated to your spoke yet.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* TAB 4: PENDING FACULTY APPROVALS */}
+                    {activeCoordinatorTab === "faculty-approvals" && (
+                      <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                          <div>
+                            <h3 style={{ fontSize: "19px", fontWeight: "800", color: "var(--text-main)", margin: "0 0 4px" }}>
+                              Faculty Mentor Verifications
+                            </h3>
+                            <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)" }}>
+                              Review and approve faculty mentors registered for your campus spoke before granting portal access.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => fetchPendingFaculty(currentBoardId)}
+                            className="btn-secondary"
+                            style={{ padding: "8px 14px", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}
+                          >
+                            <FaSyncAlt className={isPendingFacultyLoading ? "pulse-glow" : ""} /> Refresh List
+                          </button>
+                        </div>
+
+                        {isPendingFacultyLoading ? (
+                          <div className="glass-panel" style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+                            <FaSyncAlt className="pulse-glow" style={{ animation: "pulseGlow 1.5s infinite linear", fontSize: "20px", marginBottom: "10px" }} />
+                            <div>Checking pending faculty registrations...</div>
+                          </div>
+                        ) : pendingFacultyList.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            {pendingFacultyList.map((faculty) => (
+                              <div
+                                key={faculty.id}
+                                className="glass-panel"
+                                style={{
+                                  padding: "20px 24px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  flexWrap: "wrap",
+                                  gap: "16px",
+                                  borderRadius: "14px",
+                                  border: "1px solid var(--border-glass)"
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                                  <div style={{
+                                    width: "44px",
+                                    height: "44px",
+                                    borderRadius: "50%",
+                                    background: "rgba(99, 102, 241, 0.15)",
+                                    color: "var(--primary)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "18px",
+                                    fontWeight: "800"
+                                  }}>
+                                    {faculty.displayName ? faculty.displayName[0].toUpperCase() : "F"}
+                                  </div>
+                                  <div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                                      <strong style={{ fontSize: "15px", color: "var(--text-main)" }}>{faculty.displayName}</strong>
+                                      <span style={{
+                                        fontSize: "11px",
+                                        fontWeight: "800",
+                                        padding: "2px 8px",
+                                        borderRadius: "6px",
+                                        background: "rgba(245, 158, 11, 0.12)",
+                                        color: "#f59e0b",
+                                        border: "1px solid rgba(245, 158, 11, 0.25)"
+                                      }}>
+                                        Pending Verification
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: "12.5px", color: "var(--text-muted)", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                                      <span>📧 {faculty.email}</span>
+                                      <span>📅 Registered: {new Date(faculty.createdAt).toLocaleDateString()}</span>
+                                      <span>🎓 Role: Faculty Mentor</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRejectFaculty(faculty.id, faculty.displayName)}
+                                    style={{
+                                      padding: "8px 16px",
+                                      borderRadius: "8px",
+                                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                                      background: "rgba(239, 68, 68, 0.08)",
+                                      color: "#ef4444",
+                                      fontWeight: "750",
+                                      fontSize: "12.5px",
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "6px"
+                                    }}
+                                  >
+                                    <FaUserX /> Decline
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApproveFaculty(faculty.id, faculty.displayName)}
+                                    style={{
+                                      padding: "8px 18px",
+                                      borderRadius: "8px",
+                                      border: "none",
+                                      background: "#10b981",
+                                      color: "#ffffff",
+                                      fontWeight: "750",
+                                      fontSize: "12.5px",
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "6px",
+                                      boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)"
+                                    }}
+                                  >
+                                    <FaUserCheck /> Verify & Approve
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="glass-panel" style={{ padding: "48px 24px", textAlign: "center", borderRadius: "14px" }}>
+                            <div style={{ fontSize: "36px", color: "#10b981", marginBottom: "12px" }}>
+                              <FaUserCheck />
+                            </div>
+                            <h4 style={{ fontSize: "16px", fontWeight: "750", color: "var(--text-main)", margin: "0 0 6px" }}>
+                              No Pending Faculty Registrations
+                            </h4>
+                            <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)" }}>
+                              All faculty mentor accounts for your campus spoke have been verified and activated.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -15494,6 +15811,10 @@ function FacultyMentorDashboardView({
   const [isLoading, setIsLoading] = useState(false);
   const [projectDetailsModal, setProjectDetailsModal] = useState(null);
 
+  // Pending Student Verifications
+  const [pendingStudentsList, setPendingStudentsList] = useState([]);
+  const [isPendingStudentsLoading, setIsPendingStudentsLoading] = useState(false);
+
   // Form states
   const [teamName, setTeamName] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("");
@@ -15553,9 +15874,45 @@ function FacultyMentorDashboardView({
     }
   };
 
+  const fetchPendingStudents = useCallback(async () => {
+    if (!spokeId) return;
+    try {
+      setIsPendingStudentsLoading(true);
+      const res = await axios.get(`http://localhost:5001/api/spokes/${spokeId}/pending-students`);
+      setPendingStudentsList(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch pending students:", err);
+    } finally {
+      setIsPendingStudentsLoading(false);
+    }
+  }, [spokeId]);
+
+  const handleApproveStudent = async (studentId, studentName) => {
+    try {
+      const res = await axios.post(`http://localhost:5001/api/users/${studentId}/approve`);
+      triggerToast(res.data.message || `Verified & approved ${studentName}!`, "success");
+      fetchPendingStudents();
+      fetchMentorData();
+    } catch (err) {
+      triggerToast("Failed to approve student.", "error");
+    }
+  };
+
+  const handleRejectStudent = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to decline ${studentName}'s registration?`)) return;
+    try {
+      const res = await axios.post(`http://localhost:5001/api/users/${studentId}/reject`);
+      triggerToast(res.data.message || `Declined ${studentName}.`, "info");
+      fetchPendingStudents();
+    } catch (err) {
+      triggerToast("Failed to decline student.", "error");
+    }
+  };
+
   useEffect(() => {
     fetchMentorData();
-  }, [mentorId, spokeId]);
+    fetchPendingStudents();
+  }, [mentorId, spokeId, fetchPendingStudents]);
 
   const handleStudentCheckboxChange = (studentId) => {
     setSelectedStudentIds(prev => {
@@ -15784,15 +16141,54 @@ function FacultyMentorDashboardView({
             <FaCalendarAlt size={14} />
             <span>Team Meetings & Syncs ({meetings.filter(m => String(m.campusId) === String(spokeId)).length})</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView && setActiveView("student-approvals")}
+            style={{
+              padding: "9px 18px",
+              borderRadius: "10px",
+              border: currentView === "student-approvals" ? "1px solid #10b981" : "1px solid transparent",
+              background: currentView === "student-approvals" ? "#10b981" : "transparent",
+              color: currentView === "student-approvals" ? "#ffffff" : "var(--text-muted)",
+              fontWeight: "750",
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
+              boxShadow: currentView === "student-approvals" ? "0 4px 12px rgba(16, 185, 129, 0.25)" : "none"
+            }}
+          >
+            <FaUserCheck size={14} />
+            <span>Student Verifications</span>
+            {pendingStudentsList.length > 0 && (
+              <span style={{
+                background: currentView === "student-approvals" ? "#ffffff" : "#ef4444",
+                color: currentView === "student-approvals" ? "#10b981" : "#ffffff",
+                padding: "1px 7px",
+                borderRadius: "10px",
+                fontSize: "11px",
+                fontWeight: "800",
+                marginLeft: "2px"
+              }}>
+                {pendingStudentsList.length}
+              </span>
+            )}
+          </button>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button
-            onClick={fetchMentorData}
+            onClick={() => {
+              fetchMentorData();
+              fetchPendingStudents();
+            }}
             className="btn-secondary"
             style={{ padding: "8px 14px", borderRadius: "8px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
           >
-            <FaSyncAlt size={12} className={isLoading ? "pulse-glow" : ""} />
+            <FaSyncAlt size={12} className={isLoading || isPendingStudentsLoading ? "pulse-glow" : ""} />
             <span>Sync Data</span>
           </button>
         </div>
@@ -16898,6 +17294,187 @@ function FacultyMentorDashboardView({
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* VIEW 3: STUDENT VERIFICATIONS */}
+      {currentView === "student-approvals" && (
+        <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          {/* Header Banner */}
+          <div className="glass-panel" style={{
+            padding: "22px 28px",
+            background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(59, 82, 154, 0.05))",
+            border: "1px solid var(--border-glass)",
+            borderRadius: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "16px"
+          }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "800",
+                  color: "#10b981",
+                  background: "rgba(16, 185, 129, 0.1)",
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  textTransform: "uppercase"
+                }}>
+                  Campus Spoke Security & Verification
+                </span>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "800",
+                  background: pendingStudentsList.length > 0 ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                  color: pendingStudentsList.length > 0 ? "#ef4444" : "#10b981",
+                  padding: "3px 8px",
+                  borderRadius: "6px"
+                }}>
+                  {pendingStudentsList.length} Pending
+                </span>
+              </div>
+              <h2 style={{ fontSize: "22px", fontWeight: "800", color: "var(--text-main)", margin: 0 }}>
+                Student Registration Verifications
+              </h2>
+              <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "4px 0 0 0" }}>
+                Review and approve newly registered students for your campus spoke before granting workspace access.
+              </p>
+            </div>
+
+            <button
+              onClick={fetchPendingStudents}
+              className="btn-secondary"
+              style={{ padding: "8px 16px", borderRadius: "8px", fontSize: "12.5px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              <FaSyncAlt size={12} className={isPendingStudentsLoading ? "pulse-glow" : ""} />
+              <span>Refresh Queue</span>
+            </button>
+          </div>
+
+          {/* Pending Students List or Empty State */}
+          {isPendingStudentsLoading ? (
+            <div className="glass-panel" style={{ padding: "48px", textAlign: "center", borderRadius: "14px" }}>
+              <FaSyncAlt size={24} className="pulse-glow" style={{ color: "var(--primary)", animation: "pulseGlow 1.5s infinite linear" }} />
+              <p style={{ marginTop: "12px", color: "var(--text-muted)", fontSize: "14px" }}>Loading pending student registrations...</p>
+            </div>
+          ) : pendingStudentsList.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {pendingStudentsList.map(student => (
+                <div
+                  key={student.id}
+                  className="glass-panel"
+                  style={{
+                    padding: "18px 24px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "16px",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border-glass)",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    <div style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "50%",
+                      background: "rgba(16, 185, 129, 0.15)",
+                      color: "#10b981",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "18px",
+                      fontWeight: "800"
+                    }}>
+                      {student.displayName ? student.displayName[0].toUpperCase() : "S"}
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <strong style={{ fontSize: "15px", color: "var(--text-main)" }}>{student.displayName}</strong>
+                        <span style={{
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          padding: "2px 8px",
+                          borderRadius: "6px",
+                          background: "rgba(245, 158, 11, 0.12)",
+                          color: "#f59e0b",
+                          border: "1px solid rgba(245, 158, 11, 0.25)"
+                        }}>
+                          Pending Verification
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "12.5px", color: "var(--text-muted)", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                        <span>📧 {student.email}</span>
+                        <span>📅 Registered: {new Date(student.createdAt).toLocaleDateString()}</span>
+                        <span>🎓 Role: Student Developer</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleRejectStudent(student.id, student.displayName)}
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(239, 68, 68, 0.3)",
+                        background: "rgba(239, 68, 68, 0.08)",
+                        color: "#ef4444",
+                        fontWeight: "750",
+                        fontSize: "12.5px",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <FaUserX /> Decline
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApproveStudent(student.id, student.displayName)}
+                      style={{
+                        padding: "8px 18px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "#10b981",
+                        color: "#ffffff",
+                        fontWeight: "750",
+                        fontSize: "12.5px",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <FaUserCheck /> Verify & Approve
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="glass-panel" style={{ padding: "48px 24px", textAlign: "center", borderRadius: "14px" }}>
+              <div style={{ fontSize: "36px", color: "#10b981", marginBottom: "12px" }}>
+                <FaUserCheck />
+              </div>
+              <h4 style={{ fontSize: "16px", fontWeight: "750", color: "var(--text-main)", margin: "0 0 6px" }}>
+                No Pending Student Registrations
+              </h4>
+              <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)" }}>
+                All student accounts for your campus spoke have been verified and activated.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

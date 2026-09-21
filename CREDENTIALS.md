@@ -61,3 +61,14 @@ Below is the master list of active credentials seeded into the database for test
 | **MMCOEP**| Sayali Deshmukh | `sayalideshmukh@mmcoep.edu` | `student123` |
 | **RIT** | Tejas Shinde | `tejasshinde@rit.edu` | `student123` |
 | **RIT** | Priti Patil | `pritipatil@rit.edu` | `student123` |
+
+---
+
+## 🛡️ Registration & Two-Tier Campus Verification Workflow
+
+When new accounts are created via the **Campus Registration** form:
+- **Newly registered Students**: Placed in `PENDING` status. Their account must be verified and approved by the campus **Faculty Mentor** (under the **Student Verifications** tab in the Faculty Mentor Dashboard).
+- **Newly registered Faculty Mentors**: Placed in `PENDING` status. Their account must be verified and approved by the campus **Coordinator** (under the **Faculty Verifications** tab in the Coordinator Workspace).
+- Once approved, the user can log in immediately with their registered credentials and receive workspace access.
+- *Note:* All demo accounts listed in the tables above are pre-verified (`ACTIVE`) and can be logged into immediately.
+

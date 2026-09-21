@@ -31,4 +31,16 @@ Thumbs.db
 # Temporary test dumps and scripts
 pnlp*.json
 fix_*.js
+*.ps1
+rewrite.py
+refactor_accept_logic.js
+get_jira_boards.js
+append_env.js
+frontend_hack.js
+test_create_project.js
+update_redirect.js
+backend/check_db.js
+backend/test_email.js
+backend/wipe_meetings.js
+backend/prompt_jira.ps1
 

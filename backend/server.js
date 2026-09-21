@@ -511,6 +511,7 @@ app.get("/spokes/:boardId/members", async (req, res) => {
     const targetPersona = personaMap[boardId] || "spoke-kle";
     const dbUsers = await prisma.user.findMany({
       where: {
+        status: "ACTIVE",
         OR: [{
           persona: targetPersona
         }, {
@@ -4779,6 +4780,20 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email address or incorrect password." });
     }
 
+    // Check if user is approved
+    if (user.status === "PENDING") {
+      const approver = user.role === "Student Developer" ? "Faculty Mentor" : "Campus Coordinator";
+      return res.status(403).json({
+        error: `Your account is pending verification by your campus ${approver}. You will be able to log in once approved.`
+      });
+    }
+
+    if (user.status === "REJECTED") {
+      return res.status(403).json({
+        error: "Your registration request was declined. Please contact your campus coordinator."
+      });
+    }
+
     // STEP 1: Verify Password and Send OTP
     if (!otp) {
         const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -4879,7 +4894,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// POST /api/register - Register a new Student or Coordinator persistently in PostgreSQL
+// POST /api/register - Register a new Student or Faculty Mentor (requires approval)
 app.post("/api/register", async (req, res) => {
   try {
     const {
@@ -4887,10 +4902,11 @@ app.post("/api/register", async (req, res) => {
       password,
       displayName,
       role,
-      persona
+      persona,
+      spokeId
     } = req.body;
     console.log(`[REGISTER ATTEMPT] Received email: "${email}", name: "${displayName}", role: "${role}"`);
-    if (!email || !password || !displayName || !role || !persona) {
+    if (!email || !password || !displayName || !role) {
       return res.status(400).json({
         error: "All registration fields are required."
       });
@@ -4908,54 +4924,150 @@ app.post("/api/register", async (req, res) => {
         error: "An account with this email address already exists."
       });
     }
+
     const spokeMap = {
       "spoke-kle": "3",
       "spoke-coep": "101",
       "spoke-mmcoep": "102",
       "spoke-rit": "103"
     };
-    const resolvedSpokeId = req.body.spokeId || spokeMap[persona] || null;
+    const resolvedSpokeId = (spokeId || spokeMap[persona] || "3").toString();
+
+    // Standardize role and persona
+    const isFaculty = role === "Faculty Mentor" || role.toLowerCase().includes("mentor") || role.toLowerCase().includes("coordinator");
+    const standardizedRole = isFaculty ? "Faculty Mentor" : "Student Developer";
+    const standardizedPersona = isFaculty ? "faculty-mentor" : (spokeMap[resolvedSpokeId] ? `spoke-${Object.keys(spokeMap).find(k => spokeMap[k] === resolvedSpokeId).replace('spoke-', '')}` : (persona || "spoke-kle"));
+
     const newUser = await prisma.user.create({
       data: {
         email: cleanEmail,
         password,
         displayName,
-        role,
-        persona,
-        spokeId: resolvedSpokeId
+        role: standardizedRole,
+        persona: standardizedPersona,
+        spokeId: resolvedSpokeId,
+        status: "PENDING"
       }
     });
-    console.log(`[REGISTER SUCCESS] Persistently created user in PostgreSQL: "${cleanEmail}" (${role})`);
+    console.log(`[REGISTER SUCCESS - PENDING APPROVAL] Persistently created user in PostgreSQL: "${cleanEmail}" (${standardizedRole}, Spoke ${resolvedSpokeId})`);
 
-    // Invalidate caches (specifically members) so the new member is instantly assignable in details modals
-    invalidateCache();
-
-    // Generate secure JWT token
-    const token = jwt.sign({
-      userId: newUser.id,
-      email: newUser.email,
-      role: newUser.role,
-      persona: newUser.persona
-    }, process.env.JWT_SECRET || "apnileap_secret_session_token_key_123!", {
-      expiresIn: "24h"
-    });
+    const approverTitle = standardizedRole === "Student Developer" ? "campus Faculty Mentor" : "Campus Coordinator";
     res.json({
       success: true,
-      token,
-      user: {
-        _id: newUser.id.toString(),
-        email: newUser.email,
-        displayName: newUser.displayName,
-        role: newUser.role,
-        persona: newUser.persona,
-        spokeId: newUser.spokeId
-      }
+      pendingApproval: true,
+      role: newUser.role,
+      spokeId: newUser.spokeId,
+      message: `Registration submitted! Your account is pending verification by your ${approverTitle}. You will be able to log in once approved.`
     });
   } catch (error) {
     console.error("Registration route error:", error);
     res.status(500).json({
       error: "An internal server error occurred during registration."
     });
+  }
+});
+
+// GET /api/spokes/:boardId/pending-students - Fetch pending students for Faculty Mentor review
+app.get("/api/spokes/:boardId/pending-students", async (req, res) => {
+  try {
+    const { boardId } = req.params;
+    const pendingStudents = await prisma.user.findMany({
+      where: {
+        role: "Student Developer",
+        spokeId: boardId.toString(),
+        status: "PENDING"
+      },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        spokeId: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    res.json(pendingStudents);
+  } catch (err) {
+    console.error("Error fetching pending students:", err);
+    res.status(500).json({ error: "Failed to fetch pending students" });
+  }
+});
+
+// GET /api/spokes/:boardId/pending-faculty - Fetch pending faculty mentors for Coordinator review
+app.get("/api/spokes/:boardId/pending-faculty", async (req, res) => {
+  try {
+    const { boardId } = req.params;
+    const pendingFaculty = await prisma.user.findMany({
+      where: {
+        role: "Faculty Mentor",
+        spokeId: boardId.toString(),
+        status: "PENDING"
+      },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        role: true,
+        spokeId: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    res.json(pendingFaculty);
+  } catch (err) {
+    console.error("Error fetching pending faculty:", err);
+    res.status(500).json({ error: "Failed to fetch pending faculty" });
+  }
+});
+
+// POST /api/users/:id/approve - Approve a pending student or faculty mentor
+app.post("/api/users/:id/approve", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.update({
+      where: { id },
+      data: { status: "ACTIVE" }
+    });
+    invalidateCache(user.spokeId);
+    invalidateCache();
+    console.log(`[USER APPROVED] User ${user.email} (${user.role}) approved on spoke ${user.spokeId}`);
+    res.json({
+      success: true,
+      message: `Successfully verified and approved ${user.displayName}!`,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role,
+        spokeId: user.spokeId,
+        status: user.status
+      }
+    });
+  } catch (err) {
+    console.error("Error approving user:", err);
+    res.status(500).json({ error: "Failed to approve user" });
+  }
+});
+
+// POST /api/users/:id/reject - Decline a pending user registration
+app.post("/api/users/:id/reject", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.update({
+      where: { id },
+      data: { status: "REJECTED" }
+    });
+    invalidateCache(user.spokeId);
+    invalidateCache();
+    console.log(`[USER DECLINED] User ${user.email} registration was declined`);
+    res.json({
+      success: true,
+      message: `Declined registration for ${user.displayName}.`
+    });
+  } catch (err) {
+    console.error("Error rejecting user:", err);
+    res.status(500).json({ error: "Failed to reject user" });
   }
 });
 
