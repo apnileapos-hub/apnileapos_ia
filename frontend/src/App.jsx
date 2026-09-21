@@ -14197,7 +14197,9 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   // Faculty Mentor team and project states (strictly scoped)
   const [mentorTeams, setMentorTeams] = useState([]);
   const [mentorProjects, setMentorProjects] = useState([]);
+  const [facultySelectionMode, setFacultySelectionMode] = useState("team"); // "team" | "project"
   const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedMentorProjectId, setSelectedMentorProjectId] = useState("");
   const [loadingTeams, setLoadingTeams] = useState(false);
 
   useEffect(() => {
@@ -14216,6 +14218,24 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
       });
     }
   }, [isFacultyMentor, mentorId]);
+
+  // Combined projects assigned to mentor or linked with their teams
+  const combinedMentorProjects = useMemo(() => {
+    const map = new Map();
+    (mentorProjects || []).forEach(p => {
+      if (p && (p._id || p.id)) map.set(String(p._id || p.id), p);
+    });
+    (mentorTeams || []).forEach(t => {
+      if (t.projectId) {
+        const pid = String(t.projectId);
+        if (!map.has(pid)) {
+          const found = (moderatorProjects || []).find(mp => String(mp._id || mp.id) === pid);
+          if (found) map.set(pid, found);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [mentorProjects, mentorTeams, moderatorProjects]);
 
   // Selected date filter (null means show all meetings)
   const [filterDate, setFilterDate] = useState(null);
@@ -14250,9 +14270,15 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
       return;
     }
 
-    if (isFacultyMentor && mentorTeams.length > 0 && !selectedTeamId) {
-      triggerToast("Please select a student team under you for this sync.", "warning");
-      return;
+    if (isFacultyMentor) {
+      if (facultySelectionMode === "team" && mentorTeams.length > 0 && !selectedTeamId) {
+        triggerToast("Please select a student team under you for this sync.", "warning");
+        return;
+      }
+      if (facultySelectionMode === "project" && combinedMentorProjects.length > 0 && !selectedMentorProjectId) {
+        triggerToast("Please select an assigned project for this sync.", "warning");
+        return;
+      }
     }
 
     const overlap = displayMeetings.some(m => targetCampusIds.includes(m.campusId) && m.date === newDate && m.time === newTime);
@@ -14284,6 +14310,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
       setNewLink("");
       setNewAgenda("");
       setSelectedTeamId("");
+      setSelectedMentorProjectId("");
       onRefresh(); // Refresh all syncs
     } catch (error) {
       triggerToast(error.response?.data?.error || "Failed to schedule sync meeting.", "error");
@@ -14833,85 +14860,253 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
                 </span>
               </div>
 
-              {/* Team Selector Under Faculty Mentor */}
-              <div>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
-                  Target Team Under You *
+              {/* Meeting Scope Mode Switcher for Faculty Mentor */}
+              <div style={{ marginBottom: "14px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "850", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                  Schedule Meeting For *
                 </label>
-                {loadingTeams ? (
-                  <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "10px" }}>Loading your assigned teams...</div>
-                ) : mentorTeams.length > 0 ? (
-                  <>
-                    <select
-                      className="form-select"
-                      required
-                      value={selectedTeamId}
-                      onChange={(e) => {
-                        const tid = e.target.value;
-                        setSelectedTeamId(tid);
-                        const team = mentorTeams.find(t => (t._id || t.id) === tid);
-                        if (team) {
-                          const proj = mentorProjects.find(p => p._id === team.projectId || p.id === team.projectId) || moderatorProjects.find(p => p._id === team.projectId || p.id === team.projectId);
-                          setNewTitle(`Sync: Team ${team.name}${proj ? ` (${proj.company})` : ""}`);
-                          if (!newAgenda) {
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                  background: "rgba(0, 0, 0, 0.04)",
+                  padding: "4px",
+                  borderRadius: "10px",
+                  border: "1px solid var(--border-glass)"
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFacultySelectionMode("team");
+                      setSelectedMentorProjectId("");
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: facultySelectionMode === "team" ? "1px solid var(--primary)" : "1px solid transparent",
+                      background: facultySelectionMode === "team" ? "var(--primary)" : "transparent",
+                      color: facultySelectionMode === "team" ? "#fff" : "var(--text-main)",
+                      fontWeight: facultySelectionMode === "team" ? "750" : "500",
+                      fontSize: "12.5px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "7px",
+                      transition: "all 0.15s ease",
+                      boxShadow: facultySelectionMode === "team" ? "0 2px 8px rgba(99, 102, 241, 0.25)" : "none"
+                    }}
+                  >
+                    <Users size={14} />
+                    <span>Choose based on Team</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFacultySelectionMode("project");
+                      setSelectedTeamId("");
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: facultySelectionMode === "project" ? "1px solid var(--primary)" : "1px solid transparent",
+                      background: facultySelectionMode === "project" ? "var(--primary)" : "transparent",
+                      color: facultySelectionMode === "project" ? "#fff" : "var(--text-main)",
+                      fontWeight: facultySelectionMode === "project" ? "750" : "500",
+                      fontSize: "12.5px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "7px",
+                      transition: "all 0.15s ease",
+                      boxShadow: facultySelectionMode === "project" ? "0 2px 8px rgba(99, 102, 241, 0.25)" : "none"
+                    }}
+                  >
+                    <Briefcase size={14} />
+                    <span>Choose based on Project</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Mode 1: Choose based on Team */}
+              {facultySelectionMode === "team" && (
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                    Target Team Under You *
+                  </label>
+                  {loadingTeams ? (
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "10px" }}>Loading your assigned teams...</div>
+                  ) : mentorTeams.length > 0 ? (
+                    <>
+                      <select
+                        className="form-select"
+                        required={facultySelectionMode === "team"}
+                        value={selectedTeamId}
+                        onChange={(e) => {
+                          const tid = e.target.value;
+                          setSelectedTeamId(tid);
+                          const team = mentorTeams.find(t => (t._id || t.id) === tid);
+                          if (team) {
+                            const proj = mentorProjects.find(p => p._id === team.projectId || p.id === team.projectId) || moderatorProjects.find(p => p._id === team.projectId || p.id === team.projectId);
+                            setNewTitle(`Sync: Team ${team.name}${proj ? ` (${proj.company})` : ""}`);
                             setNewAgenda(`Sprint sync with Team ${team.name} to review sprint task deliverables, evaluate milestones, and unblock workstreams.`);
                           }
-                        }
-                      }}
-                      style={{ width: "100%", padding: "10px 12px", fontSize: "13px", border: "1px solid var(--primary)", background: "rgba(99, 102, 241, 0.05)", borderRadius: "6px", color: "var(--text-main)" }}
-                    >
-                      <option value="">-- Choose a Student Team Under You --</option>
-                      {mentorTeams.map(t => {
-                        const proj = mentorProjects.find(p => p._id === t.projectId || p.id === t.projectId) || moderatorProjects.find(p => p._id === t.projectId || p.id === t.projectId);
-                        return (
-                          <option key={t._id || t.id} value={t._id || t.id}>
-                            Team {t.name} {proj ? `— [${proj.company}: ${proj.title}]` : ""}
-                          </option>
-                        );
-                      })}
-                    </select>
+                        }}
+                        style={{ width: "100%", padding: "10px 12px", fontSize: "13px", border: "1px solid var(--primary)", background: "rgba(99, 102, 241, 0.05)", borderRadius: "6px", color: "var(--text-main)" }}
+                      >
+                        <option value="">-- Choose a Student Team Under You --</option>
+                        {mentorTeams.map(t => {
+                          const proj = mentorProjects.find(p => p._id === t.projectId || p.id === t.projectId) || moderatorProjects.find(p => p._id === t.projectId || p.id === t.projectId);
+                          return (
+                            <option key={t._id || t.id} value={t._id || t.id}>
+                              Team {t.name} {proj ? `— [${proj.company}: ${proj.title}]` : ""}
+                            </option>
+                          );
+                        })}
+                      </select>
 
-                    {selectedTeamId && (() => {
-                      const team = mentorTeams.find(t => (t._id || t.id) === selectedTeamId);
-                      if (!team) return null;
-                      return (
-                        <div style={{
-                          marginTop: "8px",
-                          padding: "10px 12px",
-                          background: "rgba(255,255,255,0.02)",
-                          border: "1px solid var(--border-glass)",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "3px"
-                        }}>
-                          <div style={{ color: "var(--text-main)", fontWeight: "750" }}>
-                            Selected Team: Team {team.name}
+                      {selectedTeamId && (() => {
+                        const team = mentorTeams.find(t => (t._id || t.id) === selectedTeamId);
+                        if (!team) return null;
+                        const proj = mentorProjects.find(p => p._id === team.projectId || p.id === team.projectId) || moderatorProjects.find(p => p._id === team.projectId || p.id === team.projectId);
+                        return (
+                          <div style={{
+                            marginTop: "8px",
+                            padding: "10px 12px",
+                            background: "rgba(255,255,255,0.02)",
+                            border: "1px solid var(--border-glass)",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "3px"
+                          }}>
+                            <div style={{ color: "var(--text-main)", fontWeight: "750", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <Users size={13} style={{ color: "var(--primary)" }} />
+                              Selected Team: Team {team.name}
+                            </div>
+                            <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                              Leader: <strong>{team.teamLeader?.displayName || "Not assigned"}</strong> &bull; Members: <strong>{(team.members || []).length} students</strong>
+                            </div>
+                            {proj && (
+                              <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                                Project: <strong>{proj.title}</strong> ({proj.company})
+                              </div>
+                            )}
                           </div>
-                          <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>
-                            Leader: <strong>{team.teamLeader?.displayName || "Not assigned"}</strong> &bull; Members: <strong>{(team.members || []).length} students</strong>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <div style={{
+                      padding: "12px 14px",
+                      background: "rgba(249, 115, 22, 0.08)",
+                      border: "1px solid rgba(249, 115, 22, 0.2)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "var(--text-muted)"
+                    }}>
+                      <p style={{ margin: "0 0 6px 0", color: "var(--accent, #f97316)", fontWeight: "750" }}>
+                        No student teams assembled yet
+                      </p>
+                      <span>Switch to <strong>Choose based on Project</strong> or assemble teams under the <strong>Create & Manage Teams</strong> view.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mode 2: Choose based on Project */}
+              {facultySelectionMode === "project" && (
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                    Target Project Under You *
+                  </label>
+                  {loadingTeams ? (
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "10px" }}>Loading your assigned projects...</div>
+                  ) : combinedMentorProjects.length > 0 ? (
+                    <>
+                      <select
+                        className="form-select"
+                        required={facultySelectionMode === "project"}
+                        value={selectedMentorProjectId}
+                        onChange={(e) => {
+                          const pid = e.target.value;
+                          setSelectedMentorProjectId(pid);
+                          const proj = combinedMentorProjects.find(p => String(p._id || p.id) === pid);
+                          if (proj) {
+                            const matchingTeams = mentorTeams.filter(t => String(t.projectId) === pid);
+                            const teamsSuffix = matchingTeams.length > 0 ? ` [${matchingTeams.map(t => 'Team ' + t.name).join(', ')}]` : '';
+                            setNewTitle(`Project Review: ${proj.title} (${proj.company || 'Corporate Partner'})${teamsSuffix}`);
+                            setNewAgenda(`Project sprint milestone review for "${proj.title}" with assigned student teams. Review blockers, progress demo, and deliverable commitments.`);
+                          }
+                        }}
+                        style={{ width: "100%", padding: "10px 12px", fontSize: "13px", border: "1px solid var(--primary)", background: "rgba(99, 102, 241, 0.05)", borderRadius: "6px", color: "var(--text-main)" }}
+                      >
+                        <option value="">-- Choose a Project Under You --</option>
+                        {combinedMentorProjects.map(p => {
+                          const pid = String(p._id || p.id);
+                          const matchingTeams = mentorTeams.filter(t => String(t.projectId) === pid);
+                          return (
+                            <option key={pid} value={pid}>
+                              {p.company ? `[${p.company}] ` : ""}{p.title} {matchingTeams.length > 0 ? `(${matchingTeams.length} team${matchingTeams.length > 1 ? 's' : ''})` : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+
+                      {selectedMentorProjectId && (() => {
+                        const proj = combinedMentorProjects.find(p => String(p._id || p.id) === selectedMentorProjectId);
+                        if (!proj) return null;
+                        const matchingTeams = mentorTeams.filter(t => String(t.projectId) === selectedMentorProjectId);
+                        return (
+                          <div style={{
+                            marginTop: "8px",
+                            padding: "10px 12px",
+                            background: "rgba(255,255,255,0.02)",
+                            border: "1px solid var(--border-glass)",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px"
+                          }}>
+                            <div style={{ color: "var(--text-main)", fontWeight: "750", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <Briefcase size={13} style={{ color: "var(--primary)" }} />
+                              {proj.company ? `${proj.company} — ` : ""}{proj.title}
+                            </div>
+                            <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                              Track / Status: <strong>{proj.track || proj.domain || "Enterprise Track"}</strong> &bull; <span style={{ color: "#10b981", fontWeight: "700" }}>{proj.status || "Active"}</span>
+                            </div>
+                            <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                              Assigned Teams Under You:{" "}
+                              <strong style={{ color: matchingTeams.length > 0 ? "var(--primary)" : "var(--text-muted)" }}>
+                                {matchingTeams.length > 0 
+                                  ? matchingTeams.map(t => `Team ${t.name}`).join(", ") 
+                                  : "No student teams linked to this project yet"}
+                              </strong>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })()}
-                  </>
-                ) : (
-                  <div style={{
-                    padding: "12px 14px",
-                    background: "rgba(249, 115, 22, 0.08)",
-                    border: "1px solid rgba(249, 115, 22, 0.2)",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    color: "var(--text-muted)"
-                  }}>
-                    <p style={{ margin: "0 0 6px 0", color: "var(--accent, #f97316)", fontWeight: "750" }}>
-                      No student teams assembled yet
-                    </p>
-                    <span>You can schedule a general sprint sync for your campus, or form teams under the <strong>Create & Manage Teams</strong> view.</span>
-                  </div>
-                )}
-              </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <div style={{
+                      padding: "12px 14px",
+                      background: "rgba(249, 115, 22, 0.08)",
+                      border: "1px solid rgba(249, 115, 22, 0.2)",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "var(--text-muted)"
+                    }}>
+                      <p style={{ margin: "0 0 6px 0", color: "var(--accent, #f97316)", fontWeight: "750" }}>
+                        No projects assigned yet
+                      </p>
+                      <span>Switch to <strong>Choose based on Team</strong> or contact your Campus Lead / Moderator for project allocations.</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             /* Moderator / Admin Multi-Campus Selection */
