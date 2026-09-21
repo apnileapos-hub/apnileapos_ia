@@ -15998,6 +15998,8 @@ function FacultyMentorDashboardView({
   const [spokeMentors, setSpokeMentors] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [projectDetailsModal, setProjectDetailsModal] = useState(null);
+  const [deliverablesModalProject, setDeliverablesModalProject] = useState(null);
+  const [expandedDeliverables, setExpandedDeliverables] = useState({});
 
   // Pending Student Verifications
   const [pendingStudentsList, setPendingStudentsList] = useState([]);
@@ -16249,36 +16251,58 @@ function FacultyMentorDashboardView({
 
   const getDeliverablesForProject = (proj) => {
     if (!proj) return [];
-    const pId = proj._id || proj.id;
-    const assignedTeam = existingTeams.find(t => t.projectId === pId);
-    const teamMemberNames = (assignedTeam?.members || []).map(m => (m.displayName || m.emailAddress || "").toLowerCase());
-    const projTitleLower = (proj.title || "").toLowerCase();
+    const pId = String(proj._id || proj.id);
+    const projTitleLower = (proj.title || "").trim().toLowerCase();
 
     return spokeSubmissions.filter(sub => {
-      if (sub.projectId && String(sub.projectId) === String(pId)) return true;
-      if (sub.projectName && sub.projectName.toLowerCase() === projTitleLower) return true;
-      if (teamMemberNames.includes((sub.studentName || "").toLowerCase())) return true;
+      // 1. Explicit projectId match
+      if (sub.projectId) {
+        return String(sub.projectId) === pId;
+      }
+      // 2. Explicit projectName match
+      if (sub.projectName) {
+        return sub.projectName.trim().toLowerCase() === projTitleLower;
+      }
+      // 3. Fallback: team membership only if no explicit project on submission
+      const assignedTeam = existingTeams.find(t => String(t.projectId) === pId);
+      const teamMemberNames = (assignedTeam?.members || []).map(m => (m.displayName || m.emailAddress || "").toLowerCase());
+      if (sub.studentName && teamMemberNames.includes(sub.studentName.trim().toLowerCase())) {
+        return true;
+      }
+      // 4. Fallback: filename matching
       const fileNameLower = (sub.fileName || "").toLowerCase();
       const titleWords = projTitleLower.split(" ").slice(0, 3).join(" ");
-      if (titleWords && (fileNameLower.includes(titleWords) || titleWords.includes(fileNameLower.slice(0, 15)))) return true;
+      if (titleWords && titleWords.length > 5 && fileNameLower.includes(titleWords)) {
+        return true;
+      }
       return false;
     });
   };
 
   const getProjectForSubmission = (sub) => {
-    return assignedProjects.find(proj => {
-      const pId = proj._id || proj.id;
-      const assignedTeam = existingTeams.find(t => t.projectId === pId);
-      const teamMemberNames = (assignedTeam?.members || []).map(m => (m.displayName || m.emailAddress || "").toLowerCase());
-      const projTitleLower = (proj.title || "").toLowerCase();
-
-      if (sub.projectId && String(sub.projectId) === String(pId)) return true;
-      if (sub.projectName && sub.projectName.toLowerCase() === projTitleLower) return true;
-      if (teamMemberNames.includes((sub.studentName || "").toLowerCase())) return true;
-      const fileNameLower = (sub.fileName || "").toLowerCase();
-      const titleWords = projTitleLower.split(" ").slice(0, 3).join(" ");
-      if (titleWords && (fileNameLower.includes(titleWords) || titleWords.includes(fileNameLower.slice(0, 15)))) return true;
-      return false;
+    if (!sub) return null;
+    if (sub.projectId) {
+      const found = assignedProjects.find(p => String(p._id || p.id) === String(sub.projectId));
+      if (found) return found;
+    }
+    if (sub.projectName) {
+      const subProjLower = sub.projectName.trim().toLowerCase();
+      const found = assignedProjects.find(p => (p.title || "").trim().toLowerCase() === subProjLower);
+      if (found) return found;
+    }
+    const subStudentLower = (sub.studentName || "").trim().toLowerCase();
+    const studentTeam = existingTeams.find(t => 
+      (t.members || []).some(m => (m.displayName || m.emailAddress || "").toLowerCase() === subStudentLower)
+    );
+    if (studentTeam && studentTeam.projectId) {
+      const found = assignedProjects.find(p => String(p._id || p.id) === String(studentTeam.projectId));
+      if (found) return found;
+    }
+    const fileNameLower = (sub.fileName || "").toLowerCase();
+    return assignedProjects.find(p => {
+      const titleLower = (p.title || "").toLowerCase();
+      const titleWords = titleLower.split(" ").slice(0, 3).join(" ");
+      return titleWords && titleWords.length > 5 && fileNameLower.includes(titleWords);
     });
   };
 
@@ -16836,161 +16860,248 @@ function FacultyMentorDashboardView({
                         )}
                       </div>
 
-                      {/* Deliverables Right Within The Project Card */}
+                      {/* View Deliverables Line (Collapsible & Clean) */}
                       {(() => {
                         const projDeliverables = getDeliverablesForProject(proj);
                         const pendingDeliverables = projDeliverables.filter(d => d.status === "Awaiting Review");
+                        const isExpanded = !!expandedDeliverables[pId];
 
                         return (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              padding: "10px 12px",
-                              background: "rgba(255, 255, 255, 0.03)",
-                              borderRadius: "10px",
-                              border: pendingDeliverables.length > 0 ? "1.5px solid rgba(249, 115, 22, 0.35)" : "1px solid var(--border-glass)",
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "8px"
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "var(--text-main)" }}>
-                                <FaClipboardList style={{ color: "var(--accent)" }} size={12} />
-                                <span>Project Deliverables</span>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            {/* Interactive "View Deliverables" Line */}
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedDeliverables(prev => ({
+                                  ...prev,
+                                  [pId]: !prev[pId]
+                                }));
+                              }}
+                              style={{
+                                padding: "8px 12px",
+                                background: isExpanded
+                                  ? "rgba(59, 130, 246, 0.08)"
+                                  : pendingDeliverables.length > 0
+                                    ? "rgba(249, 115, 22, 0.08)"
+                                    : "rgba(255, 255, 255, 0.02)",
+                                border: isExpanded
+                                  ? "1px solid rgba(59, 130, 246, 0.3)"
+                                  : pendingDeliverables.length > 0
+                                    ? "1px solid rgba(249, 115, 22, 0.28)"
+                                    : "1px solid var(--border-glass)",
+                                borderRadius: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = "var(--primary, #3b529a)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = isExpanded
+                                  ? "rgba(59, 130, 246, 0.3)"
+                                  : pendingDeliverables.length > 0
+                                    ? "rgba(249, 115, 22, 0.28)"
+                                    : "var(--border-glass)";
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <FaClipboardList size={13} style={{ color: pendingDeliverables.length > 0 ? "var(--accent)" : "var(--primary)" }} />
+                                <span style={{ fontSize: "12px", fontWeight: "750", color: "var(--text-main)" }}>
+                                  View Deliverables
+                                </span>
                                 <span style={{
                                   fontSize: "10px",
+                                  fontWeight: "800",
                                   padding: "1px 6px",
-                                  borderRadius: "6px",
+                                  borderRadius: "5px",
                                   background: pendingDeliverables.length > 0 ? "rgba(249, 115, 22, 0.15)" : "rgba(16, 185, 129, 0.15)",
-                                  color: pendingDeliverables.length > 0 ? "var(--accent)" : "#10b981",
-                                  fontWeight: "800"
+                                  color: pendingDeliverables.length > 0 ? "var(--accent)" : "#10b981"
                                 }}>
                                   {projDeliverables.length} Total {pendingDeliverables.length > 0 ? `(${pendingDeliverables.length} Pending)` : ""}
                                 </span>
                               </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "750", color: "var(--primary)" }}>
+                                <span>{isExpanded ? "Hide" : "Click to view"}</span>
+                                {isExpanded ? <FaChevronUp size={11} /> : <FaChevronDown size={11} />}
+                              </div>
                             </div>
 
-                            {projDeliverables.length > 0 ? (
-                              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                {projDeliverables.map(del => {
-                                  const isPending = del.status === "Awaiting Review";
-                                  return (
-                                    <div
-                                      key={del._id || del.id}
-                                      style={{
-                                        padding: "8px 10px",
-                                        background: "var(--bg-card, rgba(255,255,255,0.02))",
-                                        borderRadius: "8px",
-                                        border: "1px solid var(--border-glass)",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        flexWrap: "wrap",
-                                        gap: "8px"
-                                      }}
-                                    >
-                                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                          <strong style={{ fontSize: "12px", color: "var(--text-main)" }}>{del.studentName}</strong>
-                                          <span style={{ fontSize: "10.5px", color: "var(--primary)", fontFamily: "var(--mono)" }}>#{del.taskId}</span>
-                                          <span style={{
-                                            fontSize: "9px",
-                                            fontWeight: "850",
-                                            padding: "1px 5px",
-                                            borderRadius: "4px",
-                                            background: del.status === "Approved" ? "rgba(45, 212, 191, 0.12)" : del.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.12)" : "rgba(249, 115, 22, 0.12)",
-                                            color: del.status === "Approved" ? "#2dd4bf" : del.status === "Re-work Requested" ? "#ef4444" : "var(--accent)"
-                                          }}>
-                                            {del.status}
-                                          </span>
-                                        </div>
-                                        <a
-                                          href={del.fileUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
+                            {/* When clicked, it expands and shows the deliverables! */}
+                            {isExpanded && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="fade-in"
+                                style={{
+                                  padding: "10px",
+                                  background: "rgba(255, 255, 255, 0.02)",
+                                  borderRadius: "10px",
+                                  border: "1px solid var(--border-glass)",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "8px"
+                                }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted)" }}>
+                                    Submitted Deliverables ({projDeliverables.length})
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeliverablesModalProject(proj)}
+                                    style={{
+                                      background: "transparent",
+                                      border: "none",
+                                      color: "var(--primary)",
+                                      fontSize: "11px",
+                                      fontWeight: "750",
+                                      cursor: "pointer",
+                                      padding: "2px 6px",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "4px"
+                                    }}
+                                  >
+                                    <span>Full View</span>
+                                    <FaChevronRight size={10} />
+                                  </button>
+                                </div>
+
+                                {projDeliverables.length > 0 ? (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                    {projDeliverables.map(del => {
+                                      const isPending = del.status === "Awaiting Review";
+                                      return (
+                                        <div
+                                          key={del._id || del.id}
                                           style={{
-                                            fontSize: "11px",
-                                            color: "var(--primary)",
-                                            fontWeight: "700",
-                                            textDecoration: "none",
-                                            whiteSpace: "nowrap",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            maxWidth: "280px",
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: "4px"
+                                            padding: "10px 12px",
+                                            background: "var(--bg-card, rgba(255,255,255,0.02))",
+                                            borderRadius: "8px",
+                                            border: isPending ? "1px solid rgba(249, 115, 22, 0.3)" : "1px solid var(--border-glass)",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: "7px"
                                           }}
                                         >
-                                          📄 {del.fileName}
-                                        </a>
-                                      </div>
+                                          {/* Top Row: Student, Task ID, Status */}
+                                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                              <strong style={{ fontSize: "12.5px", color: "var(--text-main)" }}>{del.studentName}</strong>
+                                              <span style={{ fontSize: "10.5px", color: "var(--primary)", fontFamily: "var(--mono)", fontWeight: "700" }}>#{del.taskId}</span>
+                                            </div>
+                                            <span style={{
+                                              fontSize: "9.5px",
+                                              fontWeight: "850",
+                                              padding: "2px 6px",
+                                              borderRadius: "4px",
+                                              background: del.status === "Approved" ? "rgba(45, 212, 191, 0.12)" : del.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.12)" : "rgba(249, 115, 22, 0.12)",
+                                              color: del.status === "Approved" ? "#2dd4bf" : del.status === "Re-work Requested" ? "#ef4444" : "var(--accent)"
+                                            }}>
+                                              {del.status}
+                                            </span>
+                                          </div>
 
-                                      {/* Action Buttons */}
-                                      {isPending ? (
-                                        <div style={{ display: "flex", gap: "5px" }}>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                              if (grade !== null) {
-                                                const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
-                                                if (feedback !== null) {
-                                                  handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
-                                                }
-                                              }
-                                            }}
-                                            style={{
-                                              padding: "4px 8px",
-                                              background: "rgba(45, 212, 191, 0.15)",
-                                              border: "1px solid rgba(45, 212, 191, 0.3)",
-                                              borderRadius: "5px",
-                                              color: "#2dd4bf",
-                                              fontSize: "10.5px",
-                                              fontWeight: "800",
-                                              cursor: "pointer"
-                                            }}
-                                          >
-                                            Approve
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
-                                              if (feedback !== null) {
-                                                handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
-                                              }
-                                            }}
-                                            style={{
-                                              padding: "4px 8px",
-                                              background: "rgba(239, 68, 68, 0.15)",
-                                              border: "1px solid rgba(239, 68, 68, 0.3)",
-                                              borderRadius: "5px",
-                                              color: "#ef4444",
-                                              fontSize: "10.5px",
-                                              fontWeight: "800",
-                                              cursor: "pointer"
-                                            }}
-                                          >
-                                            Re-work
-                                          </button>
+                                          {/* Middle Row: Artifact link & Grade */}
+                                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
+                                            <a
+                                              href={del.fileUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              style={{
+                                                fontSize: "11px",
+                                                color: "var(--primary)",
+                                                fontWeight: "700",
+                                                textDecoration: "none",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                maxWidth: "230px",
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: "4px"
+                                              }}
+                                              title={del.fileName}
+                                            >
+                                              📄 {del.fileName}
+                                            </a>
+                                            {del.grade && (
+                                              <span style={{ fontSize: "11px", fontWeight: "800", color: "#10b981" }}>
+                                                Grade: {del.grade}
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* Bottom Row: Actions (Full width, distinct row - never overlaps!) */}
+                                          {isPending && (
+                                            <div style={{ display: "flex", gap: "6px", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "6px" }}>
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
+                                                  if (grade !== null) {
+                                                    const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
+                                                    if (feedback !== null) {
+                                                      handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
+                                                    }
+                                                  }
+                                                }}
+                                                style={{
+                                                  flex: 1,
+                                                  padding: "5px 8px",
+                                                  background: "rgba(45, 212, 191, 0.15)",
+                                                  border: "1px solid rgba(45, 212, 191, 0.3)",
+                                                  borderRadius: "5px",
+                                                  color: "#2dd4bf",
+                                                  fontSize: "11px",
+                                                  fontWeight: "800",
+                                                  cursor: "pointer",
+                                                  textAlign: "center"
+                                                }}
+                                              >
+                                                ✓ Approve
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
+                                                  if (feedback !== null) {
+                                                    handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
+                                                  }
+                                                }}
+                                                style={{
+                                                  flex: 1,
+                                                  padding: "5px 8px",
+                                                  background: "rgba(239, 68, 68, 0.15)",
+                                                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                                                  borderRadius: "5px",
+                                                  color: "#ef4444",
+                                                  fontSize: "11px",
+                                                  fontWeight: "800",
+                                                  cursor: "pointer",
+                                                  textAlign: "center"
+                                                }}
+                                              >
+                                                ↺ Re-work
+                                              </button>
+                                            </div>
+                                          )}
                                         </div>
-                                      ) : (
-                                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#10b981" }}>
-                                          Grade: {del.grade || "Approved"}
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: "11px", color: "var(--text-dim)", fontStyle: "italic", padding: "6px 0" }}>
+                                    No deliverables submitted for this project yet.
+                                  </span>
+                                )}
                               </div>
-                            ) : (
-                              <span style={{ fontSize: "11px", color: "var(--text-dim)", fontStyle: "italic" }}>
-                                No deliverables submitted for this project yet.
-                              </span>
                             )}
                           </div>
                         );
@@ -17027,17 +17138,40 @@ function FacultyMentorDashboardView({
                           <span>Project Kanban</span>
                         </button>
 
-                        <span style={{
-                          fontSize: "11.5px",
-                          fontWeight: "750",
-                          color: "var(--primary, #3b529a)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px"
-                        }}>
-                          <span>View Details & Scope</span>
-                          <FaChevronRight size={11} />
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeliverablesModalProject(proj);
+                            }}
+                            style={{
+                              fontSize: "11.5px",
+                              fontWeight: "750",
+                              color: getDeliverablesForProject(proj).filter(d => d.status === "Awaiting Review").length > 0 ? "var(--accent, #f97316)" : "var(--primary, #3b529a)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              cursor: "pointer"
+                            }}
+                            title="Open Deliverables Modal"
+                          >
+                            <FaClipboardList size={11} />
+                            <span>Deliverables ({getDeliverablesForProject(proj).length})</span>
+                            <FaChevronRight size={10} />
+                          </span>
+
+                          <span style={{
+                            fontSize: "11.5px",
+                            fontWeight: "750",
+                            color: "var(--primary, #3b529a)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}>
+                            <span>Details</span>
+                            <FaChevronRight size={10} />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -18519,6 +18653,384 @@ function FacultyMentorDashboardView({
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.opacity = "1";
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Project Deliverables Modal */}
+      {deliverablesModalProject && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeliverablesModalProject(null);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            boxSizing: "border-box"
+          }}
+        >
+          <div
+            className="fade-in"
+            style={{
+              background: "var(--bg-card, #ffffff)",
+              border: "1px solid var(--border-subtle, #e2e8f0)",
+              borderRadius: "18px",
+              width: "92vw",
+              maxWidth: "850px",
+              maxHeight: "88vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.25)",
+              overflow: "hidden"
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: "20px 26px",
+              borderBottom: "1px solid var(--border-subtle, #e2e8f0)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "16px",
+              background: "var(--bg-card, #ffffff)",
+              flexShrink: 0
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 0 }}>
+                <CompanyLogo company={deliverablesModalProject.company} size={42} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <span style={{
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      color: "var(--primary, #3b529a)",
+                      background: "rgba(59, 82, 154, 0.08)",
+                      border: "1px solid rgba(59, 82, 154, 0.2)",
+                      padding: "2px 8px",
+                      borderRadius: "5px",
+                      textTransform: "uppercase"
+                    }}>
+                      {deliverablesModalProject.company || "Industry Partner"}
+                    </span>
+                    <span style={{
+                      fontSize: "11px",
+                      fontWeight: "750",
+                      color: "var(--accent, #f97316)",
+                      background: "rgba(249, 115, 22, 0.1)",
+                      padding: "2px 8px",
+                      borderRadius: "5px"
+                    }}>
+                      Project Deliverables
+                    </span>
+                  </div>
+                  <h3 style={{
+                    margin: "4px 0 0 0",
+                    fontSize: "17px",
+                    fontWeight: "800",
+                    color: "var(--text-main, #0f172a)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "540px"
+                  }}>
+                    {deliverablesModalProject.title}
+                  </h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDeliverablesModalProject(null)}
+                style={{
+                  background: "var(--bg-content, #f8fafc)",
+                  border: "1px solid var(--border-subtle, #e2e8f0)",
+                  color: "var(--text-muted, #475569)",
+                  cursor: "pointer",
+                  borderRadius: "8px",
+                  width: "36px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}
+                title="Close"
+              >
+                <FaTimes size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "24px 26px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "18px",
+              background: "var(--bg-content, #f8fafc)"
+            }}>
+              {(() => {
+                const projDeliverables = getDeliverablesForProject(deliverablesModalProject);
+                const pendingDeliverables = projDeliverables.filter(d => d.status === "Awaiting Review");
+                const assignedTeam = existingTeams.find(t => String(t.projectId) === String(deliverablesModalProject._id || deliverablesModalProject.id));
+
+                return (
+                  <>
+                    {/* Summary Row */}
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "10px",
+                      padding: "12px 18px",
+                      background: "var(--bg-card, #ffffff)",
+                      border: "1px solid var(--border-subtle, #e2e8f0)",
+                      borderRadius: "12px"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "13px", fontWeight: "750", color: "var(--text-main)" }}>
+                          Deliverables Portfolio
+                        </span>
+                        <span style={{
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          padding: "2px 8px",
+                          borderRadius: "6px",
+                          background: pendingDeliverables.length > 0 ? "rgba(249, 115, 22, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                          color: pendingDeliverables.length > 0 ? "var(--accent)" : "#10b981"
+                        }}>
+                          {projDeliverables.length} Total ({pendingDeliverables.length} Pending Evaluation)
+                        </span>
+                      </div>
+                      {assignedTeam && (
+                        <span style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: "750", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                          <FaUsers size={12} />
+                          <span>Team: {assignedTeam.name}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Deliverables Cards */}
+                    {projDeliverables.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {projDeliverables.map(del => {
+                          const isPending = del.status === "Awaiting Review";
+                          return (
+                            <div
+                              key={del._id || del.id}
+                              style={{
+                                padding: "18px 20px",
+                                background: "var(--bg-card, #ffffff)",
+                                borderRadius: "12px",
+                                border: isPending ? "1.5px solid rgba(249, 115, 22, 0.35)" : "1px solid var(--border-subtle, #e2e8f0)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "12px",
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+                              }}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  <div style={{
+                                    width: "36px",
+                                    height: "36px",
+                                    borderRadius: "50%",
+                                    background: "rgba(59, 130, 246, 0.12)",
+                                    color: "#3b82f6",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontWeight: "800",
+                                    fontSize: "14px"
+                                  }}>
+                                    {del.studentName ? del.studentName[0].toUpperCase() : "S"}
+                                  </div>
+                                  <div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                      <strong style={{ fontSize: "14px", color: "var(--text-main, #0f172a)" }}>
+                                        {del.studentName}
+                                      </strong>
+                                      <span style={{ fontSize: "11px", color: "var(--primary, #3b529a)", fontFamily: "var(--mono)", fontWeight: "700" }}>
+                                        Task #{del.taskId}
+                                      </span>
+                                    </div>
+                                    <span style={{ fontSize: "11px", color: "var(--text-muted, #475569)" }}>
+                                      Submitted {del.submittedAt ? new Date(del.submittedAt).toLocaleDateString() : "recently"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <span style={{
+                                  fontSize: "10.5px",
+                                  fontWeight: "850",
+                                  padding: "3px 8px",
+                                  borderRadius: "6px",
+                                  background: del.status === "Approved" ? "rgba(45, 212, 191, 0.12)" : del.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.12)" : "rgba(249, 115, 22, 0.12)",
+                                  color: del.status === "Approved" ? "#2dd4bf" : del.status === "Re-work Requested" ? "#ef4444" : "var(--accent)",
+                                  border: del.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.25)" : del.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.25)" : "1px solid rgba(249, 115, 22, 0.25)"
+                                }}>
+                                  {del.status}
+                                </span>
+                              </div>
+
+                              {/* Artifact Link & Note */}
+                              <div style={{
+                                padding: "10px 14px",
+                                background: "var(--bg-content, #f8fafc)",
+                                borderRadius: "8px",
+                                border: "1px solid var(--border-subtle, #e2e8f0)",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                gap: "10px"
+                              }}>
+                                <a
+                                  href={del.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    fontSize: "12.5px",
+                                    color: "var(--primary, #3b529a)",
+                                    fontWeight: "750",
+                                    textDecoration: "none",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "6px"
+                                  }}
+                                >
+                                  <FaLink size={12} />
+                                  <span>{del.fileName}</span>
+                                </a>
+                                {del.comments && (
+                                  <span style={{ fontSize: "12px", color: "var(--text-muted, #475569)", fontStyle: "italic" }}>
+                                    "{del.comments}"
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Feedback and Grade */}
+                              {del.grade && (
+                                <div style={{ fontSize: "12px", color: "var(--text-muted, #475569)" }}>
+                                  Grade Assigned: <strong style={{ color: "#10b981", fontSize: "13px" }}>{del.grade}</strong>
+                                </div>
+                              )}
+
+                              {/* Evaluation Actions */}
+                              {isPending ? (
+                                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", borderTop: "1px solid var(--border-subtle, #e2e8f0)", paddingTop: "12px" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
+                                      if (grade !== null) {
+                                        const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
+                                        if (feedback !== null) {
+                                          handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
+                                        }
+                                      }
+                                    }}
+                                    style={{
+                                      padding: "7px 18px",
+                                      background: "rgba(45, 212, 191, 0.15)",
+                                      border: "1px solid rgba(45, 212, 191, 0.35)",
+                                      borderRadius: "7px",
+                                      color: "#2dd4bf",
+                                      fontSize: "12px",
+                                      fontWeight: "800",
+                                      cursor: "pointer"
+                                    }}
+                                  >
+                                    ✓ Approve & Grade
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
+                                      if (feedback !== null) {
+                                        handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
+                                      }
+                                    }}
+                                    style={{
+                                      padding: "7px 18px",
+                                      background: "rgba(239, 68, 68, 0.15)",
+                                      border: "1px solid rgba(239, 68, 68, 0.35)",
+                                      borderRadius: "7px",
+                                      color: "#ef4444",
+                                      fontSize: "12px",
+                                      fontWeight: "800",
+                                      cursor: "pointer"
+                                    }}
+                                  >
+                                    ↺ Flag Re-work
+                                  </button>
+                                </div>
+                              ) : (
+                                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                  <span style={{ fontSize: "12px", fontWeight: "750", color: "#10b981", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                                    <FaCheckCircle size={13} />
+                                    <span>Verified & Recorded</span>
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: "36px 20px",
+                        textAlign: "center",
+                        background: "var(--bg-card, #ffffff)",
+                        border: "1px dashed var(--border-subtle, #e2e8f0)",
+                        borderRadius: "12px",
+                        color: "var(--text-muted, #475569)"
+                      }}>
+                        <FaClipboardList size={28} style={{ opacity: 0.35, marginBottom: "8px" }} />
+                        <p style={{ margin: 0, fontWeight: "750" }}>No deliverables submitted for this project yet.</p>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12px" }}>Deliverables submitted by team developers will appear here for verification.</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: "14px 26px",
+              borderTop: "1px solid var(--border-subtle, #e2e8f0)",
+              display: "flex",
+              justifyContent: "flex-end",
+              background: "var(--bg-card, #ffffff)",
+              flexShrink: 0
+            }}>
+              <button
+                type="button"
+                onClick={() => setDeliverablesModalProject(null)}
+                style={{
+                  padding: "8px 20px",
+                  borderRadius: "8px",
+                  background: "var(--primary, #3b529a)",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "12.5px",
+                  fontWeight: "750",
+                  cursor: "pointer"
                 }}
               >
                 Close
