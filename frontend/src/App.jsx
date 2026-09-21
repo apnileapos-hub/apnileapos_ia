@@ -6443,7 +6443,7 @@ function App() {
             spokes={spokesList.length > 0 ? spokesList : Object.entries(dynamicSpokes).map(([id, spoke]) => ({ id, ...spoke }))}
             allSubmissions={allSubmissions}
             handleUpdateSubmissionStatus={handleUpdateSubmissionStatus}
-            meetings={meetings}
+            meetings={meetings.filter(m => String(m.campusId) === String(sessionUser?.spokeId || "3"))}
             handleDeleteSubmission={handleDeleteSubmission}
             fetchAllSubmissions={fetchAllSubmissions}
             setActiveView={setActiveView}
@@ -14179,6 +14179,8 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
     return `Awaiting Projects`;
   };
   const [newTitle, setNewTitle] = useState("");
+  const mentorId = sessionUser?._id || sessionUser?.id;
+  const mentorSpokeId = String(sessionUser?.spokeId || "3");
   const defaultSpokeId = sessionUser?.spokeId ? String(sessionUser.spokeId) : (spokes[0]?.id ? String(spokes[0].id) : "3");
   const [newCampusIds, setNewCampusIds] = useState([defaultSpokeId]);
   const [selectionMode, setSelectionMode] = useState("manual");
@@ -14191,7 +14193,30 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   const [newCadenceType, setNewCadenceType] = useState(isFacultyMentor ? "Team Sprint Sync" : "Weekly College PM Update");
   const [isScheduling, setIsScheduling] = useState(false);
   const [remindLoading, setRemindLoading] = useState(null); // id of meeting loading reminder
-  
+
+  // Faculty Mentor team and project states (strictly scoped)
+  const [mentorTeams, setMentorTeams] = useState([]);
+  const [mentorProjects, setMentorProjects] = useState([]);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [loadingTeams, setLoadingTeams] = useState(false);
+
+  useEffect(() => {
+    if (isFacultyMentor && mentorId) {
+      setLoadingTeams(true);
+      Promise.all([
+        axios.get(`http://localhost:5001/api/teams?mentorId=${mentorId}`),
+        axios.get(`http://localhost:5001/api/mentors/${mentorId}/projects`)
+      ]).then(([teamsRes, projsRes]) => {
+        setMentorTeams(Array.isArray(teamsRes.data) ? teamsRes.data : []);
+        setMentorProjects(Array.isArray(projsRes.data) ? projsRes.data : []);
+      }).catch(err => {
+        console.error("Failed to load mentor teams/projects:", err);
+      }).finally(() => {
+        setLoadingTeams(false);
+      });
+    }
+  }, [isFacultyMentor, mentorId]);
+
   // Selected date filter (null means show all meetings)
   const [filterDate, setFilterDate] = useState(null);
   
@@ -14201,8 +14226,13 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   const [activeJitsiMeeting, setActiveJitsiMeeting] = useState(null);
   const [jitsiLoading, setJitsiLoading] = useState(true);
 
+  // When viewed by Faculty Mentor, strictly filter meetings to only their home campus spoke
+  const displayMeetings = isFacultyMentor
+    ? meetings.filter(m => String(m.campusId) === mentorSpokeId)
+    : meetings;
+
   const isConflicted = (meet) => {
-    return meetings.some(m => m.id !== meet.id && m.campusId === meet.campusId && m.date === meet.date && m.time === meet.time);
+    return displayMeetings.some(m => m.id !== meet.id && m.campusId === meet.campusId && m.date === meet.date && m.time === meet.time);
   };
 
   const handleScheduleSubmit = async (e) => {
@@ -14212,14 +14242,22 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
       return;
     }
     
-    if (newCampusIds.length === 0) {
+    // For Faculty Mentor, campus is strictly locked to their home campus spoke - no other campus allowed
+    const targetCampusIds = isFacultyMentor ? [mentorSpokeId] : newCampusIds;
+
+    if (targetCampusIds.length === 0) {
       triggerToast("Please select at least one campus.", "warning");
       return;
     }
 
-    const overlap = meetings.some(m => newCampusIds.includes(m.campusId) && m.date === newDate && m.time === newTime);
+    if (isFacultyMentor && mentorTeams.length > 0 && !selectedTeamId) {
+      triggerToast("Please select a student team under you for this sync.", "warning");
+      return;
+    }
+
+    const overlap = displayMeetings.some(m => targetCampusIds.includes(m.campusId) && m.date === newDate && m.time === newTime);
     if (overlap) {
-      triggerToast(` Schedule Conflict: There is already a sync scheduled for one of these campuses today at ${newTime}!`, "warning");
+      triggerToast(` Schedule Conflict: There is already a sync scheduled for this campus today at ${newTime}!`, "warning");
     }
 
     setIsScheduling(true);
@@ -14228,8 +14266,8 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
         ? (newLink.trim() || `https://meet.jit.si/ApniLeap-${encodeURIComponent((newTitle || "Sprint").trim().replace(/[^a-zA-Z0-9]/g, '-'))}-${Date.now()}`)
         : (newLink.trim() || "https://teams.microsoft.com/");
 
-      // Create a meeting for EACH selected campus
-      for (const campusId of newCampusIds) {
+      // Create a meeting for EACH selected campus (strictly only mentor's campus when in faculty dashboard)
+      for (const campusId of targetCampusIds) {
         await axios.post("http://localhost:5001/meetings", {
           title: newTitle,
           campusId: campusId,
@@ -14241,10 +14279,11 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
         });
       }
 
-      triggerToast("Meeting scheduled successfully!");
+      triggerToast(isFacultyMentor ? "Team sync meeting scheduled successfully!" : "Meeting scheduled successfully!");
       setNewTitle("");
       setNewLink("");
       setNewAgenda("");
+      setSelectedTeamId("");
       onRefresh(); // Refresh all syncs
     } catch (error) {
       triggerToast(error.response?.data?.error || "Failed to schedule sync meeting.", "error");
@@ -14342,12 +14381,12 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   };
 
   const getMeetingsForDate = (dateStr) => {
-    return meetings.filter(m => m.date === dateStr);
+    return displayMeetings.filter(m => m.date === dateStr);
   };
 
   const filteredMeetings = filterDate 
-    ? meetings.filter(m => m.date === filterDate)
-    : meetings;
+    ? displayMeetings.filter(m => m.date === filterDate)
+    : displayMeetings;
 
   if (loading) {
     return (
@@ -14373,16 +14412,21 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
         {/* Governance Cadence Tracker */}
         <div className="glass-panel" style={{ padding: "16px 20px", background: "var(--bg-card)", borderLeft: "4px solid var(--accent)" }}>
           <h4 style={{ fontSize: "14px", fontWeight: "800", color: "var(--text-main)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
-            <FaCalendarAlt style={{ color: "var(--accent)" }} /> Meeting Schedule Compliance
+            <FaCalendarAlt style={{ color: "var(--accent)" }} /> {isFacultyMentor ? "Team Meeting Cadence Compliance" : "Meeting Schedule Compliance"}
           </h4>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            {[
+            {(isFacultyMentor ? [
+              "Team Sprint Sync",
+              "Faculty Mentor Review",
+              "Student Project Milestone Review",
+              "General Sync"
+            ] : [
               "Weekly College PM Update",
               "Weekly ApniLeap Cohort Checkpoint",
               "Bi-weekly Program Director Review",
               "Monthly FIP Steering Review"
-            ].map(cadence => {
-              const isScheduled = meetings.some(m => m.cadenceType === cadence);
+            ]).map(cadence => {
+              const isScheduled = displayMeetings.some(m => m.cadenceType === cadence);
               return (
                 <div key={cadence} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,255,255,0.02)", borderRadius: "6px", border: "1px solid var(--border-glass)", fontSize: "11px", fontWeight: "600" }}>
                   <span style={{ color: "var(--text-main)" }}>{cadence}</span>
@@ -14508,8 +14552,12 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
         <div className="glass-panel" style={{ padding: "24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: "700", color: "var(--text-main)", margin: 0 }}>Scheduled FIP Syncs</h3>
-              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "4px", marginBottom: 0 }}>Active sync schedules and prep reminder trigger panels.</p>
+              <h3 style={{ fontSize: "18px", fontWeight: "700", color: "var(--text-main)", margin: 0 }}>
+                {isFacultyMentor ? "Scheduled Team Syncs" : "Scheduled FIP Syncs"}
+              </h3>
+              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "4px", marginBottom: 0 }}>
+                {isFacultyMentor ? "Active sprint team sync schedules and mentor review panels." : "Active sync schedules and prep reminder trigger panels."}
+              </p>
             </div>
             <button onClick={onRefresh} className="btn-secondary" style={{ padding: "8px 14px", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
               <FaSyncAlt size={12} />
@@ -14751,100 +14799,217 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
             />
           </div>
 
-          <div>
-            <div style={{ display: "flex", gap: "12px", marginBottom: "12px", background: "rgba(0,0,0,0.1)", padding: "10px", borderRadius: "8px" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: selectionMode === "project" ? "var(--primary)" : "var(--text-main)", fontWeight: selectionMode === "project" ? "700" : "500" }}>
-                <input 
-                  type="radio" 
-                  name="selectionMode" 
-                  value="project" 
-                  checked={selectionMode === "project"} 
-                  onChange={() => {
-                    setSelectionMode("project");
-                    setNewCampusIds([]);
-                  }}
-                  style={{ accentColor: "var(--primary)" }}
-                />
-                Group by Active Project
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: selectionMode === "manual" ? "var(--primary)" : "var(--text-main)", fontWeight: selectionMode === "manual" ? "700" : "500" }}>
-                <input 
-                  type="radio" 
-                  name="selectionMode" 
-                  value="manual" 
-                  checked={selectionMode === "manual"} 
-                  onChange={() => {
-                    setSelectionMode("manual");
-                    setSelectedProjectId("");
-                  }}
-                  style={{ accentColor: "var(--primary)" }}
-                />
-                Manual Campus Selection
-              </label>
-            </div>
-
-            {selectionMode === "project" && (
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
-                  Select Project To Auto-Assign Campuses *
-                </label>
-                <select
-                  className="form-select"
-                  value={selectedProjectId}
-                  onChange={(e) => {
-                    const pid = e.target.value;
-                    setSelectedProjectId(pid);
-                    const proj = moderatorProjects.find(p => p.id === pid || p._id === pid);
-                    if (proj) {
-                      const ids = proj.allocations ? proj.allocations.map(a => a.targetCampusId) : [proj.targetCampusId].filter(Boolean);
-                      setNewCampusIds([...new Set(ids)]);
-                      if (!newTitle.trim() || newTitle.startsWith("Sync:")) {
-                        setNewTitle(`Sync: ${proj.title}`);
-                      }
-                    } else {
-                      setNewCampusIds([]);
-                    }
-                  }}
-                  style={{ width: "100%", padding: "10px 12px", fontSize: "13px", border: "1px solid var(--primary)", background: "rgba(99, 102, 241, 0.05)", borderRadius: "6px", color: "var(--text-main)" }}
-                >
-                  <option value="">-- Choose an Active Project --</option>
-                  {moderatorProjects.filter(p => p.allocations && p.allocations.length > 0).map(p => (
-                    <option key={p.id || p._id} value={p.id || p._id}>{p.title} ({p.company})</option>
-                  ))}
-                </select>
+          {isFacultyMentor ? (
+            /* STRICTLY FOR FACULTY MENTOR: No other campuses allowed, strictly only teams under him */
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {/* Locked Home Institution Spoke Indicator */}
+              <div style={{
+                padding: "12px 14px",
+                background: "rgba(59, 82, 154, 0.08)",
+                border: "1px solid var(--border-glass)",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}>
+                <div>
+                  <span style={{ fontSize: "10px", fontWeight: "800", textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.5px" }}>
+                    Institution Campus (Strictly Locked)
+                  </span>
+                  <div style={{ fontSize: "13.5px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                    <FaBuilding style={{ color: "var(--primary)" }} />
+                    <span>{spokes.find(s => String(s.id) === mentorSpokeId)?.name || "KLE Tech Campus"} ({spokes.find(s => String(s.id) === mentorSpokeId)?.key || "APNN"})</span>
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "750",
+                  color: "#10b981",
+                  background: "rgba(16, 185, 129, 0.1)",
+                  padding: "4px 8px",
+                  borderRadius: "6px"
+                }}>
+                  Your Campus
+                </span>
               </div>
-            )}
 
-            <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
-              {selectionMode === "project" ? "Assigned Campuses (Review)" : "Target Institution Campuses * (Select multiple)"}
-            </label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-glass)" }}>
-              {spokes.map(s => {
-                const status = getSpokeProjectStatus(s.name);
-                const isSelected = newCampusIds.includes(s.id);
-                return (
-                  <label key={s.id} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: isSelected ? "var(--text-main)" : "var(--text-muted)", cursor: "pointer", padding: "4px 0" }}>
-                    <input 
-                      type="checkbox" 
-                      checked={isSelected}
+              {/* Team Selector Under Faculty Mentor */}
+              <div>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                  Target Team Under You *
+                </label>
+                {loadingTeams ? (
+                  <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "10px" }}>Loading your assigned teams...</div>
+                ) : mentorTeams.length > 0 ? (
+                  <>
+                    <select
+                      className="form-select"
+                      required
+                      value={selectedTeamId}
                       onChange={(e) => {
-                        if (e.target.checked) {
-                          setNewCampusIds([...newCampusIds, s.id]);
-                        } else {
-                          setNewCampusIds(newCampusIds.filter(id => id !== s.id));
+                        const tid = e.target.value;
+                        setSelectedTeamId(tid);
+                        const team = mentorTeams.find(t => (t._id || t.id) === tid);
+                        if (team) {
+                          const proj = mentorProjects.find(p => p._id === team.projectId || p.id === team.projectId) || moderatorProjects.find(p => p._id === team.projectId || p.id === team.projectId);
+                          setNewTitle(`Sync: Team ${team.name}${proj ? ` (${proj.company})` : ""}`);
+                          if (!newAgenda) {
+                            setNewAgenda(`Sprint sync with Team ${team.name} to review sprint task deliverables, evaluate milestones, and unblock workstreams.`);
+                          }
                         }
                       }}
-                      style={{ accentColor: "var(--primary)", width: "16px", height: "16px" }}
-                    />
-                    <span style={{ flex: 1 }}>{s.name} ({s.key})</span>
-                    <span style={{ fontSize: "11px", color: status.includes("Active") ? "var(--primary)" : "var(--text-dim)", fontStyle: "italic" }}>
-                      [{status}]
-                    </span>
-                  </label>
-                );
-              })}
+                      style={{ width: "100%", padding: "10px 12px", fontSize: "13px", border: "1px solid var(--primary)", background: "rgba(99, 102, 241, 0.05)", borderRadius: "6px", color: "var(--text-main)" }}
+                    >
+                      <option value="">-- Choose a Student Team Under You --</option>
+                      {mentorTeams.map(t => {
+                        const proj = mentorProjects.find(p => p._id === t.projectId || p.id === t.projectId) || moderatorProjects.find(p => p._id === t.projectId || p.id === t.projectId);
+                        return (
+                          <option key={t._id || t.id} value={t._id || t.id}>
+                            Team {t.name} {proj ? `— [${proj.company}: ${proj.title}]` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    {selectedTeamId && (() => {
+                      const team = mentorTeams.find(t => (t._id || t.id) === selectedTeamId);
+                      if (!team) return null;
+                      return (
+                        <div style={{
+                          marginTop: "8px",
+                          padding: "10px 12px",
+                          background: "rgba(255,255,255,0.02)",
+                          border: "1px solid var(--border-glass)",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "3px"
+                        }}>
+                          <div style={{ color: "var(--text-main)", fontWeight: "750" }}>
+                            Selected Team: Team {team.name}
+                          </div>
+                          <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                            Leader: <strong>{team.teamLeader?.displayName || "Not assigned"}</strong> &bull; Members: <strong>{(team.members || []).length} students</strong>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  <div style={{
+                    padding: "12px 14px",
+                    background: "rgba(249, 115, 22, 0.08)",
+                    border: "1px solid rgba(249, 115, 22, 0.2)",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "var(--text-muted)"
+                  }}>
+                    <p style={{ margin: "0 0 6px 0", color: "var(--accent, #f97316)", fontWeight: "750" }}>
+                      No student teams assembled yet
+                    </p>
+                    <span>You can schedule a general sprint sync for your campus, or form teams under the <strong>Create & Manage Teams</strong> view.</span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Moderator / Admin Multi-Campus Selection */
+            <div>
+              <div style={{ display: "flex", gap: "12px", marginBottom: "12px", background: "rgba(0,0,0,0.1)", padding: "10px", borderRadius: "8px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: selectionMode === "project" ? "var(--primary)" : "var(--text-main)", fontWeight: selectionMode === "project" ? "700" : "500" }}>
+                  <input 
+                    type="radio" 
+                    name="selectionMode" 
+                    value="project" 
+                    checked={selectionMode === "project"} 
+                    onChange={() => {
+                      setSelectionMode("project");
+                      setNewCampusIds([]);
+                    }}
+                    style={{ accentColor: "var(--primary)" }}
+                  />
+                  Group by Active Project
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer", color: selectionMode === "manual" ? "var(--primary)" : "var(--text-main)", fontWeight: selectionMode === "manual" ? "700" : "500" }}>
+                  <input 
+                    type="radio" 
+                    name="selectionMode" 
+                    value="manual" 
+                    checked={selectionMode === "manual"} 
+                    onChange={() => {
+                      setSelectionMode("manual");
+                      setSelectedProjectId("");
+                    }}
+                    style={{ accentColor: "var(--primary)" }}
+                  />
+                  Manual Campus Selection
+                </label>
+              </div>
+
+              {selectionMode === "project" && (
+                <div style={{ marginBottom: "16px" }}>
+                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                    Select Project To Auto-Assign Campuses *
+                  </label>
+                  <select
+                    className="form-select"
+                    value={selectedProjectId}
+                    onChange={(e) => {
+                      const pid = e.target.value;
+                      setSelectedProjectId(pid);
+                      const proj = moderatorProjects.find(p => p.id === pid || p._id === pid);
+                      if (proj) {
+                        const ids = proj.allocations ? proj.allocations.map(a => a.targetCampusId) : [proj.targetCampusId].filter(Boolean);
+                        setNewCampusIds([...new Set(ids)]);
+                        if (!newTitle.trim() || newTitle.startsWith("Sync:")) {
+                          setNewTitle(`Sync: ${proj.title}`);
+                        }
+                      } else {
+                        setNewCampusIds([]);
+                      }
+                    }}
+                    style={{ width: "100%", padding: "10px 12px", fontSize: "13px", border: "1px solid var(--primary)", background: "rgba(99, 102, 241, 0.05)", borderRadius: "6px", color: "var(--text-main)" }}
+                  >
+                    <option value="">-- Choose an Active Project --</option>
+                    {moderatorProjects.filter(p => p.allocations && p.allocations.length > 0).map(p => (
+                      <option key={p.id || p._id} value={p.id || p._id}>{p.title} ({p.company})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                {selectionMode === "project" ? "Assigned Campuses (Review)" : "Target Institution Campuses * (Select multiple)"}
+              </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "rgba(255,255,255,0.02)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-glass)" }}>
+                {spokes.map(s => {
+                  const status = getSpokeProjectStatus(s.name);
+                  const isSelected = newCampusIds.includes(s.id);
+                  return (
+                    <label key={s.id} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: isSelected ? "var(--text-main)" : "var(--text-muted)", cursor: "pointer", padding: "4px 0" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewCampusIds([...newCampusIds, s.id]);
+                          } else {
+                            setNewCampusIds(newCampusIds.filter(id => id !== s.id));
+                          }
+                        }}
+                        style={{ accentColor: "var(--primary)", width: "16px", height: "16px" }}
+                      />
+                      <span style={{ flex: 1 }}>{s.name} ({s.key})</span>
+                      <span style={{ fontSize: "11px", color: status.includes("Active") ? "var(--primary)" : "var(--text-dim)", fontStyle: "italic" }}>
+                        [{status}]
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
