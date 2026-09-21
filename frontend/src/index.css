@@ -141,7 +141,6 @@ body, div, nav, aside, main, header, section, span, h1, h2, h3, h4, h5, h6, p, b
 
 html {
   font-size: 16px;
-  zoom: 1.08; /* Scales all text & UI comfortably larger across the whole application */
   -webkit-text-size-adjust: 100%;
 }
 
@@ -173,6 +172,32 @@ body {
 h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
   font-weight: 600;
+}
+
+/* Legibility scale enhancements: Lift small & dense text so it is clearly readable without overflowing screen bounds */
+[style*="font-size: 9px"], [style*="font-size:9px"] {
+  font-size: 11px !important;
+}
+[style*="font-size: 10px"], [style*="font-size:10px"], [style*="font-size: 10.5px"], [style*="font-size:10.5px"] {
+  font-size: 12px !important;
+}
+[style*="font-size: 11px"], [style*="font-size:11px"] {
+  font-size: 12.5px !important;
+}
+[style*="font-size: 11.5px"], [style*="font-size:11.5px"] {
+  font-size: 13px !important;
+}
+[style*="font-size: 12px"], [style*="font-size:12px"] {
+  font-size: 13.5px !important;
+}
+[style*="font-size: 12.5px"], [style*="font-size:12.5px"] {
+  font-size: 13.8px !important;
+}
+[style*="font-size: 13px"], [style*="font-size:13px"] {
+  font-size: 14px !important;
+}
+[style*="font-size: 13.5px"], [style*="font-size:13.5px"] {
+  font-size: 14.5px !important;
 }
 
 

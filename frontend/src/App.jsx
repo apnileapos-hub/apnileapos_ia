@@ -5474,7 +5474,7 @@ function App() {
   const isCentralAdmin = currentPersona === "moderator" || currentPersona === "executive";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", width: "100vw", background: "var(--bg-main)" }}>
+    <div style={{ display: "flex", minHeight: "100vh", width: "100%", maxWidth: "100vw", background: "var(--bg-main)", overflow: "hidden" }}>
       <div style={{ display: "flex", width: "100%", height: "100vh", background: "var(--bg-card)", overflow: "hidden" }}>
       
       {/* Visual Animation Keyframes Injection */}
@@ -5992,7 +5992,7 @@ function App() {
       </aside>
 
       {/* MAIN CONTAINER */}
-      <main style={{ flex: 1, padding: "30px 40px", display: "flex", flexDirection: "column", gap: "30px", overflowY: "auto", background: "var(--bg-content)" }}>
+      <main style={{ flex: 1, padding: "26px 36px", display: "flex", flexDirection: "column", gap: "26px", overflowY: "auto", background: "var(--bg-content)", minWidth: 0 }}>
         
         {/* HEADER & NAV BAR */}
         <header style={{
@@ -6000,7 +6000,8 @@ function App() {
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: "16px"
+          gap: "16px",
+          width: "100%"
         }}>
           <div>
             <h1 style={{ fontSize: "28px", fontWeight: "800", letterSpacing: "-0.5px", margin: "0" }}>
@@ -6038,12 +6039,10 @@ function App() {
             </h1>
             <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
               {activeWorkspace === "hub"
-                ? "Consolidated FIP outcomes progress, cross-college blocker escalations, and standard workstream status tracker."
+                ? "Unified metrics, multi-spoke tracking, corporate partner projects, and live milestone delivery across all 4 institutions."
                 : activeWorkspace === "moderator"
-                ? "Intake projects from industry partners and automatically provision them directly to campus spaces."
+                ? "Review project proposals, sponsor allocations, and inter-spoke synchronization."
                 : activeWorkspace === "meetings"
-                ? "Schedule campus sprint syncs, manage agendas, and auto-dispatch pre-meeting overdue warning digests."
-                : sessionUser?.role === "Student Developer"
                 ? "Track your active sprint tasks, team project deliverables, mentor feedback, and upcoming deadlines."
                 : activeWorkspace === "faculty-mentor" && activeView === "teams"
                 ? "Assemble student sprint teams, designate student leaders, and evaluate final project milestones."
@@ -6058,7 +6057,7 @@ function App() {
             </p>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
             {/* Global theme selection toggle bar */}
             <div style={{
               display: "flex",
