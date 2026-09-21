@@ -4416,6 +4416,52 @@ function App() {
                 A robust multi-tenant Agile collaboration suite powered by live Jira Cloud. Experience absolute campus workspace isolation with central Moderator ingestion pathways.
               </p>
 
+              {/* Feature Highlights to balance UI */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px", marginTop: "40px" }}>
+                
+                {/* Feature 1 */}
+                <div className="fade-in" style={{ display: "flex", alignItems: "center", gap: "16px", animationDelay: "0.1s" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#4ade80" }}>
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "14px", color: "white", fontWeight: "700", letterSpacing: "0.3px" }}>Isolated Workspaces</h4>
+                    <p style={{ margin: 0, fontSize: "13px", color: "rgba(255,255,255,0.6)", marginTop: "3px" }}>Secure Jira spaces for every corporate project</p>
+                  </div>
+                </div>
+                
+                {/* Feature 2 */}
+                <div className="fade-in" style={{ display: "flex", alignItems: "center", gap: "16px", animationDelay: "0.2s" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#60a5fa" }}>
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "14px", color: "white", fontWeight: "700", letterSpacing: "0.3px" }}>Live Agile Metrics</h4>
+                    <p style={{ margin: 0, fontSize: "13px", color: "rgba(255,255,255,0.6)", marginTop: "3px" }}>Real-time velocity and sprint analytics</p>
+                  </div>
+                </div>
+
+                {/* Feature 3 */}
+                <div className="fade-in" style={{ display: "flex", alignItems: "center", gap: "16px", animationDelay: "0.3s" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#a78bfa" }}>
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "14px", color: "white", fontWeight: "700", letterSpacing: "0.3px" }}>Multi-Tier Governance</h4>
+                    <p style={{ margin: 0, fontSize: "13px", color: "rgba(255,255,255,0.6)", marginTop: "3px" }}>Centralized control for Hub Administrators</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Quick Connect demo panel removed */}
             </div>
 
