@@ -8370,7 +8370,7 @@ function App() {
                                             <div style={{ fontWeight: "800", fontSize: "13.5px", color: "var(--text-main)" }}>{team.name}</div>
                                             <div style={{ fontSize: "11px", color: "var(--text-dim)" }}>
                                               Leader: <strong style={{ color: "#f97316" }}>{team.teamLeader?.displayName || "Not Assigned"}</strong>
-                                              {team.subMentor && <> &nbsp;·&nbsp; Sub-Mentor: <strong>{team.subMentor.displayName}</strong></>}
+                                              {team.subMentor && <> &nbsp;·&nbsp; Co-Mentor: <strong>{team.subMentor.displayName}</strong></>}
                                             </div>
                                           </div>
                                         </div>
@@ -17251,11 +17251,11 @@ function FacultyMentorDashboardView({
                   </div>
                 </div>
 
-                {/* Row 3: Sub-Mentor & Leader */}
+                {/* Row 3: Co-Mentor & Leader */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.5px" }}>
-                      Sub-Faculty Mentor (Optional)
+                      Co-Faculty Mentor (Optional)
                     </label>
                     <select
                       value={subMentorId}
@@ -17263,7 +17263,7 @@ function FacultyMentorDashboardView({
                       className="form-input"
                       style={{ width: "100%", padding: "10px 14px", fontSize: "13px" }}
                     >
-                      <option value="">-- Select Sub-Mentor --</option>
+                      <option value="">-- Select Co-Mentor --</option>
                       {subMentorOptions.map(m => (
                         <option key={m.accountId} value={m.accountId}>{m.displayName}</option>
                       ))}
@@ -17433,7 +17433,7 @@ function FacultyMentorDashboardView({
                           <span style={{ fontWeight: "600", color: "var(--text-main)" }}>{team.teamLeader?.displayName || "N/A"}</span>
                         </div>
                         <div style={{ padding: "8px 10px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", border: "1px solid var(--border-glass)" }}>
-                          <span style={{ color: "var(--text-muted)", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: "750" }}>Sub-Faculty Mentor</span>
+                          <span style={{ color: "var(--text-muted)", display: "block", fontSize: "10px", textTransform: "uppercase", fontWeight: "750" }}>Co-Faculty Mentor</span>
                           <span style={{ fontWeight: "600", color: "var(--text-main)" }}>{team.subMentor?.displayName || "None"}</span>
                         </div>
                       </div>
@@ -18265,7 +18265,7 @@ function FacultyMentorDashboardView({
                     </h4>
                     <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "12px", color: "var(--text-muted, #475569)", lineHeight: "1.7" }}>
                       <li>Ensure a student team leader is designated.</li>
-                      <li>Allocate Sub-Faculty Mentor if additional support is needed.</li>
+                      <li>Allocate Co-Faculty Mentor if additional support is needed.</li>
                       <li>Review weekly sprint deliverables against these project requirements.</li>
                     </ul>
                   </div>
