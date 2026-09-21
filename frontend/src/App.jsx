@@ -16000,6 +16000,13 @@ function FacultyMentorDashboardView({
   const [projectDetailsModal, setProjectDetailsModal] = useState(null);
   const [deliverablesModalProject, setDeliverablesModalProject] = useState(null);
   const [expandedDeliverables, setExpandedDeliverables] = useState({});
+  const [evalModal, setEvalModal] = useState({
+    isOpen: false,
+    type: "approve",
+    submission: null,
+    grade: "A",
+    feedback: ""
+  });
 
   // Pending Student Verifications
   const [pendingStudentsList, setPendingStudentsList] = useState([]);
@@ -17094,13 +17101,13 @@ function FacultyMentorDashboardView({
                               <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                                 <button 
                                   onClick={() => {
-                                    const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                    if (grade !== null) {
-                                      const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
-                                      if (feedback !== null) {
-                                        handleUpdateSubmissionStatus(sub._id || sub.id, "Approved", feedback, grade);
-                                      }
-                                    }
+                                    setEvalModal({
+                                      isOpen: true,
+                                      type: "approve",
+                                      submission: sub,
+                                      grade: sub.grade || "A",
+                                      feedback: "Meets all FIP criteria. Excellent work!"
+                                    });
                                   }}
                                   style={{
                                     padding: "6px 12px",
@@ -17117,10 +17124,13 @@ function FacultyMentorDashboardView({
                                 </button>
                                 <button 
                                   onClick={() => {
-                                    const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
-                                    if (feedback !== null) {
-                                      handleUpdateSubmissionStatus(sub._id || sub.id, "Re-work Requested", feedback || "Please revise task artifacts.");
-                                    }
+                                    setEvalModal({
+                                      isOpen: true,
+                                      type: "rework",
+                                      submission: sub,
+                                      grade: "",
+                                      feedback: "Re-work required: please refine your layout controller and revise task artifacts."
+                                    });
                                   }}
                                   style={{
                                     padding: "6px 12px",
@@ -17151,13 +17161,13 @@ function FacultyMentorDashboardView({
                                 </span>
                                 <button 
                                   onClick={() => {
-                                    const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                    if (grade !== null) {
-                                      const feedback = prompt("Enter evaluation comments:", "Re-evaluated and approved! Meets all criteria.");
-                                      if (feedback !== null) {
-                                        handleUpdateSubmissionStatus(sub._id || sub.id, "Approved", feedback, grade);
-                                      }
-                                    }
+                                    setEvalModal({
+                                      isOpen: true,
+                                      type: "approve",
+                                      submission: sub,
+                                      grade: sub.grade || "A",
+                                      feedback: "Re-evaluated and approved! Meets all criteria."
+                                    });
                                   }}
                                   style={{
                                     padding: "6px 12px",
@@ -18230,13 +18240,13 @@ function FacultyMentorDashboardView({
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                          if (grade !== null) {
-                                            const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
-                                            if (feedback !== null) {
-                                              handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
-                                            }
-                                          }
+                                          setEvalModal({
+                                            isOpen: true,
+                                            type: "approve",
+                                            submission: del,
+                                            grade: del.grade || "A",
+                                            feedback: "Meets all FIP criteria. Excellent work!"
+                                          });
                                         }}
                                         style={{
                                           padding: "6px 14px",
@@ -18254,10 +18264,13 @@ function FacultyMentorDashboardView({
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
-                                          if (feedback !== null) {
-                                            handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
-                                          }
+                                          setEvalModal({
+                                            isOpen: true,
+                                            type: "rework",
+                                            submission: del,
+                                            grade: "",
+                                            feedback: "Re-work required: please refine your layout controller and revise task artifacts."
+                                          });
                                         }}
                                         style={{
                                           padding: "6px 14px",
@@ -18714,13 +18727,13 @@ function FacultyMentorDashboardView({
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
-                                      if (grade !== null) {
-                                        const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
-                                        if (feedback !== null) {
-                                          handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
-                                        }
-                                      }
+                                      setEvalModal({
+                                        isOpen: true,
+                                        type: "approve",
+                                        submission: del,
+                                        grade: del.grade || "A",
+                                        feedback: "Meets all FIP criteria. Excellent work!"
+                                      });
                                     }}
                                     style={{
                                       padding: "7px 18px",
@@ -18738,10 +18751,13 @@ function FacultyMentorDashboardView({
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
-                                      if (feedback !== null) {
-                                        handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
-                                      }
+                                      setEvalModal({
+                                        isOpen: true,
+                                        type: "rework",
+                                        submission: del,
+                                        grade: "",
+                                        feedback: "Re-work required: please refine your layout controller and revise task artifacts."
+                                      });
                                     }}
                                     style={{
                                       padding: "7px 18px",
@@ -18814,6 +18830,234 @@ function FacultyMentorDashboardView({
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive In-App Deliverable Evaluation & Re-Work Modal */}
+      {evalModal.isOpen && evalModal.submission && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEvalModal(prev => ({ ...prev, isOpen: false }));
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.72)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            zIndex: 12000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            boxSizing: "border-box"
+          }}
+        >
+          <div
+            className="fade-in"
+            style={{
+              background: "var(--bg-card, #ffffff)",
+              border: evalModal.type === "approve"
+                ? "1.5px solid rgba(45, 212, 191, 0.45)"
+                : "1.5px solid rgba(239, 68, 68, 0.45)",
+              borderRadius: "18px",
+              width: "100%",
+              maxWidth: "520px",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.35)",
+              overflow: "hidden"
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: "20px 24px",
+              borderBottom: "1px solid var(--border-subtle, #e2e8f0)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "12px",
+              background: evalModal.type === "approve" ? "rgba(45, 212, 191, 0.08)" : "rgba(239, 68, 68, 0.08)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "10px",
+                  background: evalModal.type === "approve" ? "rgba(45, 212, 191, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                  color: evalModal.type === "approve" ? "#0d9488" : "#dc2626",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "18px",
+                  flexShrink: 0
+                }}>
+                  {evalModal.type === "approve" ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "17px", fontWeight: "800", color: "var(--text-main, #0f172a)" }}>
+                    {evalModal.type === "approve" ? "Approve & Grade Deliverable" : "Request Deliverable Re-Work"}
+                  </h3>
+                  <div style={{ fontSize: "12px", color: "var(--text-muted, #475569)", marginTop: "2px" }}>
+                    Student: <strong>{evalModal.submission.studentName}</strong> • Task <span style={{ fontFamily: "var(--mono)", color: "var(--primary)" }}>#{evalModal.submission.taskId}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEvalModal(prev => ({ ...prev, isOpen: false }))}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--text-muted, #475569)",
+                  cursor: "pointer",
+                  padding: "4px",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                <FaTimes size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const newStatus = evalModal.type === "approve" ? "Approved" : "Re-work Requested";
+                handleUpdateSubmissionStatus(
+                  evalModal.submission._id || evalModal.submission.id,
+                  newStatus,
+                  evalModal.feedback,
+                  evalModal.grade
+                );
+                setEvalModal(prev => ({ ...prev, isOpen: false }));
+              }}
+              style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              {/* Submission Info Snippet */}
+              <div style={{
+                padding: "10px 14px",
+                background: "var(--bg-content, #f8fafc)",
+                border: "1px solid var(--border-subtle, #e2e8f0)",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "10px"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                  <FaLink size={12} style={{ color: "var(--primary)" }} />
+                  <span style={{ fontSize: "12.5px", fontWeight: "750", color: "var(--text-main, #0f172a)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {evalModal.submission.fileName}
+                  </span>
+                </div>
+                <a
+                  href={evalModal.submission.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: "800",
+                    color: "var(--primary, #3b529a)",
+                    textDecoration: "none",
+                    flexShrink: 0
+                  }}
+                >
+                  Inspect ↗
+                </a>
+              </div>
+
+              {/* If Approve: Grade Selection */}
+              {evalModal.type === "approve" && (
+                <div>
+                  <label style={{ display: "block", fontSize: "11.5px", fontWeight: "800", textTransform: "uppercase", color: "var(--text-muted, #475569)", marginBottom: "8px", letterSpacing: "0.5px" }}>
+                    Assign Letter Grade *
+                  </label>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                    {["A+", "A", "B+", "B", "C", "D"].map(g => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setEvalModal(prev => ({ ...prev, grade: g }))}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: "8px",
+                          border: evalModal.grade === g ? "2px solid #0d9488" : "1px solid var(--border-subtle, #e2e8f0)",
+                          background: evalModal.grade === g ? "rgba(45, 212, 191, 0.18)" : "var(--bg-content, #f8fafc)",
+                          color: evalModal.grade === g ? "#0d9488" : "var(--text-main, #0f172a)",
+                          fontWeight: "800",
+                          fontSize: "12.5px",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease"
+                        }}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={evalModal.grade}
+                    onChange={(e) => setEvalModal(prev => ({ ...prev, grade: e.target.value }))}
+                    placeholder="Custom Grade (e.g. A, 95%, Excellent)"
+                    className="form-input"
+                    style={{ width: "100%", padding: "8px 12px", fontSize: "12.5px" }}
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Evaluation Comments / Re-work Instructions */}
+              <div>
+                <label style={{ display: "block", fontSize: "11.5px", fontWeight: "800", textTransform: "uppercase", color: "var(--text-muted, #475569)", marginBottom: "8px", letterSpacing: "0.5px" }}>
+                  {evalModal.type === "approve" ? "Evaluation Comments / Feedback" : "Requested Changes / Revision Notes *"}
+                </label>
+                <textarea
+                  rows={4}
+                  value={evalModal.feedback}
+                  onChange={(e) => setEvalModal(prev => ({ ...prev, feedback: e.target.value }))}
+                  placeholder={evalModal.type === "approve" ? "Enter evaluation feedback for student..." : "Specify what needs to be fixed before re-evaluating..."}
+                  className="form-input"
+                  style={{ width: "100%", padding: "10px 12px", fontSize: "13px", resize: "vertical", fontFamily: "inherit" }}
+                  required={evalModal.type === "rework"}
+                />
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => setEvalModal(prev => ({ ...prev, isOpen: false }))}
+                  className="btn-secondary"
+                  style={{ padding: "9px 18px", borderRadius: "8px", fontSize: "12.5px", fontWeight: "750" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "9px 22px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: evalModal.type === "approve" ? "#0d9488" : "#dc2626",
+                    color: "#ffffff",
+                    fontSize: "12.5px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                    boxShadow: evalModal.type === "approve" ? "0 4px 12px rgba(13, 148, 136, 0.3)" : "0 4px 12px rgba(220, 38, 38, 0.3)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  {evalModal.type === "approve" ? "✓ Approve & Grade" : "↺ Request Re-Work"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
