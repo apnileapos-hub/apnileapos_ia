@@ -16017,17 +16017,6 @@ function FacultyMentorDashboardView({
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false);
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
-  const studentDropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target)) {
-        setIsStudentDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const mentorId = sessionUser?._id;
   const spokeId = sessionUser?.spokeId || "3"; // KLE by default
@@ -17149,7 +17138,7 @@ function FacultyMentorDashboardView({
           <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%" }}>
             
             {/* Form a Student Sprint Team (Full Width) */}
-            <div className="glass-panel" style={{ padding: "26px 28px", width: "100%", borderRadius: "16px" }}>
+            <div className="glass-panel" style={{ padding: "26px 28px", width: "100%", borderRadius: "16px", position: "relative", zIndex: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -17206,7 +17195,7 @@ function FacultyMentorDashboardView({
                 </div>
 
                 {/* Row 2: Select Student Developers Dropdown */}
-                <div ref={studentDropdownRef} style={{ position: "relative" }}>
+                <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <label style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       Select Student Developers *
@@ -17240,45 +17229,55 @@ function FacultyMentorDashboardView({
                       userSelect: "none",
                       boxSizing: "border-box",
                       border: isStudentDropdownOpen ? "1px solid var(--primary)" : "1px solid var(--border-glass)",
-                      boxShadow: isStudentDropdownOpen ? "0 0 0 2px rgba(99, 102, 241, 0.2)" : "none"
+                      borderRadius: isStudentDropdownOpen ? "8px 8px 0 0" : "8px",
+                      background: isStudentDropdownOpen ? "rgba(99, 102, 241, 0.04)" : undefined,
+                      transition: "all 0.15s ease"
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
                       {selectedStudentIds.length === 0 ? (
-                        <span style={{ color: "var(--text-dim)" }}>-- Choose Student Developers --</span>
+                        <span style={{ color: "var(--text-dim)" }}>-- Click to Choose Student Developers --</span>
                       ) : (
-                        <span style={{ color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: "650" }}>
                           {selectedStudentsObjects.map(s => s.displayName).join(", ")}
                         </span>
                       )}
                     </div>
-                    <FaChevronDown
-                      size={12}
-                      style={{
-                        color: "var(--text-muted)",
-                        transition: "transform 0.2s ease",
-                        transform: isStudentDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        flexShrink: 0,
-                        marginLeft: "10px"
-                      }}
-                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0, marginLeft: "10px" }}>
+                      <span style={{
+                        fontSize: "11px",
+                        fontWeight: "750",
+                        color: isStudentDropdownOpen ? "var(--primary)" : "var(--text-dim)",
+                        background: isStudentDropdownOpen ? "rgba(99, 102, 241, 0.12)" : "rgba(255,255,255,0.04)",
+                        padding: "2px 8px",
+                        borderRadius: "4px"
+                      }}>
+                        {isStudentDropdownOpen ? "Collapse ▲" : "Expand ▼"}
+                      </span>
+                      <FaChevronDown
+                        size={12}
+                        style={{
+                          color: "var(--text-muted)",
+                          transition: "transform 0.2s ease",
+                          transform: isStudentDropdownOpen ? "rotate(180deg)" : "rotate(0deg)"
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  {/* Dropdown Menu Popover */}
+                  {/* Expanded Dropdown Panel (In Normal Flow - Never covers other fields or clips behind other cards) */}
                   {isStudentDropdownOpen && (
                     <div
                       style={{
-                        position: "absolute",
-                        top: "calc(100% + 5px)",
-                        left: 0,
-                        right: 0,
-                        zIndex: 1050,
                         background: "var(--bg-card, #1e293b)",
                         border: "1px solid var(--border-glass, rgba(255, 255, 255, 0.15))",
-                        borderRadius: "10px",
-                        boxShadow: "0 14px 35px rgba(0, 0, 0, 0.45)",
-                        padding: "10px 12px",
-                        backdropFilter: "blur(20px)"
+                        borderTop: "none",
+                        borderRadius: "0 0 10px 10px",
+                        boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
+                        padding: "12px 14px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px"
                       }}
                     >
                       {/* Top Action Bar */}
@@ -17286,9 +17285,10 @@ function FacultyMentorDashboardView({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "2px 4px 8px 4px",
+                        padding: "2px 4px 10px 4px",
                         borderBottom: "1px solid var(--border-glass)",
-                        marginBottom: "8px"
+                        flexWrap: "wrap",
+                        gap: "8px"
                       }}>
                         <span style={{ fontSize: "11px", fontWeight: "750", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                           {selectedStudentIds.length} of {students.length} Selected
@@ -17307,7 +17307,7 @@ function FacultyMentorDashboardView({
                               fontSize: "10.5px",
                               fontWeight: "750",
                               cursor: "pointer",
-                              padding: "3px 8px",
+                              padding: "4px 10px",
                               borderRadius: "4px"
                             }}
                           >
@@ -17327,28 +17327,46 @@ function FacultyMentorDashboardView({
                               fontSize: "10.5px",
                               fontWeight: "750",
                               cursor: "pointer",
-                              padding: "3px 8px",
+                              padding: "4px 10px",
                               borderRadius: "4px"
                             }}
                           >
                             Clear All
                           </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsStudentDropdownOpen(false);
+                            }}
+                            style={{
+                              background: "rgba(16, 185, 129, 0.12)",
+                              border: "1px solid rgba(16, 185, 129, 0.3)",
+                              color: "#10b981",
+                              fontSize: "10.5px",
+                              fontWeight: "750",
+                              cursor: "pointer",
+                              padding: "4px 10px",
+                              borderRadius: "4px"
+                            }}
+                          >
+                            Done ✓
+                          </button>
                         </div>
                       </div>
 
-                      {/* Search Filter if multiple students */}
+                      {/* Search Filter */}
                       {students.length > 5 && (
-                        <div style={{ marginBottom: "8px" }}>
+                        <div>
                           <input
                             type="text"
                             placeholder="Filter students by name or email..."
                             value={studentSearchQuery}
                             onChange={(e) => setStudentSearchQuery(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
                             className="form-input"
                             style={{
                               width: "100%",
-                              padding: "6px 10px",
+                              padding: "7px 12px",
                               fontSize: "12px",
                               borderRadius: "6px",
                               background: "rgba(255, 255, 255, 0.04)"
@@ -17357,14 +17375,14 @@ function FacultyMentorDashboardView({
                         </div>
                       )}
 
-                      {/* Scrollable Students List */}
+                      {/* Scrollable Students Grid List */}
                       <div style={{
                         maxHeight: "220px",
                         overflowY: "auto",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                        paddingRight: "2px"
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                        gap: "6px",
+                        paddingRight: "4px"
                       }}>
                         {filteredStudents.map(student => {
                           const isSelected = selectedStudentIds.includes(student.accountId);
@@ -17382,15 +17400,15 @@ function FacultyMentorDashboardView({
                                 padding: "7px 10px",
                                 borderRadius: "6px",
                                 cursor: "pointer",
-                                background: isSelected ? "rgba(99, 102, 241, 0.12)" : "transparent",
-                                border: isSelected ? "1px solid rgba(99, 102, 241, 0.25)" : "1px solid transparent",
-                                transition: "background 0.15s ease"
+                                background: isSelected ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                                border: isSelected ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid var(--border-glass)",
+                                transition: "all 0.15s ease"
                               }}
                               onMouseEnter={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                                if (!isSelected) e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
                               }}
                               onMouseLeave={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = "transparent";
+                                if (!isSelected) e.currentTarget.style.background = "rgba(255, 255, 255, 0.02)";
                               }}
                             >
                               <input
@@ -17423,7 +17441,7 @@ function FacultyMentorDashboardView({
                           );
                         })}
                         {filteredStudents.length === 0 && (
-                          <div style={{ padding: "14px", textAlign: "center", color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic" }}>
+                          <div style={{ padding: "14px", textAlign: "center", color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic", gridColumn: "1 / -1" }}>
                             {students.length === 0 ? "No students found in your campus spoke." : "No students matching filter."}
                           </div>
                         )}
@@ -17494,7 +17512,7 @@ function FacultyMentorDashboardView({
             </div>
 
             {/* Managed Student Teams (Full Width Below) */}
-            <div className="glass-panel" style={{ padding: "26px 28px", width: "100%", borderRadius: "16px" }}>
+            <div className="glass-panel" style={{ padding: "26px 28px", width: "100%", borderRadius: "16px", position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
