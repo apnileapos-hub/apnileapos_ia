@@ -673,6 +673,7 @@ function App() {
   // Navigation & UI States
   const [activeView, setActiveView] = useState("dashboard"); // "dashboard" or "kanban"
   const [activeCoordinatorTab, setActiveCoordinatorTab] = useState("analytics"); // "analytics", "team", "projects", or "faculty-approvals"
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Faculty Coordinator Add Team Member form states
   const [newMemberName, setNewMemberName] = useState("");
@@ -5981,21 +5982,45 @@ function App() {
               </button>
             )}
 
-            <div style={{ position: "relative", cursor: "pointer" }}>
-              <div style={{
-                background: "#ffffff",
-                border: "1px solid rgba(0, 0, 0, 0.06)",
-                padding: "10.5px 12px",
-                borderRadius: "10px",
-                color: "var(--text-main)",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
+            <div style={{ position: "relative" }}>
+              <div 
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{
+                  background: showNotifications ? "rgba(249, 115, 22, 0.15)" : "#ffffff",
+                  border: showNotifications ? "1.5px solid var(--accent)" : "1px solid rgba(0, 0, 0, 0.06)",
+                  padding: "10.5px 12px",
+                  borderRadius: "10px",
+                  color: showNotifications ? "var(--accent)" : "var(--text-main)",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+                title="Notifications"
+              >
                 <FaBell size={15} />
               </div>
-              {activeWorkspace === "hub" ? (
+              {allSubmissions.filter(s => s.status === "Awaiting Review").length > 0 ? (
+                <span style={{
+                  position: "absolute",
+                  top: "-4px",
+                  right: "-4px",
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "50%",
+                  background: "#ef4444",
+                  color: "white",
+                  fontSize: "10px",
+                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 6px rgba(239, 68, 68, 0.4)",
+                  pointerEvents: "none"
+                }}>{allSubmissions.filter(s => s.status === "Awaiting Review").length}</span>
+              ) : activeWorkspace === "hub" ? (
                 hubMetrics?.blockers?.length > 0 && (
                   <span style={{
                     position: "absolute",
@@ -6010,7 +6035,8 @@ function App() {
                     fontWeight: "bold",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center"
+                    justifyContent: "center",
+                    pointerEvents: "none"
                   }}>{hubMetrics.blockers.length}</span>
                 )
               ) : (
@@ -6028,9 +6054,171 @@ function App() {
                     fontWeight: "bold",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center"
+                    justifyContent: "center",
+                    pointerEvents: "none"
                   }}>{metrics.overdue}</span>
                 )
+              )}
+
+              {/* Interactive Notification Center Popover */}
+              {showNotifications && (
+                <div style={{
+                  position: "absolute",
+                  top: "calc(100% + 10px)",
+                  right: 0,
+                  width: "370px",
+                  maxHeight: "460px",
+                  background: theme === "dark" ? "#1e293b" : "#ffffff",
+                  borderRadius: "14px",
+                  border: "1px solid var(--border-glass)",
+                  boxShadow: "0 12px 36px rgba(0, 0, 0, 0.28)",
+                  zIndex: 1000,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                  animation: "fadeIn 0.2s ease-out"
+                }}>
+                  {/* Notification Popover Header */}
+                  <div style={{
+                    padding: "14px 18px",
+                    borderBottom: "1px solid var(--border-glass)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: theme === "dark" ? "rgba(15, 23, 42, 0.6)" : "#f8fafc"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <FaBell style={{ color: "var(--accent)" }} size={14} />
+                      <strong style={{ fontSize: "14px", color: "var(--text-main)" }}>Notifications</strong>
+                      {allSubmissions.filter(s => s.status === "Awaiting Review").length > 0 && (
+                        <span style={{
+                          fontSize: "10px",
+                          fontWeight: "800",
+                          padding: "2px 7px",
+                          borderRadius: "6px",
+                          background: "rgba(239, 68, 68, 0.12)",
+                          color: "#ef4444"
+                        }}>
+                          {allSubmissions.filter(s => s.status === "Awaiting Review").length} Pending
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setShowNotifications(false)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--text-muted)",
+                        cursor: "pointer",
+                        fontSize: "15px",
+                        padding: "2px 6px"
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Notification Items List */}
+                  <div style={{ overflowY: "auto", padding: "6px 0", flex: 1 }}>
+                    {allSubmissions.length > 0 ? (
+                      allSubmissions.slice(0, 8).map(sub => (
+                        <div
+                          key={sub._id || sub.id}
+                          style={{
+                            padding: "12px 18px",
+                            borderBottom: "1px solid var(--border-glass)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px",
+                            transition: "background 0.15s ease"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+                            <span style={{ fontSize: "12.5px", fontWeight: "750", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span>👤</span> {sub.studentName}
+                            </span>
+                            <span style={{
+                              fontSize: "9px",
+                              fontWeight: "800",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              background: sub.status === "Approved" ? "rgba(45, 212, 191, 0.12)" : sub.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.12)" : "rgba(249, 115, 22, 0.12)",
+                              color: sub.status === "Approved" ? "#2dd4bf" : sub.status === "Re-work Requested" ? "#ef4444" : "var(--accent)"
+                            }}>
+                              {sub.status}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "11.5px", color: "var(--text-muted)", lineHeight: "1.4" }}>
+                            Submitted deliverable for <strong style={{ color: "var(--primary)" }}>{sub.projectName || "Assigned Project"}</strong>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px" }}>
+                            <span style={{ fontSize: "10.5px", color: "var(--text-dim)" }}>
+                              Task #{sub.taskId} • {new Date(sub.submittedAt || sub.createdAt).toLocaleDateString()}
+                            </span>
+                            <a
+                              href={sub.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                color: "var(--primary)",
+                                textDecoration: "none"
+                              }}
+                            >
+                              Open File ↗
+                            </a>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: "36px 16px", textAlign: "center", color: "var(--text-muted)", fontSize: "12.5px" }}>
+                        <FaCheckCircle style={{ color: "#10b981", fontSize: "26px", marginBottom: "8px" }} />
+                        <p style={{ margin: 0, fontWeight: "700", color: "var(--text-main)" }}>All caught up!</p>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "11.5px", color: "var(--text-dim)" }}>
+                          No pending deliverables awaiting verification.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Popover Footer */}
+                  {allSubmissions.length > 0 && (
+                    <div style={{
+                      padding: "10px 18px",
+                      borderTop: "1px solid var(--border-glass)",
+                      textAlign: "center",
+                      background: theme === "dark" ? "rgba(15, 23, 42, 0.4)" : "#f8fafc"
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNotifications(false);
+                          if (activeWorkspace !== "faculty-mentor") {
+                            setActiveWorkspace("faculty-mentor");
+                          }
+                          setActiveView("dashboard");
+                          setTimeout(() => {
+                            const queueEl = document.getElementById("deliverables-verification-queue");
+                            if (queueEl) queueEl.scrollIntoView({ behavior: "smooth" });
+                          }, 100);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--accent)",
+                          fontSize: "12px",
+                          fontWeight: "750",
+                          cursor: "pointer"
+                        }}
+                      >
+                        View Deliverables Verification Queue →
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -16059,6 +16247,41 @@ function FacultyMentorDashboardView({
     return isMember || subNameLower.includes(targetKeyword) || subNameLower.includes("student");
   });
 
+  const getDeliverablesForProject = (proj) => {
+    if (!proj) return [];
+    const pId = proj._id || proj.id;
+    const assignedTeam = existingTeams.find(t => t.projectId === pId);
+    const teamMemberNames = (assignedTeam?.members || []).map(m => (m.displayName || m.emailAddress || "").toLowerCase());
+    const projTitleLower = (proj.title || "").toLowerCase();
+
+    return spokeSubmissions.filter(sub => {
+      if (sub.projectId && String(sub.projectId) === String(pId)) return true;
+      if (sub.projectName && sub.projectName.toLowerCase() === projTitleLower) return true;
+      if (teamMemberNames.includes((sub.studentName || "").toLowerCase())) return true;
+      const fileNameLower = (sub.fileName || "").toLowerCase();
+      const titleWords = projTitleLower.split(" ").slice(0, 3).join(" ");
+      if (titleWords && (fileNameLower.includes(titleWords) || titleWords.includes(fileNameLower.slice(0, 15)))) return true;
+      return false;
+    });
+  };
+
+  const getProjectForSubmission = (sub) => {
+    return assignedProjects.find(proj => {
+      const pId = proj._id || proj.id;
+      const assignedTeam = existingTeams.find(t => t.projectId === pId);
+      const teamMemberNames = (assignedTeam?.members || []).map(m => (m.displayName || m.emailAddress || "").toLowerCase());
+      const projTitleLower = (proj.title || "").toLowerCase();
+
+      if (sub.projectId && String(sub.projectId) === String(pId)) return true;
+      if (sub.projectName && sub.projectName.toLowerCase() === projTitleLower) return true;
+      if (teamMemberNames.includes((sub.studentName || "").toLowerCase())) return true;
+      const fileNameLower = (sub.fileName || "").toLowerCase();
+      const titleWords = projTitleLower.split(" ").slice(0, 3).join(" ");
+      if (titleWords && (fileNameLower.includes(titleWords) || titleWords.includes(fileNameLower.slice(0, 15)))) return true;
+      return false;
+    });
+  };
+
   return (
     <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* Top Navigation Pill Bar */}
@@ -16278,6 +16501,86 @@ function FacultyMentorDashboardView({
               </button>
             </div>
           </div>
+
+          {/* Real-time Notification Alert for Recent Deliverables Awaiting Verification */}
+          {spokeSubmissions.filter(s => s.status === "Awaiting Review").length > 0 && (
+            <div className="glass-panel" style={{
+              padding: "16px 22px",
+              background: "linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(239, 68, 68, 0.06))",
+              border: "1.5px solid rgba(249, 115, 22, 0.35)",
+              borderRadius: "14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "14px",
+              animation: "fadeIn 0.3s ease"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                <div style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "10px",
+                  background: "rgba(249, 115, 22, 0.2)",
+                  color: "var(--accent)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "18px",
+                  flexShrink: 0
+                }}>
+                  <FaBell />
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
+                    <strong style={{ fontSize: "14.5px", color: "var(--text-main)" }}>
+                      Recent Student Deliverables Awaiting Verification
+                    </strong>
+                    <span style={{
+                      fontSize: "10.5px",
+                      fontWeight: "850",
+                      background: "#ef4444",
+                      color: "#ffffff",
+                      padding: "2px 7px",
+                      borderRadius: "6px"
+                    }}>
+                      {spokeSubmissions.filter(s => s.status === "Awaiting Review").length} Pending
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "12.5px", color: "var(--text-muted)", display: "flex", gap: "14px", flexWrap: "wrap", alignItems: "center" }}>
+                    {spokeSubmissions.filter(s => s.status === "Awaiting Review").map(s => (
+                      <span key={s._id || s.id} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        <span>👤</span> <strong>{s.studentName}</strong>: <span style={{ color: "var(--primary)", fontWeight: "700" }}>{s.projectName || getProjectForSubmission(s)?.title || "Project"}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const queueEl = document.getElementById("deliverables-verification-queue");
+                  if (queueEl) queueEl.scrollIntoView({ behavior: "smooth" });
+                }}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  background: "var(--accent, #f97316)",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "12.5px",
+                  fontWeight: "750",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  boxShadow: "0 2px 8px rgba(249, 115, 22, 0.3)"
+                }}
+              >
+                <span>Review Deliverables ↓</span>
+              </button>
+            </div>
+          )}
 
           {/* Quick Metrics Summary */}
           <div style={{
@@ -16533,6 +16836,166 @@ function FacultyMentorDashboardView({
                         )}
                       </div>
 
+                      {/* Deliverables Right Within The Project Card */}
+                      {(() => {
+                        const projDeliverables = getDeliverablesForProject(proj);
+                        const pendingDeliverables = projDeliverables.filter(d => d.status === "Awaiting Review");
+
+                        return (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              padding: "10px 12px",
+                              background: "rgba(255, 255, 255, 0.03)",
+                              borderRadius: "10px",
+                              border: pendingDeliverables.length > 0 ? "1.5px solid rgba(249, 115, 22, 0.35)" : "1px solid var(--border-glass)",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "8px"
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: "800", color: "var(--text-main)" }}>
+                                <FaClipboardList style={{ color: "var(--accent)" }} size={12} />
+                                <span>Project Deliverables</span>
+                                <span style={{
+                                  fontSize: "10px",
+                                  padding: "1px 6px",
+                                  borderRadius: "6px",
+                                  background: pendingDeliverables.length > 0 ? "rgba(249, 115, 22, 0.15)" : "rgba(16, 185, 129, 0.15)",
+                                  color: pendingDeliverables.length > 0 ? "var(--accent)" : "#10b981",
+                                  fontWeight: "800"
+                                }}>
+                                  {projDeliverables.length} Total {pendingDeliverables.length > 0 ? `(${pendingDeliverables.length} Pending)` : ""}
+                                </span>
+                              </div>
+                            </div>
+
+                            {projDeliverables.length > 0 ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                {projDeliverables.map(del => {
+                                  const isPending = del.status === "Awaiting Review";
+                                  return (
+                                    <div
+                                      key={del._id || del.id}
+                                      style={{
+                                        padding: "8px 10px",
+                                        background: "var(--bg-card, rgba(255,255,255,0.02))",
+                                        borderRadius: "8px",
+                                        border: "1px solid var(--border-glass)",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        flexWrap: "wrap",
+                                        gap: "8px"
+                                      }}
+                                    >
+                                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                          <strong style={{ fontSize: "12px", color: "var(--text-main)" }}>{del.studentName}</strong>
+                                          <span style={{ fontSize: "10.5px", color: "var(--primary)", fontFamily: "var(--mono)" }}>#{del.taskId}</span>
+                                          <span style={{
+                                            fontSize: "9px",
+                                            fontWeight: "850",
+                                            padding: "1px 5px",
+                                            borderRadius: "4px",
+                                            background: del.status === "Approved" ? "rgba(45, 212, 191, 0.12)" : del.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.12)" : "rgba(249, 115, 22, 0.12)",
+                                            color: del.status === "Approved" ? "#2dd4bf" : del.status === "Re-work Requested" ? "#ef4444" : "var(--accent)"
+                                          }}>
+                                            {del.status}
+                                          </span>
+                                        </div>
+                                        <a
+                                          href={del.fileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{
+                                            fontSize: "11px",
+                                            color: "var(--primary)",
+                                            fontWeight: "700",
+                                            textDecoration: "none",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "280px",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "4px"
+                                          }}
+                                        >
+                                          📄 {del.fileName}
+                                        </a>
+                                      </div>
+
+                                      {/* Action Buttons */}
+                                      {isPending ? (
+                                        <div style={{ display: "flex", gap: "5px" }}>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
+                                              if (grade !== null) {
+                                                const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
+                                                if (feedback !== null) {
+                                                  handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
+                                                }
+                                              }
+                                            }}
+                                            style={{
+                                              padding: "4px 8px",
+                                              background: "rgba(45, 212, 191, 0.15)",
+                                              border: "1px solid rgba(45, 212, 191, 0.3)",
+                                              borderRadius: "5px",
+                                              color: "#2dd4bf",
+                                              fontSize: "10.5px",
+                                              fontWeight: "800",
+                                              cursor: "pointer"
+                                            }}
+                                          >
+                                            Approve
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
+                                              if (feedback !== null) {
+                                                handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
+                                              }
+                                            }}
+                                            style={{
+                                              padding: "4px 8px",
+                                              background: "rgba(239, 68, 68, 0.15)",
+                                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                                              borderRadius: "5px",
+                                              color: "#ef4444",
+                                              fontSize: "10.5px",
+                                              fontWeight: "800",
+                                              cursor: "pointer"
+                                            }}
+                                          >
+                                            Re-work
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#10b981" }}>
+                                          Grade: {del.grade || "Approved"}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: "11px", color: "var(--text-dim)", fontStyle: "italic" }}>
+                                No deliverables submitted for this project yet.
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* View details and project-specific Kanban button */}
                       <div style={{
                         marginTop: "4px",
@@ -16599,7 +17062,7 @@ function FacultyMentorDashboardView({
           </div>
 
           {/* Student Deliverables Verification Queue */}
-          <div className="glass-panel" style={{ padding: "26px" }}>
+          <div id="deliverables-verification-queue" className="glass-panel" style={{ padding: "26px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -16648,6 +17111,7 @@ function FacultyMentorDashboardView({
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--border-glass)", color: "var(--text-dim)" }}>
                       <th style={{ padding: "12px 10px", fontWeight: "750" }}>Student Developer</th>
+                      <th style={{ padding: "12px 10px", fontWeight: "750" }}>Assigned Project</th>
                       <th style={{ padding: "12px 10px", fontWeight: "750" }}>Sprint Task ID</th>
                       <th style={{ padding: "12px 10px", fontWeight: "750" }}>Artifact Access</th>
                       <th style={{ padding: "12px 10px", fontWeight: "750" }}>Grade</th>
@@ -16662,8 +17126,18 @@ function FacultyMentorDashboardView({
                       const badgeBorder = sub.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.2)" : sub.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(251, 146, 60, 0.2)";
 
                       return (
-                        <tr key={sub._id} style={{ borderBottom: "1px solid var(--border-glass)" }}>
+                        <tr key={sub._id || sub.id} style={{ borderBottom: "1px solid var(--border-glass)" }}>
                           <td style={{ padding: "14px 10px", fontWeight: "600" }}>{sub.studentName}</td>
+                          <td style={{ padding: "14px 10px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                              <strong style={{ color: "var(--text-main)", fontSize: "13px" }}>
+                                {sub.projectName || getProjectForSubmission(sub)?.title || "Assigned Project"}
+                              </strong>
+                              <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "700" }}>
+                                🏢 {sub.company || getProjectForSubmission(sub)?.company || "Enterprise Partner"}
+                              </span>
+                            </div>
+                          </td>
                           <td style={{ padding: "14px 10px" }}>
                             <div style={{ display: "flex", flexDirection: "column" }}>
                               <strong style={{ color: "var(--primary)", fontFamily: "var(--mono)" }}>{sub.taskId}</strong>
@@ -16712,7 +17186,7 @@ function FacultyMentorDashboardView({
                                     if (grade !== null) {
                                       const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
                                       if (feedback !== null) {
-                                        handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
+                                        handleUpdateSubmissionStatus(sub._id || sub.id, "Approved", feedback, grade);
                                       }
                                     }
                                   }}
@@ -16733,7 +17207,7 @@ function FacultyMentorDashboardView({
                                   onClick={() => {
                                     const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
                                     if (feedback !== null) {
-                                      handleUpdateSubmissionStatus(sub._id, "Re-work Requested", feedback || "Please revise task artifacts.");
+                                      handleUpdateSubmissionStatus(sub._id || sub.id, "Re-work Requested", feedback || "Please revise task artifacts.");
                                     }
                                   }}
                                   style={{
@@ -16769,7 +17243,7 @@ function FacultyMentorDashboardView({
                                     if (grade !== null) {
                                       const feedback = prompt("Enter evaluation comments:", "Re-evaluated and approved! Meets all criteria.");
                                       if (feedback !== null) {
-                                        handleUpdateSubmissionStatus(sub._id, "Approved", feedback, grade);
+                                        handleUpdateSubmissionStatus(sub._id || sub.id, "Approved", feedback, grade);
                                       }
                                     }
                                   }}
@@ -17739,6 +18213,182 @@ function FacultyMentorDashboardView({
                     {projectDetailsModal.description || "No detailed description provided for this project."}
                   </div>
                 </div>
+
+                {/* Submitted Milestone Deliverables for this Project */}
+                {(() => {
+                  const projDeliverables = getDeliverablesForProject(projectDetailsModal);
+                  const pendingDeliverables = projDeliverables.filter(d => d.status === "Awaiting Review");
+
+                  return (
+                    <div style={{
+                      background: "var(--bg-card, #ffffff)",
+                      border: "1px solid var(--border-subtle, #e2e8f0)",
+                      borderRadius: "14px",
+                      padding: "24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "14px",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                        <h3 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "var(--text-main, #0f172a)", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <FaClipboardList size={16} style={{ color: "var(--accent, #f97316)" }} /> Project Milestone Deliverables
+                        </h3>
+                        <span style={{
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          padding: "3px 9px",
+                          borderRadius: "6px",
+                          background: pendingDeliverables.length > 0 ? "rgba(249, 115, 22, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                          color: pendingDeliverables.length > 0 ? "var(--accent, #f97316)" : "#10b981",
+                          border: pendingDeliverables.length > 0 ? "1px solid rgba(249, 115, 22, 0.25)" : "1px solid rgba(16, 185, 129, 0.25)"
+                        }}>
+                          {projDeliverables.length} Total {pendingDeliverables.length > 0 ? `(${pendingDeliverables.length} Awaiting Review)` : "Verified"}
+                        </span>
+                      </div>
+
+                      {projDeliverables.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {projDeliverables.map(del => {
+                            const isPending = del.status === "Awaiting Review";
+                            return (
+                              <div
+                                key={del._id || del.id}
+                                style={{
+                                  padding: "12px 16px",
+                                  background: "var(--bg-content, #f8fafc)",
+                                  borderRadius: "10px",
+                                  border: isPending ? "1.5px solid rgba(249, 115, 22, 0.35)" : "1px solid var(--border-subtle, #e2e8f0)",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                  gap: "12px"
+                                }}
+                              >
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <strong style={{ fontSize: "13.5px", color: "var(--text-main, #0f172a)" }}>
+                                      {del.studentName}
+                                    </strong>
+                                    <span style={{ fontSize: "11px", color: "var(--primary, #3b529a)", fontFamily: "var(--mono)", fontWeight: "700" }}>
+                                      Sprint Task #{del.taskId}
+                                    </span>
+                                    <span style={{
+                                      fontSize: "10px",
+                                      fontWeight: "800",
+                                      padding: "2px 7px",
+                                      borderRadius: "4px",
+                                      background: del.status === "Approved" ? "rgba(45, 212, 191, 0.12)" : del.status === "Re-work Requested" ? "rgba(239, 68, 68, 0.12)" : "rgba(249, 115, 22, 0.12)",
+                                      color: del.status === "Approved" ? "#2dd4bf" : del.status === "Re-work Requested" ? "#ef4444" : "var(--accent, #f97316)",
+                                      border: del.status === "Approved" ? "1px solid rgba(45, 212, 191, 0.25)" : del.status === "Re-work Requested" ? "1px solid rgba(239, 68, 68, 0.25)" : "1px solid rgba(249, 115, 22, 0.25)"
+                                    }}>
+                                      {del.status}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                                    <a
+                                      href={del.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{
+                                        fontSize: "12px",
+                                        color: "var(--primary, #3b529a)",
+                                        fontWeight: "750",
+                                        textDecoration: "none",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "5px"
+                                      }}
+                                    >
+                                      <FaLink size={12} />
+                                      <span>{del.fileName}</span>
+                                    </a>
+                                    {del.comments && (
+                                      <span style={{ fontSize: "11.5px", color: "var(--text-muted, #475569)", fontStyle: "italic" }}>
+                                        "{del.comments}"
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  {isPending ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const grade = prompt("Please assign a grade for this student deliverable (e.g. A, B, C, D, F):", "A");
+                                          if (grade !== null) {
+                                            const feedback = prompt("Enter evaluation comments:", "Meets all FIP criteria. Excellent work!");
+                                            if (feedback !== null) {
+                                              handleUpdateSubmissionStatus(del._id || del.id, "Approved", feedback, grade);
+                                            }
+                                          }
+                                        }}
+                                        style={{
+                                          padding: "6px 14px",
+                                          background: "rgba(45, 212, 191, 0.15)",
+                                          border: "1px solid rgba(45, 212, 191, 0.35)",
+                                          borderRadius: "6px",
+                                          color: "#2dd4bf",
+                                          fontSize: "11.5px",
+                                          fontWeight: "800",
+                                          cursor: "pointer"
+                                        }}
+                                      >
+                                        Approve & Grade
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const feedback = prompt("Please enter evaluation comments / requested changes for the student developer:", "Re-work required: please refine your layout controller.");
+                                          if (feedback !== null) {
+                                            handleUpdateSubmissionStatus(del._id || del.id, "Re-work Requested", feedback || "Please revise task artifacts.");
+                                          }
+                                        }}
+                                        style={{
+                                          padding: "6px 14px",
+                                          background: "rgba(239, 68, 68, 0.15)",
+                                          border: "1px solid rgba(239, 68, 68, 0.35)",
+                                          borderRadius: "6px",
+                                          color: "#ef4444",
+                                          fontSize: "11.5px",
+                                          fontWeight: "800",
+                                          cursor: "pointer"
+                                        }}
+                                      >
+                                        Flag Re-work
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                      <span style={{ fontSize: "12px", fontWeight: "800", color: "#10b981" }}>
+                                        Grade: {del.grade || "Approved"}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: "24px 16px",
+                          textAlign: "center",
+                          color: "var(--text-muted, #475569)",
+                          background: "var(--bg-content, #f8fafc)",
+                          border: "1px dashed var(--border-subtle, #e2e8f0)",
+                          borderRadius: "10px",
+                          fontSize: "12.5px"
+                        }}>
+                          No milestone deliverables submitted for this project yet.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Right Column: Problem Statement Document & Mentor Guidance */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>

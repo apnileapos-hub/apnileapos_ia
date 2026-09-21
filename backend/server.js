@@ -5387,7 +5387,9 @@ app.post("/tasks/:taskId/submit", authenticateToken, upload.single("file"), asyn
       studentName,
       fileName,
       fileUrl,
-      comments
+      comments,
+      projectId,
+      projectName
     } = req.body;
     if (!studentName) {
       return res.status(400).json({
@@ -5438,6 +5440,8 @@ app.post("/tasks/:taskId/submit", authenticateToken, upload.single("file"), asyn
           fileUrl: resolvedFileUrl,
           fileName: resolvedFileName,
           studentName: studentName,
+          projectId: projectId || existingSubmission.projectId || null,
+          projectName: projectName || existingSubmission.projectName || null,
           version: (existingSubmission.version || 1) + 1
         }
       });
@@ -5449,7 +5453,9 @@ app.post("/tasks/:taskId/submit", authenticateToken, upload.single("file"), asyn
         studentName,
         fileName: resolvedFileName,
         fileUrl: resolvedFileUrl,
-        comments: comments || ""
+        comments: comments || "",
+        projectId: projectId || null,
+        projectName: projectName || null
       } });
       await prisma.submission.update({
         where: {
@@ -5515,12 +5521,65 @@ app.get("/tasks/:taskId/submissions", async (req, res) => {
 // GET /submissions - Fetch all student submissions in the system
 app.get("/submissions", async (req, res) => {
   try {
-    const submissions = await prisma.submission.findMany({
-      orderBy: {
-        submittedAt: "desc"
+    const [submissions, teams, projects] = await Promise.all([
+      prisma.submission.findMany({
+        orderBy: {
+          submittedAt: "desc"
+        }
+      }),
+      prisma.team.findMany(),
+      prisma.corporateProject.findMany()
+    ]);
+
+    const enrichedSubmissions = submissions.map(sub => {
+      let resolvedProjectId = sub.projectId;
+      let resolvedProjectName = sub.projectName;
+      let resolvedCompany = null;
+
+      // 1. Try to find project via student's team membership
+      if (!resolvedProjectId) {
+        const matchingTeam = teams.find(t => 
+          Array.isArray(t.members) && t.members.some(m => 
+            m.displayName?.toLowerCase() === sub.studentName?.toLowerCase() ||
+            m.emailAddress?.toLowerCase() === sub.studentName?.toLowerCase()
+          )
+        );
+        if (matchingTeam && matchingTeam.projectId) {
+          resolvedProjectId = matchingTeam.projectId;
+        }
       }
+
+      // 2. Try to find project via filename or title matching
+      if (!resolvedProjectId && sub.fileName) {
+        const matchingProj = projects.find(p => 
+          sub.fileName.toLowerCase().includes((p.title || "").toLowerCase().slice(0, 20)) ||
+          (p.title && p.title.toLowerCase().includes(sub.fileName.toLowerCase().replace(/\.[^/.]+$/, "").slice(0, 20)))
+        );
+        if (matchingProj) {
+          resolvedProjectId = matchingProj.id;
+          resolvedProjectName = matchingProj.title;
+          resolvedCompany = matchingProj.company;
+        }
+      }
+
+      // If we have resolvedProjectId, get project details
+      if (resolvedProjectId) {
+        const proj = projects.find(p => p.id === resolvedProjectId);
+        if (proj) {
+          resolvedProjectName = resolvedProjectName || proj.title;
+          resolvedCompany = resolvedCompany || proj.company;
+        }
+      }
+
+      return {
+        ...sub,
+        projectId: resolvedProjectId || null,
+        projectName: resolvedProjectName || (sub.fileName ? sub.fileName.replace(/\.[^/.]+$/, "") : "Project Deliverable"),
+        company: resolvedCompany || "Corporate Partner"
+      };
     });
-    res.json(submissions);
+
+    res.json(enrichedSubmissions);
   } catch (error) {
     console.error("Failed to get all submissions:", error);
     res.status(500).json({
