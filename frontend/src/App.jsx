@@ -17122,102 +17122,146 @@ function FacultyMentorDashboardView({
             </div>
           </div>
 
-          {/* Teams Grid: Form on Left, Managed Teams on Right */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.5fr", gap: "24px", alignItems: "flex-start" }}>
+          {/* Teams Stack: Full-Width Form on Top, Full-Width Managed Teams Below */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%" }}>
             
-            {/* Left Column: Create Team Form */}
-            <div className="glass-panel" style={{ padding: "24px" }}>
-              <h3 style={{ margin: "0 0 16px 0", fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-                <FaPlus size={16} style={{ color: "var(--primary)" }} /> Form a Student Sprint Team
-              </h3>
+            {/* Form a Student Sprint Team (Full Width) */}
+            <div className="glass-panel" style={{ padding: "26px 28px", width: "100%", borderRadius: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <FaPlus size={16} style={{ color: "var(--primary)" }} /> Form a Student Sprint Team
+                  </h3>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
+                    Assemble student sprint teams for assigned projects, designate team leaders, and configure mentor guidance.
+                  </p>
+                </div>
+              </div>
               
-              <form onSubmit={handleCreateTeam} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                    Team Name *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. KLE Jetson Edge AI Team A"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    className="form-input"
-                    style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                    Select Project *
-                  </label>
-                  <select
-                    value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                    className="form-input"
-                    style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
-                    required
-                  >
-                    <option value="">-- Choose Project --</option>
-                    {assignedProjects.map(proj => (
-                      <option key={proj._id || proj.id} value={proj._id || proj.id}>
-                        [{proj.company}] {proj.title}
-                      </option>
-                    ))}
-                  </select>
-                  {assignedProjects.length === 0 && (
-                    <span style={{ fontSize: "11.5px", color: "#ef4444", marginTop: "4px", display: "block" }}>
-                      No projects have been assigned to you yet.
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <label style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase" }}>
-                      Select Student Developers *
+              <form onSubmit={handleCreateTeam} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                {/* Row 1: Team Name & Project */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.5px" }}>
+                      Team Name *
                     </label>
-                    <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--primary)" }}>
-                      {selectedStudentIds.length} Selected
-                    </span>
+                    <input
+                      type="text"
+                      placeholder="e.g. KLE Jetson Edge AI Team A"
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      className="form-input"
+                      style={{ width: "100%", padding: "10px 14px", fontSize: "13px" }}
+                      required
+                    />
                   </div>
-                  <div style={{
-                    maxHeight: "180px",
-                    overflowY: "auto",
-                    border: "1px solid var(--border-glass)",
-                    borderRadius: "8px",
-                    padding: "10px",
-                    background: "rgba(255,255,255,0.005)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px"
-                  }}>
-                    {students.map(student => (
-                      <label key={student.accountId} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedStudentIds.includes(student.accountId)}
-                          onChange={() => handleStudentCheckboxChange(student.accountId)}
-                        />
-                        <span>{student.displayName} ({student.emailAddress})</span>
-                      </label>
-                    ))}
-                    {students.length === 0 && (
-                      <span style={{ color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic" }}>No students found in your campus spoke.</span>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.5px" }}>
+                      Select Project *
+                    </label>
+                    <select
+                      value={selectedProjectId}
+                      onChange={(e) => setSelectedProjectId(e.target.value)}
+                      className="form-input"
+                      style={{ width: "100%", padding: "10px 14px", fontSize: "13px" }}
+                      required
+                    >
+                      <option value="">-- Choose Project --</option>
+                      {assignedProjects.map(proj => (
+                        <option key={proj._id || proj.id} value={proj._id || proj.id}>
+                          [{proj.company}] {proj.title}
+                        </option>
+                      ))}
+                    </select>
+                    {assignedProjects.length === 0 && (
+                      <span style={{ fontSize: "11.5px", color: "#ef4444", marginTop: "4px", display: "block" }}>
+                        No projects have been assigned to you yet.
+                      </span>
                     )}
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                {/* Row 2: Select Student Developers */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <label style={{ fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Select Student Developers *
+                    </label>
+                    <span style={{
+                      fontSize: "11px",
+                      fontWeight: "800",
+                      color: "var(--primary)",
+                      background: "rgba(59, 130, 246, 0.1)",
+                      padding: "2px 8px",
+                      borderRadius: "6px"
+                    }}>
+                      {selectedStudentIds.length} Selected
+                    </span>
+                  </div>
+                  <div style={{
+                    maxHeight: "220px",
+                    overflowY: "auto",
+                    border: "1px solid var(--border-glass)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    background: "rgba(255,255,255,0.01)",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: "8px"
+                  }}>
+                    {students.map(student => {
+                      const isSelected = selectedStudentIds.includes(student.accountId);
+                      return (
+                        <label
+                          key={student.accountId}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            fontSize: "12.5px",
+                            cursor: "pointer",
+                            padding: "7px 12px",
+                            borderRadius: "8px",
+                            background: isSelected ? "rgba(99, 102, 241, 0.09)" : "rgba(255, 255, 255, 0.02)",
+                            border: isSelected ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid var(--border-glass)",
+                            transition: "all 0.15s ease"
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleStudentCheckboxChange(student.accountId)}
+                            style={{ cursor: "pointer" }}
+                          />
+                          <span style={{ fontWeight: isSelected ? "750" : "500", color: isSelected ? "var(--primary)" : "var(--text-main)" }}>
+                            {student.displayName}
+                          </span>
+                          <span style={{ fontSize: "11px", color: "var(--text-dim)", marginLeft: "auto" }}>
+                            ({student.emailAddress})
+                          </span>
+                        </label>
+                      );
+                    })}
+                    {students.length === 0 && (
+                      <span style={{ color: "var(--text-dim)", fontSize: "12px", fontStyle: "italic", gridColumn: "1 / -1", padding: "12px" }}>
+                        No students found in your campus spoke.
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 3: Sub-Mentor & Leader */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.5px" }}>
                       Sub-Faculty Mentor (Optional)
                     </label>
                     <select
                       value={subMentorId}
                       onChange={(e) => setSubMentorId(e.target.value)}
                       className="form-input"
-                      style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
+                      style={{ width: "100%", padding: "10px 14px", fontSize: "13px" }}
                     >
                       <option value="">-- Select Sub-Mentor --</option>
                       {subMentorOptions.map(m => (
@@ -17227,14 +17271,14 @@ function FacultyMentorDashboardView({
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.5px" }}>
                       Team Leader *
                     </label>
                     <select
                       value={teamLeaderId}
                       onChange={(e) => setTeamLeaderId(e.target.value)}
                       className="form-input"
-                      style={{ width: "100%", padding: "9px 12px", fontSize: "13px" }}
+                      style={{ width: "100%", padding: "10px 14px", fontSize: "13px" }}
                       required
                     >
                       <option value="">-- Designate Leader --</option>
@@ -17245,45 +17289,51 @@ function FacultyMentorDashboardView({
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isCreatingTeam}
-                  className="btn-primary"
-                  style={{
-                    padding: "11px",
-                    background: "var(--accent, #f97316)",
-                    border: "none",
-                    borderRadius: "8px",
-                    color: "white",
-                    fontWeight: "750",
-                    fontSize: "13.5px",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)",
-                    marginTop: "8px"
-                  }}
-                >
-                  {isCreatingTeam ? "Creating Student Team..." : "Create Student Team"}
-                </button>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                  <button
+                    type="submit"
+                    disabled={isCreatingTeam}
+                    className="btn-primary"
+                    style={{
+                      padding: "11px 32px",
+                      background: "var(--accent, #f97316)",
+                      border: "none",
+                      borderRadius: "8px",
+                      color: "white",
+                      fontWeight: "750",
+                      fontSize: "13.5px",
+                      cursor: "pointer",
+                      boxShadow: "0 4px 12px rgba(249, 115, 22, 0.25)"
+                    }}
+                  >
+                    {isCreatingTeam ? "Creating Student Team..." : "Create Student Team"}
+                  </button>
+                </div>
               </form>
             </div>
 
-            {/* Right Column: Managed Teams List */}
-            <div className="glass-panel" style={{ padding: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <FaUsers size={18} style={{ color: "#8b5cf6" }} /> Managed Student Teams
-                  <span style={{
-                    fontSize: "11.5px",
-                    fontWeight: "800",
-                    background: "rgba(139, 92, 246, 0.1)",
-                    color: "#8b5cf6",
-                    border: "1px solid rgba(139, 92, 246, 0.2)",
-                    padding: "2px 8px",
-                    borderRadius: "6px"
-                  }}>
-                    {existingTeams.length}
-                  </span>
-                </h3>
+            {/* Managed Student Teams (Full Width Below) */}
+            <div className="glass-panel" style={{ padding: "26px 28px", width: "100%", borderRadius: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "850", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <FaUsers size={18} style={{ color: "#8b5cf6" }} /> Managed Student Teams
+                    <span style={{
+                      fontSize: "11.5px",
+                      fontWeight: "800",
+                      background: "rgba(139, 92, 246, 0.1)",
+                      color: "#8b5cf6",
+                      border: "1px solid rgba(139, 92, 246, 0.2)",
+                      padding: "2px 8px",
+                      borderRadius: "6px"
+                    }}>
+                      {existingTeams.length}
+                    </span>
+                  </h3>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
+                    Active project teams, assigned project links, GitHub spaces, and final milestone submissions.
+                  </p>
+                </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -17495,7 +17545,7 @@ function FacultyMentorDashboardView({
                   }}>
                     <FaUsers size={24} style={{ opacity: 0.35, marginBottom: "6px" }} />
                     <p style={{ margin: 0, fontWeight: "700", color: "var(--text-muted)" }}>No student sprint teams created yet.</p>
-                    <p style={{ margin: "4px 0 0 0", fontSize: "11.5px" }}>Use the form on the left to assemble and launch your first team.</p>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "11.5px" }}>Use the form above to assemble and launch your first team.</p>
                   </div>
                 )}
               </div>
