@@ -85,44 +85,46 @@ function buildSmtpTransporter() {
  * @param {string} options.to - Recipient email address
  * @param {string} options.code - 6-digit verification code
  */
-async function sendPasswordResetEmail({ to, code, expiresInMinutes = 10 }) {
+async function sendPasswordResetEmail({ to, code, userName = "Lead Core Developer", expiresInMinutes = 10 }) {
   const transporter = buildSmtpTransporter();
   if (!transporter) {
     console.warn("⚠️ SMTP credentials missing in .env. Password reset email skipped.");
     return { skipped: true };
   }
 
-  const fromName = process.env.SMTP_FROM_NAME || "ApniLeap";
+  const fromName = process.env.SMTP_FROM_NAME || "ApniLeap Auth";
   const redirectTo = process.env.SMTP_REDIRECT_TO || null;
   const finalTo = redirectTo && redirectTo !== to ? `${to}, ${redirectTo}` : to;
 
   const mailOptions = {
-    from: `"${fromName}" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM || `"${fromName}" <${process.env.SMTP_USER || "noreply@apnileap.com"}>`,
     to: finalTo,
-    subject: "APNILEAP Password Reset Verification",
+    subject: "Your ApniLeap Authentication Code",
     text: [
-      "Your verification code is: " + code,
+      "Here is your ApniLeap authentication code: " + code,
       "",
-      "This code expires in " + expiresInMinutes + " minutes.",
+      "This code is valid for " + expiresInMinutes + " minutes and can only be used once.",
       "",
-      "If you did not request this password reset, ignore this email."
+      "Please don't share this code with anyone: we'll never ask for it on the phone or via email.",
+      "Thanks,",
+      "The ApniLeap Team"
     ].join("\n"),
     html: `
-<div style="font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; max-width: 600px; margin: 0 auto; color: #24292f; background-color: #ffffff; padding: 20px;">
+<div style="font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; max-width: 600px; margin: 0 auto; color: #24292f; background-color: #ffffff; padding: 20px;">
     <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="font-size: 24px; font-weight: 400; margin-bottom: 8px;">APNILEAP</h2>
-        <p style="font-size: 14px; color: #57606a; margin: 0;">Password Reset Verification</p>
+        <h2 style="font-size: 24px; font-weight: 400; margin-bottom: 8px;">Please verify your identity, ${userName}</h2>
     </div>
     <div style="border: 1px solid #d0d7de; border-radius: 6px; padding: 32px; background-color: #f6f8fa;">
-        <p style="font-size: 14px; margin-top: 0; margin-bottom: 16px;">Your verification code is:</p>
+        <p style="font-size: 14px; margin-top: 0; margin-bottom: 16px;">Here is your ApniLeap authentication code:</p>
         <div style="font-size: 32px; font-weight: 600; text-align: center; letter-spacing: 6px; margin-bottom: 16px;">
             ${code}
         </div>
-        <p style="font-size: 12px; color: #57606a; margin-bottom: 16px;">This code expires in ${expiresInMinutes} minutes.</p>
-        <p style="font-size: 12px; color: #57606a; margin-bottom: 0;">If you did not request this password reset, ignore this email.</p>
+        <p style="font-size: 12px; color: #57606a; margin-bottom: 16px;">This code is valid for ${expiresInMinutes} minutes and can only be used once.</p>
+        <p style="font-size: 12px; color: #57606a; margin-bottom: 16px;">Please don't share this code with anyone: we'll never ask for it on the phone or via email.</p>
+        <p style="font-size: 12px; color: #57606a; margin-bottom: 0;">Thanks,<br/>The ApniLeap Team</p>
     </div>
     <div style="margin-top: 24px; text-align: center;">
-        <p style="font-size: 11px; color: #57606a; margin-bottom: 0;">You're receiving this email because a password reset was requested for your ApniLeap account (${to}).</p>
+        <p style="font-size: 11px; color: #57606a; margin-bottom: 0;">You're receiving this email because a verification code was requested for your ApniLeap account (${to}). If this wasn't you, please ignore this email.</p>
     </div>
 </div>
 `

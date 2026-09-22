@@ -89,7 +89,11 @@ router.post('/forgot-password', async (req, res) => {
     });
 
     try {
-      await sendPasswordResetEmail({ to: email, code });
+      await sendPasswordResetEmail({
+        to: email,
+        code,
+        userName: user.displayName || user.name || "Lead Core Developer"
+      });
     } catch (err) {
       // SMTP failures must never expose credentials or whether an account exists.
       console.error('[PASSWORD-RESET] SMTP dispatch failed. No code or credentials logged.');

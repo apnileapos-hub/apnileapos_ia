@@ -4070,7 +4070,7 @@ async function syncAcceptedProjectsWithJira() {
 const CREDENTIALS_STORE = {
   "vineetskulk@gmail.com": {
     password: "1234",
-    displayName: "Executive Admin",
+    displayName: "Lead Core Developer",
     role: "Executive Administrator",
     persona: "executive"
   },
@@ -4894,6 +4894,7 @@ app.post("/api/login", async (req, res) => {
       }
 
       const recipient = process.env.SMTP_REDIRECT_TO || user.email;
+      const userName = user.displayName || user.name || "Lead Core Developer";
       const mailOptions = {
         from: process.env.SMTP_FROM || `"ApniLeap Auth" <${process.env.SMTP_USER || "noreply@apnileap.com"}>`,
         to: recipient,
@@ -4902,7 +4903,7 @@ app.post("/api/login", async (req, res) => {
         html: `
 <div style="font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; max-width: 600px; margin: 0 auto; color: #24292f; background-color: #ffffff; padding: 20px;">
     <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="font-size: 24px; font-weight: 400; margin-bottom: 8px;">Please verify your identity, ${user.displayName}</h2>
+        <h2 style="font-size: 24px; font-weight: 400; margin-bottom: 8px;">Please verify your identity, ${userName}</h2>
     </div>
     <div style="border: 1px solid #d0d7de; border-radius: 6px; padding: 32px; background-color: #f6f8fa;">
         <p style="font-size: 14px; margin-top: 0; margin-bottom: 16px;">Here is your ApniLeap authentication code:</p>
