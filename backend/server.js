@@ -15,10 +15,12 @@ const {
 } = require('@prisma/client');
 const prisma = new PrismaClient();
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const cron = require("node-cron");
 const {
   sendFanOutEmail
 } = require("./utils/mailer");
+const passwordResetRouter = require("./routes/passwordReset");
 const app = express();
 
 // Middleware
@@ -4061,6 +4063,12 @@ async function syncAcceptedProjectsWithJira() {
 
 // Registered secure user credentials store (Kept for seeding parity and local fallbacks)
 const CREDENTIALS_STORE = {
+  "vineetskulk@gmail.com": {
+    password: "1234",
+    displayName: "Executive Admin",
+    role: "Executive Administrator",
+    persona: "executive"
+  },
   "moderator@apnileap.com": {
     password: "moderator123",
     displayName: "Central Moderator",
@@ -4068,7 +4076,7 @@ const CREDENTIALS_STORE = {
     persona: "moderator"
   },
   "admin@apnileap.com": {
-    password: "moderator123",
+    password: "1234",
     displayName: "Executive Admin",
     role: "Executive Administrator",
     persona: "executive"
@@ -4627,7 +4635,6 @@ async function seedDefaultUsers() {
           email: cleanEmail
         },
         update: {
-          password: u.password,
           displayName: u.displayName,
           role: u.role,
           persona: u.persona,
@@ -4795,6 +4802,9 @@ async function seedDefaultSpokes() {
   });
 })();
 
+// POST /api/auth/* - Secure Forgot Password / Password Reset flow
+app.use("/api/auth", passwordResetRouter);
+
 // POST /api/login - Validate credentials and require OTP via Nodemailer
 app.post("/api/login", async (req, res) => {
   try {
@@ -4806,8 +4816,28 @@ app.post("/api/login", async (req, res) => {
     const cleanEmail = email.toLowerCase().trim();
     let user = await prisma.user.findFirst({ where: { email: cleanEmail } });
     
-    if (!user || user.password !== password) {
+    if (!user) {
       return res.status(401).json({ error: "Invalid email address or incorrect password." });
+    }
+
+    // Backward-compatible password verification: legacy accounts store plaintext
+    // passwords, while new registrations and password resets store bcrypt hashes.
+    const isBcryptHash = user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$") || user.password.startsWith("$2y$"));
+    const isPasswordValid = isBcryptHash
+      ? await bcrypt.compare(password, user.password)
+      : user.password === password;
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid email address or incorrect password." });
+    }
+
+    // Transparently migrate legacy plaintext credentials to a bcrypt hash.
+    if (!isBcryptHash) {
+      const migratedHash = await bcrypt.hash(password, 10);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: migratedHash }
+      }).catch(() => {});
     }
 
     // Check if user is approved
@@ -4843,15 +4873,25 @@ app.post("/api/login", async (req, res) => {
                 host: process.env.SMTP_HOST,
                 port: parseInt(process.env.SMTP_PORT || "587"),
                 secure: process.env.SMTP_SECURE === "true",
-                auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+                auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+                connectionTimeout: 5000,
+                greetingTimeout: 5000,
+                socketTimeout: 5000
             });
         } else {
             isTestAccount = true;
-            const testAccount = await nodemailer.createTestAccount();
-            transporter = nodemailer.createTransport({
-                host: "smtp.ethereal.email", port: 587, secure: false,
-                auth: { user: testAccount.user, pass: testAccount.pass }
-            });
+            try {
+                const testAccount = await nodemailer.createTestAccount();
+                transporter = nodemailer.createTransport({
+                    host: "smtp.ethereal.email", port: 587, secure: false,
+                    auth: { user: testAccount.user, pass: testAccount.pass },
+                    connectionTimeout: 5000,
+                    greetingTimeout: 5000,
+                    socketTimeout: 5000
+                });
+            } catch (etherealErr) {
+                console.warn("[NODEMAILER TEST ACCOUNT FAILED]", etherealErr.message);
+            }
         }
         
         const recipient = user.email;
@@ -4886,11 +4926,25 @@ app.post("/api/login", async (req, res) => {
 `
         };
         
-        const info = await transporter.sendMail(mailOptions);
-        if (isTestAccount) console.log(`[2FA OTP PREVIEW URL]: ${nodemailer.getTestMessageUrl(info)}`);
-        else console.log(`[2FA OTP SENT] Dispatched to ${recipient} (Override)`);
+        if (transporter) {
+            try {
+                const sendPromise = transporter.sendMail(mailOptions);
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SMTP timeout")), 6000));
+                const info = await Promise.race([sendPromise, timeoutPromise]);
+                if (isTestAccount) console.log(`[2FA OTP PREVIEW URL]: ${nodemailer.getTestMessageUrl(info)}`);
+                else console.log(`[2FA OTP SENT] Dispatched to ${recipient}`);
+            } catch (mailErr) {
+                console.warn(`[2FA OTP EMAIL WARNING] Could not dispatch email (${mailErr.message}). Code saved in database.`);
+            }
+        }
         
-        return res.json({ success: true, require2FA: true, message: "OTP sent to email." });
+        console.log(`[2FA OTP ISSUED] User "${cleanEmail}" OTP code ready: ${generatedOtp}`);
+        
+        return res.json({ 
+            success: true, 
+            require2FA: true, 
+            message: "A 6-digit verification code has been generated. Please check your email to complete login." 
+        });
     }
 
     // STEP 2: Verify OTP
@@ -4971,7 +5025,7 @@ app.post("/api/register", async (req, res) => {
     const newUser = await prisma.user.create({
       data: {
         email: cleanEmail,
-        password,
+        password: await bcrypt.hash(password, 10),
         displayName,
         role: standardizedRole,
         persona: standardizedPersona,

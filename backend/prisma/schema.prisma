@@ -93,17 +93,40 @@ model Team {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  password    String
-  displayName String
-  role        String
-  persona     String
-  spokeId     String?
-  createdAt   DateTime @default(now())
-  status      String   @default("ACTIVE") // "ACTIVE", "PENDING", "REJECTED"
-  otpCode     String?
-  otpExpiry   DateTime?
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  displayName   String
+  role          String
+  persona       String
+  spokeId       String?
+  createdAt     DateTime       @default(now())
+  status        String         @default("ACTIVE") // "ACTIVE", "PENDING", "REJECTED"
+  otpCode       String?
+  otpExpiry     DateTime?
+  passwordResets PasswordReset[]
+}
+
+model PasswordReset {
+  id                  String    @id @default(uuid())
+  userId              String
+  email               String
+  codeHash            String
+  attempts            Int       @default(0)
+  expiresAt           DateTime
+  verifiedAt          DateTime?
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([expiresAt])
+  @@index([resetTokenHash])
 }
 
 model Spoke {

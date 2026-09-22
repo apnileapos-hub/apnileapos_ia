@@ -948,7 +948,7 @@ function App() {
 
   const mapEmailToPersona = (email) => {
     const cleanEmail = email.toLowerCase().trim();
-    if (cleanEmail === "admin@apnileap.com" || cleanEmail === "executive@apnileap.com" || cleanEmail === "executive") {
+    if (cleanEmail === "admin@apnileap.com" || cleanEmail === "executive@apnileap.com" || cleanEmail === "executive" || cleanEmail === "vineetskulk@gmail.com") {
       return "executive";
     }
     if (cleanEmail === "moderator@apnileap.com" || cleanEmail === "moderator" || cleanEmail.endsWith("@apnileap.com")) {
