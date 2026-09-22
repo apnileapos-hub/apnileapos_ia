@@ -22,8 +22,29 @@ const {
 const app = express();
 
 // Middleware
-app.use(cors());
+const corsOrigins = (process.env.CORS_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
+app.use(cors({
+  origin: corsOrigins.length > 0 ? corsOrigins : true
+}));
 app.use(express.json());
+
+// Health check — used by Render (and readiness probes). Lightweight DB probe only.
+app.get("/health", async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: "ok",
+      uptime: process.uptime(),
+      db: "ok"
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: "error",
+      uptime: process.uptime(),
+      db: "unavailable"
+    });
+  }
+});
 
 // Multer config — store uploaded files in /uploads with original extension preserved
 const UPLOADS_DIR = path.join(__dirname, "uploads");
@@ -4587,7 +4608,7 @@ async function seedDefaultChatMessages() {
         message: "Yes Nikhil! Accuracy is at 94% on Jetson Nano. Testing in the lab now.",
         campus: "RIT Spoke"
       }];
-      await prisma.chatMessage.insertMany(defaultMessages);
+      await prisma.chatMessage.createMany({ data: defaultMessages });
       console.log(`🌱 [SEEDING SUCCESS] Seeded ${defaultMessages.length} default chat messages!`);
     }
   } catch (err) {
@@ -4600,11 +4621,20 @@ async function seedDefaultUsers() {
     let seededCount = 0;
     for (const email of Object.keys(CREDENTIALS_STORE)) {
       const u = CREDENTIALS_STORE[email];
-      await prisma.user.update({
+      const cleanEmail = email.toLowerCase().trim();
+      await prisma.user.upsert({
         where: {
-          email: email.toLowerCase().trim()
+          email: cleanEmail
         },
-        data: {
+        update: {
+          password: u.password,
+          displayName: u.displayName,
+          role: u.role,
+          persona: u.persona,
+          spokeId: u.spokeId || null
+        },
+        create: {
+          email: cleanEmail,
           password: u.password,
           displayName: u.displayName,
           role: u.role,
@@ -5401,7 +5431,7 @@ app.post("/tasks/:taskId/submit", authenticateToken, upload.single("file"), asyn
     if (req.file) {
       // File was uploaded via multipart
       resolvedFileName = resolvedFileName || req.file.originalname;
-      resolvedFileUrl = `http://localhost:5001/uploads/${req.file.filename}`;
+      resolvedFileUrl = `${process.env.BACKEND_PUBLIC_URL || "http://localhost:5001"}/uploads/${req.file.filename}`;
     } else {
       // Link submission
       if (!resolvedFileName || !resolvedFileUrl) {

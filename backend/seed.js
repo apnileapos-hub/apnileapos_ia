@@ -3,6 +3,13 @@ const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
+// DEVELOPMENT-ONLY SEED SCRIPT
+// Contains demo/test credentials and sample data. Never run against production.
+if (process.env.NODE_ENV === "production") {
+  console.error("Refusing to run seed.js under NODE_ENV=production. This script is development-only.");
+  process.exit(1);
+}
+
 async function main() {
   console.log('🌱 Seeding database with central users and B2B projects...');
 

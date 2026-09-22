@@ -10,9 +10,17 @@ out/
 
 # Environment secrets
 .env
+.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 backend/.env
+frontend/.env
 .env.local
 .env.*.local
+
+# Never commit credential/metadata dumps
+CREDENTIALS.md
 
 # Logs
 *.log

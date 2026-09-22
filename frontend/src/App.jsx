@@ -1,3 +1,4 @@
+import { API_BASE_URL } from './config/api';
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   DragDropContext,
@@ -323,7 +324,7 @@ function CohortStatsTable() {
   useEffect(() => {
     setCohortLoading(true);
     setCohortError(null);
-    axios.get("http://localhost:5001/api/cohort-stats")
+    axios.get(`${API_BASE_URL}/api/cohort-stats`)
       .then(res => {
         if (res.data && res.data.success) setCohortStats(res.data);
         else setCohortError("Failed to load stats.");
@@ -476,7 +477,7 @@ function RovoAgentWidget({ sessionUser, currentBoardId, activeWorkspace }) {
     setIsTyping(true);
 
     try {
-      const res = await axios.post("http://localhost:5001/api/rovo/chat", {
+      const res = await axios.post(`${API_BASE_URL}/api/rovo/chat`, {
         prompt: text,
         userRole: sessionUser?.role,
         campusId: currentBoardId,
@@ -728,7 +729,7 @@ function App() {
 
   const fetchSpokes = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/spokes");
+      const res = await axios.get(`${API_BASE_URL}/api/spokes`);
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
         setSpokesList(res.data);
         const map = { ...SPOKES };
@@ -783,7 +784,7 @@ function App() {
 
   const fetchChatMessages = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/chat");
+      const res = await axios.get(`${API_BASE_URL}/api/chat`);
       if (res.data && res.data.success) {
         setChatMessages(res.data.messages);
       }
@@ -809,7 +810,7 @@ function App() {
     const myCampus = sessionUser ? (sessionUser.campusName || "Hub") : "Moderator Console";
 
     try {
-      await axios.post("http://localhost:5001/api/chat", {
+      await axios.post(`${API_BASE_URL}/api/chat`, {
         sender: myName,
         message: typed,
         campus: myCampus
@@ -990,7 +991,7 @@ function App() {
 
     setIsLoggingIn(true);
     try {
-      const response = await axios.post("http://localhost:5001/api/login", {
+      const response = await axios.post(`${API_BASE_URL}/api/login`, {
         email: loginEmail,
         password: loginPassword,
         otp: showOtpInput ? loginOtp : undefined
@@ -1031,7 +1032,7 @@ function App() {
     const targetSpoke = boardId || currentBoardId || "3";
     try {
       setIsPendingFacultyLoading(true);
-      const res = await axios.get(`http://localhost:5001/api/spokes/${targetSpoke}/pending-faculty`);
+      const res = await axios.get(`${API_BASE_URL}/api/spokes/${targetSpoke}/pending-faculty`);
       setPendingFacultyList(res.data || []);
     } catch (err) {
       console.error("Failed to fetch pending faculty:", err);
@@ -1042,7 +1043,7 @@ function App() {
 
   const handleApproveFaculty = async (userId, userName) => {
     try {
-      const res = await axios.post(`http://localhost:5001/api/users/${userId}/approve`);
+      const res = await axios.post(`${API_BASE_URL}/api/users/${userId}/approve`);
       triggerToast(res.data.message || `Approved ${userName}!`, "success");
       fetchPendingFaculty();
       if (typeof fetchJiraTasks === "function") fetchJiraTasks(true);
@@ -1054,7 +1055,7 @@ function App() {
   const handleRejectFaculty = async (userId, userName) => {
     if (!window.confirm(`Are you sure you want to decline ${userName}'s faculty registration?`)) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/users/${userId}/reject`);
+      const res = await axios.post(`${API_BASE_URL}/api/users/${userId}/reject`);
       triggerToast(res.data.message || `Declined ${userName}.`, "info");
       fetchPendingFaculty();
     } catch (err) {
@@ -1092,7 +1093,7 @@ function App() {
       const campusPrefix = signupCampus === "3" ? "KLE" : signupCampus === "101" ? "COEP" : signupCampus === "102" ? "MMCOEP" : "RIT";
       const selectedRole = signupRole === "Faculty Mentor" ? `${campusPrefix} Spoke Coordinator` : "Student Developer";
 
-      const response = await axios.post("http://localhost:5001/api/register", {
+      const response = await axios.post(`${API_BASE_URL}/api/register`, {
         email: signupEmail,
         password: signupPassword,
         displayName: signupName,
@@ -1179,7 +1180,7 @@ function App() {
     setIsLoggingIn(true);
 
     try {
-      const response = await axios.post("http://localhost:5001/api/login", {
+      const response = await axios.post(`${API_BASE_URL}/api/login`, {
         email: email,
         password: password,
         otp: currentOtp
@@ -1248,7 +1249,7 @@ function App() {
 
     setIsIngesting(true);
     try {
-      const response = await axios.post("http://localhost:5001/moderator/projects", {
+      const response = await axios.post(`${API_BASE_URL}/moderator/projects`, {
         company: ingestCompany,
         title: ingestTitle,
         description: ingestDescription,
@@ -1288,7 +1289,7 @@ function App() {
 
     setIsUpdatingProject(true);
     try {
-      const response = await axios.put(`http://localhost:5001/moderator/projects/${editingProject.id}`, {
+      const response = await axios.put(`${API_BASE_URL}/moderator/projects/${editingProject.id}`, {
         company: editCompany,
         title: editTitle.trim(),
         description: editDescription.trim(),
@@ -1316,7 +1317,7 @@ function App() {
     }
     try {
       const token = localStorage.getItem("apnileap-token") || "";
-      const response = await axios.delete(`http://localhost:5001/moderator/projects/${projectId}`, {
+      const response = await axios.delete(`${API_BASE_URL}/moderator/projects/${projectId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data && response.data.success) {
@@ -1334,7 +1335,7 @@ function App() {
 
   const fetchSpokeMembers = async (boardId) => {
     try {
-      const res = await axios.get(`http://localhost:5001/spokes/${boardId}/members`);
+      const res = await axios.get(`${API_BASE_URL}/spokes/${boardId}/members`);
       setSpokeMembers(res.data);
     } catch (err) {
       console.error("Failed to retrieve campus team members:", err);
@@ -1344,7 +1345,7 @@ function App() {
   const fetchSpokeTeams = async (boardId) => {
     setIsTeamsLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5001/api/teams?boardId=${boardId}`);
+      const res = await axios.get(`${API_BASE_URL}/api/teams?boardId=${boardId}`);
       setSpokeTeams(res.data || []);
     } catch (err) {
       console.error("Failed to retrieve campus teams:", err);
@@ -1392,7 +1393,7 @@ function App() {
         avatarUrl: foundLeader.avatarUrl
       } : null;
 
-      const res = await axios.post("http://localhost:5001/api/teams", {
+      const res = await axios.post(`${API_BASE_URL}/api/teams`, {
         name: newTeamName.trim(),
         boardId: currentBoardId,
         members: selectedMembersData,
@@ -1421,7 +1422,7 @@ function App() {
       return;
     }
     try {
-      const res = await axios.delete(`http://localhost:5001/api/teams/${teamId}`);
+      const res = await axios.delete(`${API_BASE_URL}/api/teams/${teamId}`);
       if (res.data && res.data.success) {
         triggerToast("Spoke Team successfully disbanded.");
         fetchSpokeTeams(currentBoardId);
@@ -1439,7 +1440,7 @@ function App() {
     try {
       const boardIdToFetch = customBoardId || activeCustomBoardIdRef.current || currentBoardId;
       console.log("fetching tasks:", { customBoardId, activeCustomBoardId, currentBoardId, boardIdToFetch });
-      const response = await axios.get(`http://localhost:5001/tasks?boardId=${boardIdToFetch}`);
+      const response = await axios.get(`${API_BASE_URL}/tasks?boardId=${boardIdToFetch}`);
       if (Array.isArray(response.data)) {
         // Adapt Jira issues dynamically - pulls exact assignee, reporter, and due date
         const normalized = response.data.map((item) => ({
@@ -1529,7 +1530,7 @@ function App() {
     if (!silent) setIsHubLoading(true);
     setHasError(false);
     try {
-      const response = await axios.get("http://localhost:5001/hub/metrics");
+      const response = await axios.get(`${API_BASE_URL}/hub/metrics`);
       setHubMetrics(response.data);
       setConnectionStatus("Connected");
     } catch (error) {
@@ -1549,7 +1550,7 @@ function App() {
     if (!silent) setIsModeratorLoading(true);
     setHasError(false);
     try {
-      const response = await axios.get("http://localhost:5001/moderator/projects");
+      const response = await axios.get(`${API_BASE_URL}/moderator/projects`);
       setModeratorProjects(response.data);
       setConnectionStatus("Connected");
     } catch (error) {
@@ -1568,7 +1569,7 @@ function App() {
   const fetchMeetings = async (silent = false) => {
     if (!silent) setIsMeetingsLoading(true);
     try {
-      const response = await axios.get("http://localhost:5001/meetings");
+      const response = await axios.get(`${API_BASE_URL}/meetings`);
       setMeetings(response.data);
     } catch (error) {
       console.error("Meetings Fetch Error:", error);
@@ -1583,7 +1584,7 @@ function App() {
   // Retrieve all student deliverables in the system
   const fetchAllSubmissions = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/submissions");
+      const res = await axios.get(`${API_BASE_URL}/submissions`);
       setAllSubmissions(res.data || []);
     } catch (err) {
       console.error("Failed to fetch all submissions:", err);
@@ -1604,7 +1605,7 @@ function App() {
     try {
       let successCount = 0;
       for (const campusId of assignTargetCampus) {
-        await axios.post("http://localhost:5001/moderator/assign", {
+        await axios.post(`${API_BASE_URL}/moderator/assign`, {
           projectId: selectedAssignProject.id,
           targetBoardId: campusId,
           dueDate: assignDueDate,
@@ -1628,7 +1629,7 @@ function App() {
   const handleAcceptProject = async (projectId) => {
     setIsRespondingToProject(true);
     try {
-      const res = await axios.post(`http://localhost:5001/spoke/project/${projectId}/accept`, { targetBoardId: currentBoardId });
+      const res = await axios.post(`${API_BASE_URL}/spoke/project/${projectId}/accept`, { targetBoardId: currentBoardId });
       if (res.data && res.data.success) {
         triggerToast(" Project accepted! Jira workspace successfully provisioned with 3 standard Phase tasks!");
         fetchModeratorProjects(false);
@@ -1646,7 +1647,7 @@ function App() {
   const handleDeclineProject = async (projectId) => {
     setIsRespondingToProject(true);
     try {
-      const res = await axios.post(`http://localhost:5001/spoke/project/${projectId}/decline`, { targetBoardId: currentBoardId });
+      const res = await axios.post(`${API_BASE_URL}/spoke/project/${projectId}/decline`, { targetBoardId: currentBoardId });
       if (res.data && res.data.success) {
         triggerToast("Proposal declined. Project returned to the Moderator assignment pool.");
         fetchModeratorProjects(false);
@@ -1685,7 +1686,7 @@ function App() {
   useEffect(() => {
     const fetchMyself = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/myself");
+        const res = await axios.get(`${API_BASE_URL}/myself`);
         setCurrentUser(res.data);
       } catch (err) {
         console.error("Failed to retrieve myself context:", err);
@@ -2001,7 +2002,7 @@ function App() {
     triggerToast(`Transitioning ${taskKey} to ${newStatus} in Jira...`);
     
     // 2. Perform live API status transition
-    axios.post(`http://localhost:5001/tasks/${taskKey}/transition`, { statusName: newStatus })
+    axios.post(`${API_BASE_URL}/tasks/${taskKey}/transition`, { statusName: newStatus })
       .then(() => {
         triggerToast(`Successfully transitioned ${taskKey} to ${newStatus} in Jira!`);
       })
@@ -2037,7 +2038,7 @@ function App() {
 
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:5001/tasks", payload);
+      const res = await axios.post(`${API_BASE_URL}/tasks`, payload);
       triggerToast(`Created task ${res.data.key} in Jira successfully!`);
       
       // Reset Form
@@ -2070,7 +2071,7 @@ function App() {
     try {
       if (changedField === "status") {
         triggerToast(`Transitioning ${updatedTask.key} to ${updatedTask.fields.status.name} in Jira...`);
-        await axios.post(`http://localhost:5001/tasks/${updatedTask.key}/transition`, { statusName: updatedTask.fields.status.name });
+        await axios.post(`${API_BASE_URL}/tasks/${updatedTask.key}/transition`, { statusName: updatedTask.fields.status.name });
         triggerToast(`Successfully transitioned ${updatedTask.key} to ${updatedTask.fields.status.name} in Jira!`);
       } else {
         const payload = {};
@@ -2082,7 +2083,7 @@ function App() {
         if (changedField === "priority") payload.priority = updatedTask.fields.priority?.name || null;
 
         triggerToast(`Saving ${changedField} updates for ${updatedTask.key} in Jira...`);
-        await axios.put(`http://localhost:5001/tasks/${updatedTask.key}`, payload);
+        await axios.put(`${API_BASE_URL}/tasks/${updatedTask.key}`, payload);
         triggerToast(`Successfully saved ${changedField} for ${updatedTask.key} in Jira!`);
       }
     } catch (err) {
@@ -2122,7 +2123,7 @@ function App() {
 
     try {
       triggerToast(nextFlagged ? `Flagging issue ${task.key} as BLOCKED...` : `Clearing blocker flag for ${task.key}...`, "warning");
-      await axios.put(`http://localhost:5001/tasks/${task.key}/flag`, { flagged: nextFlagged });
+      await axios.put(`${API_BASE_URL}/tasks/${task.key}/flag`, { flagged: nextFlagged });
       triggerToast(nextFlagged ? `Issue ${task.key} is now flagged as blocked!` : `Successfully cleared blocker flag for ${task.key}!`);
       await fetchJiraTasks(true);
     } catch (err) {
@@ -2142,14 +2143,14 @@ function App() {
     setIsLoading(true);
     try {
       triggerToast(`Logging ${timeSpentString} spent time to issue ${taskKey} in Jira...`);
-      await axios.post(`http://localhost:5001/tasks/${taskKey}/worklog`, { timeSpent: timeSpentString, comment: logComment });
+      await axios.post(`${API_BASE_URL}/tasks/${taskKey}/worklog`, { timeSpent: timeSpentString, comment: logComment });
       triggerToast(`Successfully logged ${timeSpentString} to issue ${taskKey}!`);
       
       setWorklogTimeSpent("");
       setWorklogComment("");
       
       // Refetch worklogs immediately for the modal history
-      const logsRes = await axios.get(`http://localhost:5001/tasks/${taskKey}/worklog`);
+      const logsRes = await axios.get(`${API_BASE_URL}/tasks/${taskKey}/worklog`);
       setWorklogHistory(logsRes.data || []);
       
       await fetchJiraTasks(true);
@@ -2171,7 +2172,7 @@ function App() {
   const fetchWorklogHistory = async (taskKey) => {
     setIsHistoryLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5001/tasks/${taskKey}/worklog`);
+      const res = await axios.get(`${API_BASE_URL}/tasks/${taskKey}/worklog`);
       setWorklogHistory(res.data || []);
     } catch (err) {
       console.error("Fetch worklogs error:", err);
@@ -2184,7 +2185,7 @@ function App() {
   const fetchSubmissions = async (taskId) => {
     setIsSubmissionsLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5001/tasks/${taskId}/submissions`);
+      const res = await axios.get(`${API_BASE_URL}/tasks/${taskId}/submissions`);
       setSubmissions(res.data || []);
     } catch (err) {
       console.error("Failed to fetch submissions:", err);
@@ -2213,7 +2214,7 @@ function App() {
 
         const token = localStorage.getItem("apni_token");
         const res = await axios.post(
-          `http://localhost:5001/tasks/${selectedTask.id}/submit`,
+          `${API_BASE_URL}/tasks/${selectedTask.id}/submit`,
           formData,
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }
         );
@@ -2247,7 +2248,7 @@ function App() {
       try {
         const token = localStorage.getItem("apni_token");
         const res = await axios.post(
-          `http://localhost:5001/tasks/${selectedTask.id}/submit`,
+          `${API_BASE_URL}/tasks/${selectedTask.id}/submit`,
           {
             studentName: sessionUser?.displayName || sessionUser?.email || currentUser?.displayName || currentUser?.email || "Student Developer",
             fileName: submitFileName,
@@ -2275,7 +2276,7 @@ function App() {
   // Handle coordinator approving or requesting re-work on a student submission
   const handleUpdateSubmissionStatus = async (subId, newStatus, coordinatorFeedback, grade = "") => {
     try {
-      const res = await axios.put(`http://localhost:5001/submissions/${subId}/status`, {
+      const res = await axios.put(`${API_BASE_URL}/submissions/${subId}/status`, {
         status: newStatus,
         feedback: coordinatorFeedback,
         grade
@@ -2296,7 +2297,7 @@ function App() {
   // Handle deleting a student submission persistently
   const handleDeleteSubmission = async (subId) => {
     try {
-      const res = await axios.delete(`http://localhost:5001/submissions/${subId}`);
+      const res = await axios.delete(`${API_BASE_URL}/submissions/${subId}`);
       if (res.data && res.data.success) {
         triggerToast("Submission history deleted successfully!");
         fetchAllSubmissions(); // Refresh global queue
@@ -2313,7 +2314,7 @@ function App() {
   const handleRunAiVerificationSweep = async () => {
     try {
       triggerToast("🤖 Rovo Agent: Running CI/CD link verification sweep...");
-      const res = await axios.post("http://localhost:5001/api/automation/verify-all");
+      const res = await axios.post(`${API_BASE_URL}/api/automation/verify-all`);
       if (res.data && res.data.success) {
         triggerToast(`✅ ${res.data.message}`);
         fetchAllSubmissions();
@@ -2328,7 +2329,7 @@ function App() {
   const handleTriggerMorningDigest = async () => {
     try {
       triggerToast("☀️ Generating and dispatching Morning Campus Portfolio Digest...");
-      const res = await axios.post("http://localhost:5001/api/automation/trigger-digest");
+      const res = await axios.post(`${API_BASE_URL}/api/automation/trigger-digest`);
       if (res.data && res.data.success) {
         triggerToast(`📧 Morning Digest dispatched! (${res.data.stats.activeProjects} projects, $${res.data.stats.totalCapital.toLocaleString()} capital deployed)`);
       }
@@ -2351,7 +2352,7 @@ function App() {
       const label = isEpic ? "child task" : "child subtask";
       triggerToast(`Creating ${label} under ${parentKey} in Jira...`);
       
-      await axios.post(`http://localhost:5001/tasks/${parentKey}/subtask`, {
+      await axios.post(`${API_BASE_URL}/tasks/${parentKey}/subtask`, {
         summary: subtaskSummary,
         assigneeId: assigneeId || null,
         parentIssueType: parentIssueType || null
@@ -2389,7 +2390,7 @@ function App() {
     setIsLoading(true);
     try {
       triggerToast(`Linking issue ${sourceKey} to ${targetKey} in Jira...`);
-      await axios.post(`http://localhost:5001/tasks/links`, { linkType: relationType, sourceKey, targetKey });
+      await axios.post(`${API_BASE_URL}/tasks/links`, { linkType: relationType, sourceKey, targetKey });
       triggerToast(`Issues successfully linked in Jira!`);
       
       setLinkTargetKey("");
@@ -2427,7 +2428,7 @@ function App() {
         }));
       }
 
-      await axios.put(`http://localhost:5001/tasks/${taskKey}/labels`, { labels: newLabelsArray });
+      await axios.put(`${API_BASE_URL}/tasks/${taskKey}/labels`, { labels: newLabelsArray });
       triggerToast(`Saved tags for ${taskKey} in Jira!`);
     } catch (err) {
       console.error(err);
@@ -2441,7 +2442,7 @@ function App() {
     setIsLoading(true);
     try {
       triggerToast(`Deleting issue ${taskKey} from Jira...`, "warning");
-      await axios.delete(`http://localhost:5001/tasks/${taskKey}`);
+      await axios.delete(`${API_BASE_URL}/tasks/${taskKey}`);
       triggerToast(`Permanently deleted issue ${taskKey} from Jira!`, "warning");
       setSelectedTask(null);
       await fetchJiraTasks(true);
@@ -2494,7 +2495,7 @@ function App() {
 
     // Duration of envelope flight animation: 2.2 seconds
     setTimeout(() => {
-      axios.post("http://localhost:5001/tasks/send-reminder", payload)
+      axios.post(`${API_BASE_URL}/tasks/send-reminder`, payload)
         .then(res => {
           triggerToast(res.data.message || `Dispatched alert successfully to ${emailRecipient}!`);
           if (res.data.previewUrl) {
@@ -4860,7 +4861,7 @@ function App() {
                             onClick={async () => {
                               try {
                                 triggerToast("Resending verification code...", "info");
-                                await axios.post("http://localhost:5001/api/login", { email: loginEmail, password: loginPassword });
+                                await axios.post(`${API_BASE_URL}/api/login`, { email: loginEmail, password: loginPassword });
                                 triggerToast("A new verification code was sent to your email.", "success");
                               } catch (err) {
                                 triggerToast("Failed to resend code.", "error");
@@ -6454,7 +6455,7 @@ function App() {
             onRefresh={() => fetchModeratorProjects(false)}
             onSubmitProposal={async (payload) => {
               try {
-                const res = await axios.post("http://localhost:5001/moderator/projects", {
+                const res = await axios.post(`${API_BASE_URL}/moderator/projects`, {
                   company: sessionUser?.displayName?.replace(" Sponsor", "")?.replace(" Mentor", "") || "Company 1",
                   ...payload
                 });
@@ -8229,7 +8230,7 @@ function App() {
                                                   const mentorId = e.target.value;
                                                   if (!mentorId) return;
                                                   try {
-                                                    const res = await axios.post(`http://localhost:5001/api/project/${proj._id || proj.id}/spoke/${currentBoardId}/faculty-mentor`, { mentorId });
+                                                    const res = await axios.post(`${API_BASE_URL}/api/project/${proj._id || proj.id}/spoke/${currentBoardId}/faculty-mentor`, { mentorId });
                                                     if (res.data && res.data.success) {
                                                       triggerToast("Faculty Mentor assigned successfully!");
                                                       fetchModeratorProjects(true); // reload projects list
@@ -10572,7 +10573,7 @@ function App() {
                   <button
                     onClick={async () => {
                       try {
-                        const res = await fetch("http://localhost:5001/cache/clear", { method: "POST" });
+                        const res = await fetch(`${API_BASE_URL}/cache/clear`, { method: "POST" });
                         const data = await res.json();
                         if (data.success) {
                           triggerToast("Server cache successfully purged!");
@@ -11504,7 +11505,7 @@ function HubDashboardView({ metrics, loading, onRefresh, onIngestClick, triggerT
             onClick={async () => {
               try {
                 if (triggerToast) triggerToast("☀️ Triggering Morning Campus Portfolio Digest...");
-                const res = await axios.post("http://localhost:5001/api/automation/trigger-digest");
+                const res = await axios.post(`${API_BASE_URL}/api/automation/trigger-digest`);
                 if (res && res.data && res.data.success && triggerToast) {
                   triggerToast(`📧 Morning Digest dispatched via SMTP/SMS! (${res.data.stats.activeProjects} active projects)`);
                 }
@@ -12130,7 +12131,7 @@ function ModeratorDashboardView({
     setIsSubmittingSpoke(true);
     try {
       const cleanId = newSpokeId.trim() || ("spoke-" + Date.now().toString().slice(-4));
-      const res = await axios.post("http://localhost:5001/api/spokes", {
+      const res = await axios.post(`${API_BASE_URL}/api/spokes`, {
         id: cleanId,
         name: newSpokeName.trim(),
         key: (newSpokeKey || "AK").trim().toUpperCase(),
@@ -12161,7 +12162,7 @@ function ModeratorDashboardView({
     if (!window.confirm("Are you sure you want to delete and unlink " + spokeName + " (ID: " + spokeId + ")?")) return;
     setDeletingSpokeId(spokeId);
     try {
-      await axios.delete("http://localhost:5001/api/spokes/" + spokeId);
+      await axios.delete(`${API_BASE_URL}/api/spokes/` + spokeId);
       if (triggerToast) triggerToast("🗑️ Removed partner campus: " + spokeName);
       if (onRefreshSpokes) onRefreshSpokes();
     } catch (err) {
@@ -12521,7 +12522,7 @@ function ModeratorDashboardView({
                 onClick={async () => {
                   setAuditLoading(true);
                   try {
-                    const res = await axios.post("http://localhost:5001/moderator/alerts/check");
+                    const res = await axios.post(`${API_BASE_URL}/moderator/alerts/check`);
                     setAuditResults(res.data);
                     onRefresh(); // reload projects to update their statuses
                   } catch (err) {
@@ -12694,7 +12695,7 @@ function ModeratorDashboardView({
                                       <button
                                         onClick={async () => {
                                           try {
-                                            await axios.post("http://localhost:5001/moderator/alerts/check");
+                                            await axios.post(`${API_BASE_URL}/moderator/alerts/check`);
                                             alert(`Deadline warning notification dispatched successfully to ${alloc.assignedTo} Coordinator!`);
                                           } catch (err) {
                                             console.error(err);
@@ -13216,7 +13217,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
 
   const fetchTeams = async () => {
     try {
-      const response = await axios.get("http://localhost:5001/api/teams");
+      const response = await axios.get(`${API_BASE_URL}/api/teams`);
       setTeams(response.data || []);
     } catch (err) {
       console.error("Failed to fetch teams", err);
@@ -13226,7 +13227,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
   const handleAssignCompanyMentor = async (projectId, spokeId, mentorId) => {
     if (!mentorId) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/spoke/${spokeId}/project-mentor`, { mentorId });
+      const res = await axios.post(`${API_BASE_URL}/api/project/${projectId}/spoke/${spokeId}/project-mentor`, { mentorId });
       if (res.data && res.data.success) {
         triggerToast("Company Project Mentor assigned successfully!");
         if (onRefresh) onRefresh();
@@ -13240,7 +13241,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
   useEffect(() => {
     const fetchCompanyMentors = async () => {
       try {
-        const response = await axios.get(`http://localhost:5001/api/companies/${companyName}/mentors`);
+        const response = await axios.get(`${API_BASE_URL}/api/companies/${companyName}/mentors`);
         setCompanyMentors(response.data);
       } catch (err) {
         console.error("Failed to fetch company mentors", err);
@@ -13257,7 +13258,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
     const f = evalFeedback[teamId] || "";
     const g = evalGrade[teamId] || "A";
     try {
-      const res = await axios.put(`http://localhost:5001/api/teams/${teamId}/evaluate`, {
+      const res = await axios.put(`${API_BASE_URL}/api/teams/${teamId}/evaluate`, {
         rating: Number(r),
         companyFeedback: f,
         companyGrade: g,
@@ -13325,7 +13326,7 @@ function CorporateSponsorDashboardView({ projects, loading, onRefresh, onSubmitP
     triggerToast("Parsing document...", "info");
     
     try {
-      const response = await axios.post("http://localhost:5001/api/proposals/parse-template", formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/proposals/parse-template`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${localStorage.getItem("token") || ""}`
@@ -14431,8 +14432,8 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
     if (isFacultyMentor && mentorId) {
       setLoadingTeams(true);
       Promise.all([
-        axios.get(`http://localhost:5001/api/teams?mentorId=${mentorId}`),
-        axios.get(`http://localhost:5001/api/mentors/${mentorId}/projects`)
+        axios.get(`${API_BASE_URL}/api/teams?mentorId=${mentorId}`),
+        axios.get(`${API_BASE_URL}/api/mentors/${mentorId}/projects`)
       ]).then(([teamsRes, projsRes]) => {
         setMentorTeams(Array.isArray(teamsRes.data) ? teamsRes.data : []);
         setMentorProjects(Array.isArray(projsRes.data) ? projsRes.data : []);
@@ -14519,7 +14520,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
 
       // Create a meeting for EACH selected campus (strictly only mentor's campus when in faculty dashboard)
       for (const campusId of targetCampusIds) {
-        await axios.post("http://localhost:5001/meetings", {
+        await axios.post(`${API_BASE_URL}/meetings`, {
           title: newTitle,
           campusId: campusId,
           date: newDate,
@@ -14547,7 +14548,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
   const handleSendReminder = async (meetId) => {
     setRemindLoading(meetId);
     try {
-      const res = await axios.post(`http://localhost:5001/meetings/${meetId}/remind`);
+      const res = await axios.post(`${API_BASE_URL}/meetings/${meetId}/remind`);
       if (res.data && res.data.success) {
         triggerToast(`Reminder dispatched! Notified ${res.data.notifiedEmails.length} coordinators with ${res.data.overdueCount} overdue items and ${res.data.blockerCount} blockers.`);
         if (res.data.previewUrl) {
@@ -14576,7 +14577,7 @@ function MeetingsPortalView({ meetings, loading, onRefresh, spokes, triggerToast
       return;
     }
     try {
-      const res = await axios.delete(`http://localhost:5001/meetings/${meetId}`);
+      const res = await axios.delete(`${API_BASE_URL}/meetings/${meetId}`);
       if (res.data && res.data.success) {
         triggerToast("Sync meeting cancelled and deleted successfully.");
         onRefresh();
@@ -15688,7 +15689,7 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
       const map = {};
       await Promise.all(spokes.map(async (spoke) => {
         try {
-          const res = await axios.get(`http://localhost:5001/api/spokes/${spoke.id}/mentors`);
+          const res = await axios.get(`${API_BASE_URL}/api/spokes/${spoke.id}/mentors`);
           map[spoke.id] = res.data;
         } catch (err) {
           console.error(`Failed to fetch mentors for spoke ${spoke.id}`, err);
@@ -15709,7 +15710,7 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
       const map = {};
       await Promise.all(companies.map(async (company) => {
         try {
-          const res = await axios.get(`http://localhost:5001/api/companies/${company}/mentors`);
+          const res = await axios.get(`${API_BASE_URL}/api/companies/${company}/mentors`);
           map[company] = res.data;
         } catch (err) {
           console.error(`Failed to fetch mentors for company ${company}`, err);
@@ -15726,7 +15727,7 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
   const handleAssignFacultyMentor = async (projectId, spokeId, mentorId) => {
     if (!mentorId) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/spoke/${spokeId}/faculty-mentor`, { mentorId });
+      const res = await axios.post(`${API_BASE_URL}/api/project/${projectId}/spoke/${spokeId}/faculty-mentor`, { mentorId });
       if (res.data && res.data.success) {
         triggerToast("College Faculty Mentor assigned successfully!");
         if (onRefresh) onRefresh();
@@ -15740,7 +15741,7 @@ function ProjectManagerDashboardView({ projects = [], loading, onRefresh, trigge
   const handleAssignProjectMentor = async (projectId, spokeId, mentorId) => {
     if (!mentorId) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/project/${projectId}/spoke/${spokeId}/project-mentor`, { mentorId });
+      const res = await axios.post(`${API_BASE_URL}/api/project/${projectId}/spoke/${spokeId}/project-mentor`, { mentorId });
       if (res.data && res.data.success) {
         triggerToast("Company Project Mentor assigned successfully!");
         if (onRefresh) onRefresh();
@@ -16046,10 +16047,10 @@ function FacultyMentorDashboardView({
     try {
       if (fetchAllSubmissions) fetchAllSubmissions();
       const [projectsRes, teamsRes, studentsRes, mentorsRes] = await Promise.all([
-        axios.get(`http://localhost:5001/api/mentors/${mentorId}/projects`),
-        axios.get(`http://localhost:5001/api/teams?mentorId=${mentorId}`),
-        axios.get(`http://localhost:5001/api/spokes/${spokeId}/students`),
-        axios.get(`http://localhost:5001/api/spokes/${spokeId}/mentors`)
+        axios.get(`${API_BASE_URL}/api/mentors/${mentorId}/projects`),
+        axios.get(`${API_BASE_URL}/api/teams?mentorId=${mentorId}`),
+        axios.get(`${API_BASE_URL}/api/spokes/${spokeId}/students`),
+        axios.get(`${API_BASE_URL}/api/spokes/${spokeId}/mentors`)
       ]);
       setAssignedProjects(projectsRes.data);
       setExistingTeams(teamsRes.data);
@@ -16073,7 +16074,7 @@ function FacultyMentorDashboardView({
     if (!spokeId) return;
     try {
       setIsPendingStudentsLoading(true);
-      const res = await axios.get(`http://localhost:5001/api/spokes/${spokeId}/pending-students`);
+      const res = await axios.get(`${API_BASE_URL}/api/spokes/${spokeId}/pending-students`);
       setPendingStudentsList(res.data || []);
     } catch (err) {
       console.error("Failed to fetch pending students:", err);
@@ -16084,7 +16085,7 @@ function FacultyMentorDashboardView({
 
   const handleApproveStudent = async (studentId, studentName) => {
     try {
-      const res = await axios.post(`http://localhost:5001/api/users/${studentId}/approve`);
+      const res = await axios.post(`${API_BASE_URL}/api/users/${studentId}/approve`);
       triggerToast(res.data.message || `Verified & approved ${studentName}!`, "success");
       fetchPendingStudents();
       fetchMentorData();
@@ -16096,7 +16097,7 @@ function FacultyMentorDashboardView({
   const handleRejectStudent = async (studentId, studentName) => {
     if (!window.confirm(`Are you sure you want to decline ${studentName}'s registration?`)) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/users/${studentId}/reject`);
+      const res = await axios.post(`${API_BASE_URL}/api/users/${studentId}/reject`);
       triggerToast(res.data.message || `Declined ${studentName}.`, "info");
       fetchPendingStudents();
     } catch (err) {
@@ -16188,7 +16189,7 @@ function FacultyMentorDashboardView({
     };
 
     try {
-      const res = await axios.post("http://localhost:5001/api/teams", payload);
+      const res = await axios.post(`${API_BASE_URL}/api/teams`, payload);
       if (res.data && res.data.success) {
         triggerToast(`Team "${teamName}" created successfully!`);
         // Reset form
@@ -16213,7 +16214,7 @@ function FacultyMentorDashboardView({
   const handleDisbandTeam = async (teamId) => {
     if (!window.confirm("Are you sure you want to disband this team? This action is permanent.")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/teams/${teamId}`);
+      await axios.delete(`${API_BASE_URL}/api/teams/${teamId}`);
       triggerToast("Team disbanded successfully!");
       fetchMentorData();
     } catch (err) {
@@ -16242,7 +16243,7 @@ function FacultyMentorDashboardView({
     if (facultyComments === null) return;
 
     try {
-      const res = await axios.put(`http://localhost:5001/api/teams/${teamId}/final-progress`, {
+      const res = await axios.put(`${API_BASE_URL}/api/teams/${teamId}/final-progress`, {
         reportUrl,
         grade,
         facultyComments

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 export const InviteToMeetingModal = ({ meeting, currentUser, onClose, onInviteSuccess }) => {
   const [users, setUsers] = useState([]);
@@ -17,10 +18,10 @@ export const InviteToMeetingModal = ({ meeting, currentUser, onClose, onInviteSu
       let endpoint = '';
       if (currentUser.role === 'Central Moderator' || currentUser.role === 'Corporate Sponsor' || currentUser.role.includes('Coordinator')) {
         // Coordinators can invite Mentors
-        endpoint = `http://localhost:5001/mentors/${meeting.campusId}`;
+        endpoint = `${API_BASE_URL}/mentors/${meeting.campusId}`;
       } else if (currentUser.role === 'MENTOR') {
         // Mentors can invite Students
-        endpoint = `http://localhost:5001/students/${meeting.campusId}`;
+        endpoint = `${API_BASE_URL}/students/${meeting.campusId}`;
       }
 
       if (endpoint) {
@@ -45,7 +46,7 @@ export const InviteToMeetingModal = ({ meeting, currentUser, onClose, onInviteSu
   const handleInvite = async () => {
     setInviting(true);
     try {
-      const res = await axios.post(`http://localhost:5001/meetings/${meeting.id}/invite`, {
+      const res = await axios.post(`${API_BASE_URL}/meetings/${meeting.id}/invite`, {
         userIds: selectedUserIds,
         invitedBy: currentUser.id
       });

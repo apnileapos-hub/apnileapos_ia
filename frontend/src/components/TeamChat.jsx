@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FaGraduationCap, FaUser, FaPaperPlane, FaUsers, FaDotCircle } from 'react-icons/fa';
+import { API_BASE_URL } from '../config/api';
 
 const TeamChat = ({ allocationId, currentUser }) => {
   const [messages, setMessages] = useState([]);
@@ -23,7 +24,7 @@ const TeamChat = ({ allocationId, currentUser }) => {
   const fetchAllocationDetails = async () => {
     try {
       setLoadingMembers(true);
-      const res = await axios.get(`http://localhost:5001/allocations/${allocationId}`);
+      const res = await axios.get(`${API_BASE_URL}/allocations/${allocationId}`);
       setAllocation(res.data);
     } catch (error) {
       console.error("Failed to fetch allocation details:", error);
@@ -34,7 +35,7 @@ const TeamChat = ({ allocationId, currentUser }) => {
 
   const fetchMessages = async () => {
     try {
-      const res = await axios.get(`http://localhost:5001/allocations/${allocationId}/chat`);
+      const res = await axios.get(`${API_BASE_URL}/allocations/${allocationId}/chat`);
       setMessages(res.data);
     } catch (error) {
       console.error("Failed to fetch messages:", error);
@@ -46,7 +47,7 @@ const TeamChat = ({ allocationId, currentUser }) => {
     if (!newMessage.trim()) return;
 
     try {
-      await axios.post(`http://localhost:5001/allocations/${allocationId}/chat`, {
+      await axios.post(`${API_BASE_URL}/allocations/${allocationId}/chat`, {
         senderId: currentUser.id,
         content: newMessage
       });

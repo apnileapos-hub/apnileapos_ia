@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { FaTimes, FaRunning, FaSpinner } from 'react-icons/fa';
+import { API_BASE_URL } from '../config/api';
 
 export default function CreateSprintModal({ isOpen, onClose, currentBoardId, onSuccess, triggerToast, acceptedProjects = [] }) {
   const [formData, setFormData] = useState({
@@ -39,7 +40,7 @@ export default function CreateSprintModal({ isOpen, onClose, currentBoardId, onS
         finalGoal = `Target Team/Project: ${formData.project} - ${formData.goal}`;
       }
 
-      await axios.post('http://localhost:5001/sprints', {
+      await axios.post(`${API_BASE_URL}/sprints`, {
         boardId: currentBoardId,
         name: finalName,
         startDate: formattedStart,

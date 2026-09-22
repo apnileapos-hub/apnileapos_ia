@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, Trophy, X, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const FIPProgressModal = ({ isOpen, onClose }) => {
   const [mounted, setMounted] = useState(false);
@@ -20,7 +21,7 @@ const FIPProgressModal = ({ isOpen, onClose }) => {
   const fetchLiveMetrics = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5001/hub/metrics");
+      const response = await axios.get(`${API_BASE_URL}/hub/metrics`);
       setMetrics(response.data);
     } catch (error) {
       console.error("Failed to fetch FIP cohort metrics", error);

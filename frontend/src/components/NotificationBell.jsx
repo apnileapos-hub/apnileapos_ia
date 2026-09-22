@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FaBell, FaCheck, FaInfoCircle, FaExclamationTriangle, FaCheckCircle, FaCircle } from 'react-icons/fa';
+import { API_BASE_URL } from '../config/api';
 
 export default function NotificationBell({ currentUser }) {
   const [notifications, setNotifications] = useState([]);
@@ -10,7 +11,7 @@ export default function NotificationBell({ currentUser }) {
   const fetchNotifications = async () => {
     if (!currentUser) return;
     try {
-      const res = await axios.get(`/api/users/${currentUser.id}/notifications`);
+      const res = await axios.get(`${API_BASE_URL}/api/users/${currentUser.id}/notifications`);
       setNotifications(res.data);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -37,7 +38,7 @@ export default function NotificationBell({ currentUser }) {
   const handleMarkAsRead = async (e, id) => {
     e.stopPropagation();
     try {
-      await axios.put(`/api/notifications/${id}/read`);
+      await axios.put(`${API_BASE_URL}/api/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
     } catch (error) {
       console.error("Failed to mark as read:", error);
@@ -46,7 +47,7 @@ export default function NotificationBell({ currentUser }) {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await axios.put(`/api/users/${currentUser.id}/notifications/read-all`);
+      await axios.put(`${API_BASE_URL}/api/users/${currentUser.id}/notifications/read-all`);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
       console.error("Failed to mark all as read:", error);

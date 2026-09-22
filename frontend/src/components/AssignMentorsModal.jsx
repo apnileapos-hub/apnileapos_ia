@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaTimes, FaChalkboardTeacher, FaCheck, FaSpinner } from 'react-icons/fa';
+import { API_BASE_URL } from '../config/api';
 
 export default function AssignMentorsModal({
   isOpen,
@@ -28,7 +29,7 @@ export default function AssignMentorsModal({
   const fetchMentors = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5001/mentors/${campusId}`);
+      const res = await axios.get(`${API_BASE_URL}/mentors/${campusId}`);
       setMentors(res.data);
     } catch (err) {
       console.error("Failed to fetch mentors", err);
@@ -49,7 +50,7 @@ export default function AssignMentorsModal({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.post(`http://localhost:5001/allocations/${allocationId}/assign`, {
+      await axios.post(`${API_BASE_URL}/allocations/${allocationId}/assign`, {
         mentorIds: selectedMentors
       });
       triggerToast("Mentors assigned successfully!");

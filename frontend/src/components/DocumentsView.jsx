@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Upload, FileText, Check, X, File, Trash2, Download } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 const DocumentsView = ({ currentUser, documentType = 'project' }) => {
   const [documents, setDocuments] = useState([]);
@@ -18,7 +19,7 @@ const DocumentsView = ({ currentUser, documentType = 'project' }) => {
 
   const fetchDocuments = async () => {
     try {
-      const res = await axios.get(`http://localhost:5001/api/documents`);
+      const res = await axios.get(`${API_BASE_URL}/api/documents`);
       setDocuments(res.data);
     } catch (err) {
       console.error('Failed to fetch documents', err);
@@ -28,16 +29,16 @@ const DocumentsView = ({ currentUser, documentType = 'project' }) => {
   const fetchContextData = async () => {
     try {
       if (currentUser.role === 'STUDENT') {
-        const res = await axios.get(`http://localhost:5001/students/${currentUser.id}/projects`);
+        const res = await axios.get(`${API_BASE_URL}/students/${currentUser.id}/projects`);
         setAllocations(res.data);
       } else if (currentUser.role === 'MENTOR') {
-        const res = await axios.get(`http://localhost:5001/faculty/${currentUser.id}/mentored`);
+        const res = await axios.get(`${API_BASE_URL}/faculty/${currentUser.id}/mentored`);
         setAllocations(res.data);
       } else {
          const campusQuery = (currentUser.role === 'SPONSOR' && currentUser.campusId) ? `?campusId=${currentUser.campusId}` : '';
-         const res = await axios.get(`http://localhost:5001/projects${campusQuery}`);
+         const res = await axios.get(`${API_BASE_URL}/projects${campusQuery}`);
          setProjects(res.data);
-         const allocRes = await axios.get(`http://localhost:5001/allocations${campusQuery}`);
+         const allocRes = await axios.get(`${API_BASE_URL}/allocations${campusQuery}`);
          if(allocRes.data) setAllocations(allocRes.data);
       }
     } catch(err) {
@@ -68,7 +69,7 @@ const DocumentsView = ({ currentUser, documentType = 'project' }) => {
 
     setIsUploading(true);
     try {
-      await axios.post('http://localhost:5001/api/documents', formData, {
+      await axios.post(`${API_BASE_URL}/api/documents`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -89,7 +90,7 @@ const DocumentsView = ({ currentUser, documentType = 'project' }) => {
       const feedback = prompt("Enter feedback (optional):", "");
       if(feedback === null) return;
       try {
-          await axios.put(`http://localhost:5001/api/documents/${id}/review`, { status, feedback });
+          await axios.put(`${API_BASE_URL}/api/documents/${id}/review`, { status, feedback });
           fetchDocuments();
       } catch(err) {
           console.error("Failed to review", err);
@@ -99,7 +100,7 @@ const DocumentsView = ({ currentUser, documentType = 'project' }) => {
   const handleDelete = async (id) => {
       if(!window.confirm("Delete this document?")) return;
       try {
-          await axios.delete(`http://localhost:5001/api/documents/${id}`);
+          await axios.delete(`${API_BASE_URL}/api/documents/${id}`);
           fetchDocuments();
       } catch(err) {
           console.error("Failed to delete", err);
@@ -186,7 +187,7 @@ const DocumentsView = ({ currentUser, documentType = 'project' }) => {
                                  <File size={20} color="var(--primary)" />
                                  <span style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={doc.filename}>{doc.filename}</span>
                              </div>
-                             <a href={`http://localhost:5001${doc.filepath}`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>
+                             <a href={`${API_BASE_URL}${doc.filepath}`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-muted)', cursor: 'pointer' }}>
                                  <Download size={18} />
                              </a>
                           </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { KanbanBoard } from './KanbanBoard';
 import TeamChat from './TeamChat';
+import { API_BASE_URL } from '../config/api';
 
 const StudentDashboardView = ({ campusId, currentUser }) => {
   const [activeTab, setActiveTab] = useState("projects");
@@ -14,7 +15,7 @@ const StudentDashboardView = ({ campusId, currentUser }) => {
 
   const fetchCampusAllocations = async () => {
     try {
-      const res = await axios.get(`http://localhost:5001/students/${currentUser.id}/projects`);
+      const res = await axios.get(`${API_BASE_URL}/students/${currentUser.id}/projects`);
       setAllocations(res.data);
     } catch (error) {
       console.error("Failed to fetch student allocations:", error);
