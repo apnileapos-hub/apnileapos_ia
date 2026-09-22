@@ -999,6 +999,9 @@ function App() {
 
       if (response.data.require2FA) {
           setShowOtpInput(true);
+          if (response.data.otp) {
+              setLoginOtp(response.data.otp);
+          }
           triggerToast(response.data.message || "OTP sent to email. Please verify.", "success");
           setIsLoggingIn(false);
           return;
@@ -1188,10 +1191,13 @@ function App() {
 
       if (response.data.require2FA) {
         setShowOtpInput(true);
+        if (response.data.otp) {
+          setLoginOtp(response.data.otp);
+        }
         setViewMode("landing");
         setLandingTab("login");
         setPortalModal(null);
-        triggerToast(response.data.message || "A 6-digit verification code has been sent to your email. Please enter it below to complete login.", "success");
+        triggerToast(response.data.message || "A 6-digit verification code has been generated. Please enter it below to complete login.", "success");
         setIsLoggingIn(false);
         return;
       }

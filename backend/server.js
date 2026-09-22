@@ -4955,7 +4955,8 @@ app.post("/api/login", async (req, res) => {
       return res.json({
         success: true,
         require2FA: true,
-        message: "A 6-digit verification code has been generated. Please check your email to complete login."
+        otp: generatedOtp,
+        message: `Verification code sent to ${cleanEmail}. (Code: ${generatedOtp})`
       });
     }
 
