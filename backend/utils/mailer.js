@@ -33,7 +33,7 @@ async function sendFanOutEmail(subject, text) {
 
   try {
     // Truncate text if it's too long
-    const messageBody = `${subject}\n\n${text}`.substring(0, 1500); 
+    const messageBody = `${subject}\n\n${text}`.substring(0, 1500);
 
     const promises = phoneNumbers.map(phone => {
       // Ensure we use the whatsapp: prefix for the sandbox
@@ -48,10 +48,10 @@ async function sendFanOutEmail(subject, text) {
     });
 
     const results = await Promise.all(promises);
-    
+
     console.log(`📱 WhatsApp messages successfully sent to: ${phoneNumbers.join(', ')}`);
     results.forEach(res => console.log(`📱 Message SID: ${res.sid}`));
-    
+
     return results;
   } catch (error) {
     console.error("❌ Failed to send WhatsApp message via Twilio:", error);

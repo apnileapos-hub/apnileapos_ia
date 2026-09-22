@@ -163,7 +163,7 @@ function invalidateCache(boardId = null) {
   console.log(`[CACHE] Invalidating cache. Target Board ID: ${boardId || 'ALL'}`);
   if (boardId) {
     let resolvedBoardId = boardId;
-    if (boardId === 75 || boardId === "75") resolvedBoardId = "3";else if (boardId === 76 || boardId === "76") resolvedBoardId = "101";else if (boardId === 77 || boardId === "77") resolvedBoardId = "102";else if (boardId === 78 || boardId === "78") resolvedBoardId = "103";
+    if (boardId === 75 || boardId === "75") resolvedBoardId = "3"; else if (boardId === 76 || boardId === "76") resolvedBoardId = "101"; else if (boardId === 77 || boardId === "77") resolvedBoardId = "102"; else if (boardId === 78 || boardId === "78") resolvedBoardId = "103";
     delete apiCache.tasks[resolvedBoardId];
     delete apiCache.members[resolvedBoardId];
   } else {
@@ -218,233 +218,233 @@ let mockTasksStore = {
 };
 const CAMPUS_TEAM_MEMBERS = {
   "3": [
-  // KLE Spoke
-  {
-    accountId: "mock-kle-1",
-    displayName: "Manasa Vasare (Student Developer)",
-    emailAddress: "manasa@kle.edu",
-    email: "manasa@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=12"
-    }
-  }, {
-    accountId: "mock-kle-2",
-    displayName: "Divya Kumari (Student Developer)",
-    emailAddress: "divya@kle.edu",
-    email: "divya@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=47"
-    }
-  }, {
-    accountId: "mock-kle-4",
-    displayName: "Vineet Kulkarni (Student Developer)",
-    emailAddress: "vineet@kle.edu",
-    email: "vineet@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=13"
-    }
-  }, {
-    accountId: "mock-kle-5",
-    displayName: "Renuka Kagadal (Student Developer)",
-    emailAddress: "renuka@kle.edu",
-    email: "renuka@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=48"
-    }
-  }, {
-    accountId: "mock-kle-6",
-    displayName: "Vageesh Mathad (Student Developer)",
-    emailAddress: "vageesh@kle.edu",
-    email: "vageesh@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=53"
-    }
-  }, {
-    accountId: "mock-kle-7",
-    displayName: "Mehak Sayed (Student Developer)",
-    emailAddress: "mehak@kle.edu",
-    email: "mehak@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=49"
-    }
-  }, {
-    accountId: "mock-kle-8",
-    displayName: "Parth Karpe (Student Developer)",
-    emailAddress: "parth@kle.edu",
-    email: "parth@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=57"
-    }
-  }, {
-    accountId: "mock-kle-9",
-    displayName: "Nupur (Student Developer)",
-    emailAddress: "nupur@kle.edu",
-    email: "nupur@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=45"
-    }
-  }, {
-    accountId: "mock-kle-3",
-    displayName: "Prof. Pooja P Shettar (Faculty Mentor)",
-    emailAddress: "mentor@kle.edu",
-    email: "mentor@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=63"
-    }
-  }, {
-    accountId: "mock-kle-mentor-2",
-    displayName: "Prof. Amit Kachavimath (Faculty Mentor)",
-    emailAddress: "mentor2@kle.edu",
-    email: "mentor2@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=61"
-    }
-  }, {
-    accountId: "mock-kle-mentor-3",
-    displayName: "Prof. Sneha Varur (Faculty Mentor)",
-    emailAddress: "mentor3@kle.edu",
-    email: "mentor3@kle.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=62"
-    }
-  }],
+    // KLE Spoke
+    {
+      accountId: "mock-kle-1",
+      displayName: "Manasa Vasare (Student Developer)",
+      emailAddress: "manasa@kle.edu",
+      email: "manasa@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=12"
+      }
+    }, {
+      accountId: "mock-kle-2",
+      displayName: "Divya Kumari (Student Developer)",
+      emailAddress: "divya@kle.edu",
+      email: "divya@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=47"
+      }
+    }, {
+      accountId: "mock-kle-4",
+      displayName: "Vineet Kulkarni (Student Developer)",
+      emailAddress: "vineet@kle.edu",
+      email: "vineet@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=13"
+      }
+    }, {
+      accountId: "mock-kle-5",
+      displayName: "Renuka Kagadal (Student Developer)",
+      emailAddress: "renuka@kle.edu",
+      email: "renuka@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=48"
+      }
+    }, {
+      accountId: "mock-kle-6",
+      displayName: "Vageesh Mathad (Student Developer)",
+      emailAddress: "vageesh@kle.edu",
+      email: "vageesh@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=53"
+      }
+    }, {
+      accountId: "mock-kle-7",
+      displayName: "Mehak Sayed (Student Developer)",
+      emailAddress: "mehak@kle.edu",
+      email: "mehak@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=49"
+      }
+    }, {
+      accountId: "mock-kle-8",
+      displayName: "Parth Karpe (Student Developer)",
+      emailAddress: "parth@kle.edu",
+      email: "parth@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=57"
+      }
+    }, {
+      accountId: "mock-kle-9",
+      displayName: "Nupur (Student Developer)",
+      emailAddress: "nupur@kle.edu",
+      email: "nupur@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=45"
+      }
+    }, {
+      accountId: "mock-kle-3",
+      displayName: "Prof. Pooja P Shettar (Faculty Mentor)",
+      emailAddress: "mentor@kle.edu",
+      email: "mentor@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=63"
+      }
+    }, {
+      accountId: "mock-kle-mentor-2",
+      displayName: "Prof. Amit Kachavimath (Faculty Mentor)",
+      emailAddress: "mentor2@kle.edu",
+      email: "mentor2@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=61"
+      }
+    }, {
+      accountId: "mock-kle-mentor-3",
+      displayName: "Prof. Sneha Varur (Faculty Mentor)",
+      emailAddress: "mentor3@kle.edu",
+      email: "mentor3@kle.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=62"
+      }
+    }],
   "101": [
-  // COEP Spoke
-  {
-    accountId: "mock-coep-1",
-    displayName: "Sneha Joshi (Student Developer)",
-    emailAddress: "sneha@coep.edu",
-    email: "sneha@coep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=35"
-    }
-  }, {
-    accountId: "mock-coep-2",
-    displayName: "Amit Waghmare (Student Developer)",
-    emailAddress: "amit@coep.edu",
-    email: "amit@coep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=11"
-    }
-  }, {
-    accountId: "mock-coep-3",
-    displayName: "Ananya Deshpande (Student Developer)",
-    emailAddress: "ananya@coep.edu",
-    email: "ananya@coep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=36"
-    }
-  }, {
-    accountId: "mock-coep-4",
-    displayName: "Rohan Kulkarni (Student Developer)",
-    emailAddress: "rohan@coep.edu",
-    email: "rohan@coep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=14"
-    }
-  }, {
-    accountId: "mock-coep-mentor-2",
-    displayName: "Dr. Vinayak Shinde (Faculty Mentor)",
-    emailAddress: "mentor2@coep.edu",
-    email: "mentor2@coep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=60"
-    }
-  }, {
-    accountId: "mock-coep-mentor-3",
-    displayName: "Dr. Shalini Patil (Faculty Mentor)",
-    emailAddress: "mentor3@coep.edu",
-    email: "mentor3@coep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=59"
-    }
-  }],
+    // COEP Spoke
+    {
+      accountId: "mock-coep-1",
+      displayName: "Sneha Joshi (Student Developer)",
+      emailAddress: "sneha@coep.edu",
+      email: "sneha@coep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=35"
+      }
+    }, {
+      accountId: "mock-coep-2",
+      displayName: "Amit Waghmare (Student Developer)",
+      emailAddress: "amit@coep.edu",
+      email: "amit@coep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=11"
+      }
+    }, {
+      accountId: "mock-coep-3",
+      displayName: "Ananya Deshpande (Student Developer)",
+      emailAddress: "ananya@coep.edu",
+      email: "ananya@coep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=36"
+      }
+    }, {
+      accountId: "mock-coep-4",
+      displayName: "Rohan Kulkarni (Student Developer)",
+      emailAddress: "rohan@coep.edu",
+      email: "rohan@coep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=14"
+      }
+    }, {
+      accountId: "mock-coep-mentor-2",
+      displayName: "Dr. Vinayak Shinde (Faculty Mentor)",
+      emailAddress: "mentor2@coep.edu",
+      email: "mentor2@coep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=60"
+      }
+    }, {
+      accountId: "mock-coep-mentor-3",
+      displayName: "Dr. Shalini Patil (Faculty Mentor)",
+      emailAddress: "mentor3@coep.edu",
+      email: "mentor3@coep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=59"
+      }
+    }],
   "102": [
-  // MMCOEP Spoke
-  {
-    accountId: "mock-mmcoep-1",
-    displayName: "Nikhil Rane (Student Developer)",
-    emailAddress: "nikhil@mmcoep.edu",
-    email: "nikhil@mmcoep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=33"
-    }
-  }, {
-    accountId: "mock-mmcoep-2",
-    displayName: "Sayali Deshmukh (Student Developer)",
-    emailAddress: "sayali@mmcoep.edu",
-    email: "sayali@mmcoep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=49"
-    }
-  }, {
-    accountId: "mock-mmcoep-3",
-    displayName: "Tanmay Joshi (Student Developer)",
-    emailAddress: "tanmay@mmcoep.edu",
-    email: "tanmay@mmcoep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=38"
-    }
-  }, {
-    accountId: "mock-mmcoep-4",
-    displayName: "Pooja Mehta (Student Developer)",
-    emailAddress: "pooja@mmcoep.edu",
-    email: "pooja@mmcoep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=46"
-    }
-  }, {
-    accountId: "mock-mmcoep-mentor-2",
-    displayName: "Prof. Anil Sawant (Faculty Mentor)",
-    emailAddress: "mentor2@mmcoep.edu",
-    email: "mentor2@mmcoep.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=58"
-    }
-  }],
+    // MMCOEP Spoke
+    {
+      accountId: "mock-mmcoep-1",
+      displayName: "Nikhil Rane (Student Developer)",
+      emailAddress: "nikhil@mmcoep.edu",
+      email: "nikhil@mmcoep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=33"
+      }
+    }, {
+      accountId: "mock-mmcoep-2",
+      displayName: "Sayali Deshmukh (Student Developer)",
+      emailAddress: "sayali@mmcoep.edu",
+      email: "sayali@mmcoep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=49"
+      }
+    }, {
+      accountId: "mock-mmcoep-3",
+      displayName: "Tanmay Joshi (Student Developer)",
+      emailAddress: "tanmay@mmcoep.edu",
+      email: "tanmay@mmcoep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=38"
+      }
+    }, {
+      accountId: "mock-mmcoep-4",
+      displayName: "Pooja Mehta (Student Developer)",
+      emailAddress: "pooja@mmcoep.edu",
+      email: "pooja@mmcoep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=46"
+      }
+    }, {
+      accountId: "mock-mmcoep-mentor-2",
+      displayName: "Prof. Anil Sawant (Faculty Mentor)",
+      emailAddress: "mentor2@mmcoep.edu",
+      email: "mentor2@mmcoep.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=58"
+      }
+    }],
   "103": [
-  // RIT Spoke
-  {
-    accountId: "mock-rit-1",
-    displayName: "Tejas Shinde (Student Developer)",
-    emailAddress: "tejas@rit.edu",
-    email: "tejas@rit.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=15"
-    }
-  }, {
-    accountId: "mock-rit-2",
-    displayName: "Priti Patil (Student Developer)",
-    emailAddress: "priti@rit.edu",
-    email: "priti@rit.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=45"
-    }
-  }, {
-    accountId: "mock-rit-3",
-    displayName: "Aditya Shinde (Student Developer)",
-    emailAddress: "aditya@rit.edu",
-    email: "aditya@rit.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=16"
-    }
-  }, {
-    accountId: "mock-rit-4",
-    displayName: "Snehal Pawar (Student Developer)",
-    emailAddress: "snehal@rit.edu",
-    email: "snehal@rit.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=44"
-    }
-  }, {
-    accountId: "mock-rit-mentor-2",
-    displayName: "Dr. Mahesh Patel (Faculty Mentor)",
-    emailAddress: "mentor2@rit.edu",
-    email: "mentor2@rit.edu",
-    avatarUrls: {
-      "48x48": "https://i.pravatar.cc/150?img=57"
-    }
-  }]
+    // RIT Spoke
+    {
+      accountId: "mock-rit-1",
+      displayName: "Tejas Shinde (Student Developer)",
+      emailAddress: "tejas@rit.edu",
+      email: "tejas@rit.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=15"
+      }
+    }, {
+      accountId: "mock-rit-2",
+      displayName: "Priti Patil (Student Developer)",
+      emailAddress: "priti@rit.edu",
+      email: "priti@rit.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=45"
+      }
+    }, {
+      accountId: "mock-rit-3",
+      displayName: "Aditya Shinde (Student Developer)",
+      emailAddress: "aditya@rit.edu",
+      email: "aditya@rit.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=16"
+      }
+    }, {
+      accountId: "mock-rit-4",
+      displayName: "Snehal Pawar (Student Developer)",
+      emailAddress: "snehal@rit.edu",
+      email: "snehal@rit.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=44"
+      }
+    }, {
+      accountId: "mock-rit-mentor-2",
+      displayName: "Dr. Mahesh Patel (Faculty Mentor)",
+      emailAddress: "mentor2@rit.edu",
+      email: "mentor2@rit.edu",
+      avatarUrls: {
+        "48x48": "https://i.pravatar.cc/150?img=57"
+      }
+    }]
 };
 let jiraSimulatedAssigneeStore = {};
 const STUDENT_DEVELOPERS = [{
@@ -564,7 +564,7 @@ app.get("/spokes/:boardId/members", async (req, res) => {
   const simulated = CAMPUS_TEAM_MEMBERS[boardId] || [];
   const normalizedSimulated = simulated.map(u => {
     let role = undefined;
-    if (u.displayName.includes("(Student Developer)")) role = "Student Developer";else if (u.displayName.includes("(Faculty Mentor)")) role = "Faculty Mentor";else if (u.displayName.includes("(Coordinator)")) role = "Coordinator";
+    if (u.displayName.includes("(Student Developer)")) role = "Student Developer"; else if (u.displayName.includes("(Faculty Mentor)")) role = "Faculty Mentor"; else if (u.displayName.includes("(Coordinator)")) role = "Coordinator";
     return {
       accountId: u.accountId,
       displayName: u.displayName,
@@ -612,14 +612,14 @@ app.get("/tasks", async (req, res) => {
   const spoke = SPOKES[boardId];
   let isDynamicLiveBoard = LIVE_BOARD_IDS.includes(boardId.toString());
   if (!isDynamicLiveBoard && !spoke) {
-      const projects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
-      for (const p of projects) {
-          if (p.allocations && p.allocations.some(a => a.customBoardId && a.customBoardId.toString() === boardId.toString())) {
-              isDynamicLiveBoard = true;
-              LIVE_BOARD_IDS.push(boardId.toString());
-              break;
-          }
+    const projects = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
+    for (const p of projects) {
+      if (p.allocations && p.allocations.some(a => a.customBoardId && a.customBoardId.toString() === boardId.toString())) {
+        isDynamicLiveBoard = true;
+        LIVE_BOARD_IDS.push(boardId.toString());
+        break;
       }
+    }
   }
   const now = Date.now();
   if ((spoke && spoke.live && shouldCheckJira()) || isDynamicLiveBoard) {
@@ -637,10 +637,10 @@ app.get("/tasks", async (req, res) => {
       });
       let issues = response.data.issues || [];
       issues = issues.map(issue => {
-         if (issue.fields && issue.fields.status && (issue.fields.status.name === "Backlog" || issue.fields.status.name === "Selected for Development")) {
-             issue.fields.status.name = "To Do";
-         }
-         return issue;
+        if (issue.fields && issue.fields.status && (issue.fields.status.name === "Backlog" || issue.fields.status.name === "Selected for Development")) {
+          issue.fields.status.name = "To Do";
+        }
+        return issue;
       });
 
       // Auto-Labeling Isolation for newly provisioned Agile boards
@@ -699,7 +699,7 @@ app.get("/tasks", async (req, res) => {
         console.warn(`Returning cached tasks for board ${boardId} due to Jira fetch error.`);
         return res.json(apiCache.tasks[boardId].data);
       }
-      
+
       // If Jira is down/board is missing and no cache, return empty tasks gracefully instead of crashing UI
       return res.json([]);
     }
@@ -781,32 +781,32 @@ app.get("/myself", async (req, res) => {
 // Create new issue in Jira project dynamically resolved from active board issues
 // Helper to resolve synthetic spoke for dynamic Jira boards
 async function resolveSpokeContext(projectKeyOrBoardId, isBoardId = false) {
-    if (isBoardId) {
-        if (SPOKES[projectKeyOrBoardId]) return SPOKES[projectKeyOrBoardId];
-        // Dynamic board
-        const allProjs = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
-        for (const p of allProjs) {
-             const alloc = p.allocations?.find(a => a.customBoardId && a.customBoardId.toString() === projectKeyOrBoardId.toString());
-             if (alloc) return { live: true, boardId: projectKeyOrBoardId, key: alloc.assignedKey, name: alloc.assignedTo };
-        }
-        return null;
-    } else {
-        const standardSpoke = Object.values(SPOKES).find(s => s.key === projectKeyOrBoardId);
-        if (standardSpoke) return standardSpoke;
-        
-        // Dynamic key
-        const allProjs = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
-        for (const p of allProjs) {
-             if (p.assignedKey === projectKeyOrBoardId) {
-                 return { live: true, boardId: p.allocations?.[0]?.customBoardId || p.targetCampusId, key: projectKeyOrBoardId, name: p.assignedTo };
-             }
-             const alloc = p.allocations?.find(a => a.assignedKey === projectKeyOrBoardId);
-             if (alloc) {
-                 return { live: true, boardId: alloc.customBoardId || alloc.targetCampusId, key: projectKeyOrBoardId, name: alloc.assignedTo };
-             }
-        }
-        return null;
+  if (isBoardId) {
+    if (SPOKES[projectKeyOrBoardId]) return SPOKES[projectKeyOrBoardId];
+    // Dynamic board
+    const allProjs = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
+    for (const p of allProjs) {
+      const alloc = p.allocations?.find(a => a.customBoardId && a.customBoardId.toString() === projectKeyOrBoardId.toString());
+      if (alloc) return { live: true, boardId: projectKeyOrBoardId, key: alloc.assignedKey, name: alloc.assignedTo };
     }
+    return null;
+  } else {
+    const standardSpoke = Object.values(SPOKES).find(s => s.key === projectKeyOrBoardId);
+    if (standardSpoke) return standardSpoke;
+
+    // Dynamic key
+    const allProjs = await prisma.corporateProject.findMany({ orderBy: { dateAdded: 'desc' } });
+    for (const p of allProjs) {
+      if (p.assignedKey === projectKeyOrBoardId) {
+        return { live: true, boardId: p.allocations?.[0]?.customBoardId || p.targetCampusId, key: projectKeyOrBoardId, name: p.assignedTo };
+      }
+      const alloc = p.allocations?.find(a => a.assignedKey === projectKeyOrBoardId);
+      if (alloc) {
+        return { live: true, boardId: alloc.customBoardId || alloc.targetCampusId, key: projectKeyOrBoardId, name: alloc.assignedTo };
+      }
+    }
+    return null;
+  }
 }
 
 app.post("/tasks", authenticateToken, async (req, res) => {
@@ -1227,28 +1227,28 @@ app.put("/tasks/:key", authenticateToken, async (req, res) => {
         dbTask = await prisma.mockTask.create({
           data: {
             id: newId,
-          key: key,
-          boardId: spoke.boardId || "3",
-          fields: {
-            summary: summary || "Sprint Task",
-            description: description || "",
-            status: {
-              name: "To Do"
-            },
-            priority: {
-              name: priority || "Medium"
-            },
-            issuetype: {
-              name: "Task"
-            },
-            assignee: assignee ? assignedUserObj : null,
-            reporter: reporter ? reporterUserObj : null,
-            created: new Date().toISOString(),
-            duedate: dueDate === "" ? null : dueDate,
-            subtasks: [],
-            issuelinks: [],
-            labels: []
-          }
+            key: key,
+            boardId: spoke.boardId || "3",
+            fields: {
+              summary: summary || "Sprint Task",
+              description: description || "",
+              status: {
+                name: "To Do"
+              },
+              priority: {
+                name: priority || "Medium"
+              },
+              issuetype: {
+                name: "Task"
+              },
+              assignee: assignee ? assignedUserObj : null,
+              reporter: reporter ? reporterUserObj : null,
+              created: new Date().toISOString(),
+              duedate: dueDate === "" ? null : dueDate,
+              subtasks: [],
+              issuelinks: [],
+              labels: []
+            }
           }
         });
       } else {
@@ -1376,28 +1376,28 @@ app.post("/tasks/:key/transition", async (req, res) => {
         dbTask = await prisma.mockTask.create({
           data: {
             id: newId,
-          key: key,
-          boardId: spoke.boardId || "3",
-          fields: {
-            summary: "Sprint Task",
-            description: "",
-            status: {
-              name: statusName
-            },
-            priority: {
-              name: "Medium"
-            },
-            issuetype: {
-              name: "Task"
-            },
-            assignee: null,
-            reporter: null,
-            created: new Date().toISOString(),
-            duedate: null,
-            subtasks: [],
-            issuelinks: [],
-            labels: []
-          }
+            key: key,
+            boardId: spoke.boardId || "3",
+            fields: {
+              summary: "Sprint Task",
+              description: "",
+              status: {
+                name: statusName
+              },
+              priority: {
+                name: "Medium"
+              },
+              issuetype: {
+                name: "Task"
+              },
+              assignee: null,
+              reporter: null,
+              created: new Date().toISOString(),
+              duedate: null,
+              subtasks: [],
+              issuelinks: [],
+              labels: []
+            }
           }
         });
       } else {
@@ -2221,7 +2221,7 @@ app.get("/hub/metrics", async (req, res) => {
         if (issueType === "Epic") return;
         const status = issue.fields?.status?.name || issue.fields?.status || "To Do";
         total++;
-        if (status === "Done") done++;else if (status === "In Progress") progress++;else toDo++;
+        if (status === "Done") done++; else if (status === "In Progress") progress++; else toDo++;
         const simulatedAssignee = jiraSimulatedAssigneeStore[issue.key];
         const activeAssignee = simulatedAssignee ? {
           displayName: simulatedAssignee.displayName,
@@ -2482,7 +2482,7 @@ app.post("/api/proposals/parse-template", authenticateToken, upload.single("file
 
     const filePath = req.file.path;
     const fileExt = req.file.originalname.split('.').pop().toLowerCase();
-    
+
     let rawText = "";
 
     if (fileExt === "pdf") {
@@ -2844,44 +2844,44 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
           // 1. Generate unique key for the new Jira Project
           const safeCompany = (project.company || "PRJ").replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase();
           const newKey = `${safeCompany}${Math.floor(Math.random() * 9000) + 1000}`;
-          
+
           console.log(`[ASYNC PROVISIONING] Creating new Jira Workspace (Project) ${newKey}...`);
-          
+
           // 2. Call Jira API to create project
           const projectBody = {
-              key: newKey,
-              name: summary.substring(0, 80),
-              projectTypeKey: "software",
-              projectTemplateKey: "com.pyxis.greenhopper.jira:gh-simplified-kanban-classic",
-              description: descriptionText,
-              leadAccountId: "712020:9b424ef2-c4f0-4698-9488-90af2d3bae9f"
+            key: newKey,
+            name: summary.substring(0, 80),
+            projectTypeKey: "software",
+            projectTemplateKey: "com.pyxis.greenhopper.jira:gh-simplified-kanban-classic",
+            description: descriptionText,
+            leadAccountId: "712020:9b424ef2-c4f0-4698-9488-90af2d3bae9f"
           };
-          
+
           const projRes = await axios.post(`${process.env.JIRA_DOMAIN}/rest/api/3/project`, projectBody, {
-              headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }
+            headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }
           });
-          
+
           if (projRes.data && projRes.data.key) {
             const realKey = projRes.data.key;
             console.log(`[ASYNC PROVISIONING] Jira Project Created successfully: ${realKey}`);
-            
+
             // 3. Find the auto-generated Agile board for this project
             let newBoardId = null;
             // wait a few seconds for Jira to generate the board
             await new Promise(r => setTimeout(r, 2000));
-            
+
             const boardRes = await axios.get(`${process.env.JIRA_DOMAIN}/rest/agile/1.0/board?projectKeyOrId=${realKey}`, {
-               headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }
+              headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }
             });
-            
+
             if (boardRes.data && boardRes.data.values && boardRes.data.values.length > 0) {
-                newBoardId = boardRes.data.values[0].id;
-                console.log(`[ASYNC PROVISIONING] Discovered Board ID: ${newBoardId}`);
-                
-                // Add to LIVE_BOARD_IDS in memory so the new board functions properly
-                if (!LIVE_BOARD_IDS.includes(newBoardId.toString())) {
-                    LIVE_BOARD_IDS.push(newBoardId.toString());
-                }
+              newBoardId = boardRes.data.values[0].id;
+              console.log(`[ASYNC PROVISIONING] Discovered Board ID: ${newBoardId}`);
+
+              // Add to LIVE_BOARD_IDS in memory so the new board functions properly
+              if (!LIVE_BOARD_IDS.includes(newBoardId.toString())) {
+                LIVE_BOARD_IDS.push(newBoardId.toString());
+              }
             }
 
             // 4. Create standard tasks inside the new project
@@ -2913,8 +2913,8 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
             if (freshProject) {
               const alloc = freshProject.allocations?.find(a => a.targetCampusId === boardId);
               if (alloc) {
-                  alloc.assignedKey = realKey;
-                  if (newBoardId) alloc.customBoardId = newBoardId; // save board ID
+                alloc.assignedKey = realKey;
+                if (newBoardId) alloc.customBoardId = newBoardId; // save board ID
               }
               await prisma.corporateProject.update({
                 where: { id: freshProject.id },
@@ -2936,14 +2936,14 @@ app.post("/spoke/project/:projectId/accept", async (req, res) => {
       return;
     } else {
       console.log(`Mock Provisioning Project to simulated spoke ${spoke.name} on acceptance...`);
-      
+
       // Load current tasks from DB to determine epicIndex
       const dbSpokeTasks = await prisma.mockTask.findMany({
         where: { boardId: String(targetBoardId) }
       });
       const epicIndex = dbSpokeTasks.filter(t => t.fields?.issuetype?.name === "Epic").length + 1;
       createdEpicKey = `${spoke.key}-${epicIndex}`;
-      
+
       const newEpic = {
         id: `mock-${targetBoardId}-epic-${Date.now()}`,
         key: createdEpicKey,
@@ -3133,7 +3133,7 @@ app.post("/meetings", async (req, res) => {
   try {
     const newMeeting = await prisma.meeting.create({
       data: {
-        id: `meet-${Date.now()}-${Math.floor(Math.random()*10000)}`,
+        id: `meet-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
         title,
         campusId: String(campusId),
         date,
@@ -4820,7 +4820,7 @@ app.post("/api/login", async (req, res) => {
     }
     const cleanEmail = email.toLowerCase().trim();
     let user = await prisma.user.findFirst({ where: { email: cleanEmail } });
-    
+
     if (!user) {
       return res.status(401).json({ error: "Invalid email address or incorrect password." });
     }
@@ -4842,7 +4842,7 @@ app.post("/api/login", async (req, res) => {
       await prisma.user.update({
         where: { id: user.id },
         data: { password: migratedHash }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // Check if user is approved
@@ -4861,63 +4861,63 @@ app.post("/api/login", async (req, res) => {
 
     // STEP 1: Verify Password and Send OTP
     if (!otp) {
-        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-        
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { otpCode: generatedOtp, otpExpiry }
-        });
-        
-        const nodemailer = require("nodemailer");
-        const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
-        let transporter, isTestAccount = false;
-        
-        if (hasSmtpConfig) {
-            const isGmail = (process.env.SMTP_HOST || "").toLowerCase().includes("gmail") || (process.env.SMTP_USER || "").endsWith("@gmail.com");
-            if (isGmail) {
-                transporter = nodemailer.createTransport({
-                    service: "gmail",
-                    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-                });
-            } else {
-                transporter = nodemailer.createTransport({
-                    host: process.env.SMTP_HOST,
-                    port: parseInt(process.env.SMTP_PORT || "587"),
-                    secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
-                    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-                    family: 4,
-                    connectionTimeout: 5000,
-                    greetingTimeout: 5000,
-                    socketTimeout: 5000
-                });
-            }
-        } else {
-            isTestAccount = true;
-            try {
-                const testAccount = await nodemailer.createTestAccount();
-                transporter = nodemailer.createTransport({
-                    host: "smtp.ethereal.email", port: 587, secure: false,
-                    auth: { user: testAccount.user, pass: testAccount.pass },
-                    connectionTimeout: 5000,
-                    greetingTimeout: 5000,
-                    socketTimeout: 5000
-                });
-            } catch (etherealErr) {
-                console.warn("[NODEMAILER TEST ACCOUNT FAILED]", etherealErr.message);
-            }
-        }
-        
-        const recipient = user.email;
-        const senderUser = process.env.SMTP_USER || "noreply@apnileap.com";
-        const senderName = process.env.SMTP_FROM_NAME || "ApniLeap Auth";
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
-        const mailOptions = {
-            from: `"${senderName}" <${senderUser}>`,
-            to: recipient,
-            subject: "Your ApniLeap Login Code",
-            text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
-            html: `
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { otpCode: generatedOtp, otpExpiry }
+      });
+
+      const nodemailer = require("nodemailer");
+      const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+      let transporter, isTestAccount = false;
+
+      if (hasSmtpConfig) {
+        const isGmail = (process.env.SMTP_HOST || "").toLowerCase().includes("gmail") || (process.env.SMTP_USER || "").endsWith("@gmail.com");
+        if (isGmail) {
+          transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+          });
+        } else {
+          transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || "587"),
+            secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+            family: 4,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 5000
+          });
+        }
+      } else {
+        isTestAccount = true;
+        try {
+          const testAccount = await nodemailer.createTestAccount();
+          transporter = nodemailer.createTransport({
+            host: "smtp.ethereal.email", port: 587, secure: false,
+            auth: { user: testAccount.user, pass: testAccount.pass },
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 5000
+          });
+        } catch (etherealErr) {
+          console.warn("[NODEMAILER TEST ACCOUNT FAILED]", etherealErr.message);
+        }
+      }
+
+      const recipient = user.email;
+      const senderUser = process.env.SMTP_USER || "noreply@apnileap.com";
+      const senderName = process.env.SMTP_FROM_NAME || "ApniLeap Auth";
+
+      const mailOptions = {
+        from: `"${senderName}" <${senderUser}>`,
+        to: recipient,
+        subject: "Your ApniLeap Login Code",
+        text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
+        html: `
 <div style="font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif; max-width: 600px; margin: 0 auto; color: #24292f; background-color: #ffffff; padding: 20px;">
     <div style="text-align: center; margin-bottom: 24px;">
         <h2 style="font-size: 24px; font-weight: 400; margin-bottom: 8px;">Please verify your identity, ${user.displayName}</h2>
@@ -4936,38 +4936,38 @@ app.post("/api/login", async (req, res) => {
     </div>
 </div>
 `
-        };
-        
-        if (transporter) {
-            try {
-                const sendPromise = transporter.sendMail(mailOptions);
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SMTP timeout")), 6000));
-                const info = await Promise.race([sendPromise, timeoutPromise]);
-                if (isTestAccount) console.log(`[2FA OTP PREVIEW URL]: ${nodemailer.getTestMessageUrl(info)}`);
-                else console.log(`[2FA OTP SENT] Dispatched to ${recipient}`);
-            } catch (mailErr) {
-                console.warn(`[2FA OTP EMAIL WARNING] Could not dispatch email (${mailErr.message}). Code saved in database.`);
-            }
+      };
+
+      if (transporter) {
+        try {
+          const sendPromise = transporter.sendMail(mailOptions);
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SMTP timeout")), 12000));
+          const info = await Promise.race([sendPromise, timeoutPromise]);
+          if (isTestAccount) console.log(`[2FA OTP PREVIEW URL]: ${nodemailer.getTestMessageUrl(info)}`);
+          else console.log(`[2FA OTP SENT] Dispatched to ${recipient} (Message ID: ${info?.messageId || "dispatched"})`);
+        } catch (mailErr) {
+          console.warn(`[2FA OTP EMAIL WARNING] Could not dispatch email (${mailErr.message}). Code saved in database.`);
         }
-        
-        console.log(`[2FA OTP ISSUED] User "${cleanEmail}" OTP code ready: ${generatedOtp}`);
-        
-        return res.json({ 
-            success: true, 
-            require2FA: true, 
-            message: "A 6-digit verification code has been generated. Please check your email to complete login." 
-        });
+      }
+
+      console.log(`[2FA OTP ISSUED] User "${cleanEmail}" OTP code ready: ${generatedOtp}`);
+
+      return res.json({
+        success: true,
+        require2FA: true,
+        message: "A 6-digit verification code has been generated. Please check your email to complete login."
+      });
     }
 
     // STEP 2: Verify OTP
     if (user.otpCode !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
-        return res.status(401).json({ error: "Invalid or expired OTP code." });
+      return res.status(401).json({ error: "Invalid or expired OTP code." });
     }
-    
+
     // Clear OTP after successful login
     await prisma.user.update({
-        where: { id: user.id },
-        data: { otpCode: null, otpExpiry: null }
+      where: { id: user.id },
+      data: { otpCode: null, otpExpiry: null }
     });
 
     console.log(`[LOGIN SUCCESS] Authenticated user: "${cleanEmail}" (${user.role})`);
@@ -4975,7 +4975,7 @@ app.post("/api/login", async (req, res) => {
     const token = jwt.sign({
       userId: user.id, email: user.email, role: user.role, persona: user.persona
     }, process.env.JWT_SECRET || "apnileap_secret_session_token_key_123!", { expiresIn: "24h" });
-    
+
     res.json({
       success: true,
       token,
@@ -5262,7 +5262,7 @@ app.get("/api/teams", async (req, res) => {
     const filter = {};
     if (boardId) filter.boardId = boardId;
     if (projectId) filter.projectId = projectId;
-    
+
     let teams = await prisma.team.findMany({
       where: filter
     });
@@ -5274,7 +5274,7 @@ app.get("/api/teams", async (req, res) => {
         return isMentor || isSubMentor;
       });
     }
-    
+
     res.json(teams);
   } catch (error) {
     console.error("Fetch teams error:", error);
@@ -5544,15 +5544,17 @@ app.post("/tasks/:taskId/submit", authenticateToken, upload.single("file"), asyn
       submission = existingSubmission;
       console.log(`[VERSIONED REWORK] Incremented submission version to v${existingSubmission.version} for task ${taskId}`);
     } else {
-      submission = await prisma.submission.create({ data: {
-        taskId,
-        studentName,
-        fileName: resolvedFileName,
-        fileUrl: resolvedFileUrl,
-        comments: comments || "",
-        projectId: projectId || null,
-        projectName: projectName || null
-      } });
+      submission = await prisma.submission.create({
+        data: {
+          taskId,
+          studentName,
+          fileName: resolvedFileName,
+          fileUrl: resolvedFileUrl,
+          comments: comments || "",
+          projectId: projectId || null,
+          projectName: projectName || null
+        }
+      });
       await prisma.submission.update({
         where: {
           id: submission.id
@@ -5634,8 +5636,8 @@ app.get("/submissions", async (req, res) => {
 
       // 1. Try to find project via student's team membership
       if (!resolvedProjectId) {
-        const matchingTeam = teams.find(t => 
-          Array.isArray(t.members) && t.members.some(m => 
+        const matchingTeam = teams.find(t =>
+          Array.isArray(t.members) && t.members.some(m =>
             m.displayName?.toLowerCase() === sub.studentName?.toLowerCase() ||
             m.emailAddress?.toLowerCase() === sub.studentName?.toLowerCase()
           )
@@ -5647,7 +5649,7 @@ app.get("/submissions", async (req, res) => {
 
       // 2. Try to find project via filename or title matching
       if (!resolvedProjectId && sub.fileName) {
-        const matchingProj = projects.find(p => 
+        const matchingProj = projects.find(p =>
           sub.fileName.toLowerCase().includes((p.title || "").toLowerCase().slice(0, 20)) ||
           (p.title && p.title.toLowerCase().includes(sub.fileName.toLowerCase().replace(/\.[^/.]+$/, "").slice(0, 20)))
         );
@@ -6261,7 +6263,7 @@ app.post("/api/project/:projectId/spoke/:spokeId/faculty-mentor", authenticateTo
           id: mentorId
         }
       });
-    } catch (e) {}
+    } catch (e) { }
     if (!mentorUser) {
       mentorUser = await prisma.user.findFirst({
         where: {
