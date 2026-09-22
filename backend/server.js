@@ -4861,59 +4861,41 @@ app.post("/api/login", async (req, res) => {
 
     // STEP 1: Verify Password and Send OTP
     if (!otp) {
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const crypto = require("crypto");
+      const generatedOtp = crypto.randomInt(100000, 1000000).toString();
+      const otpHash = crypto.createHash("sha256").update(generatedOtp).digest("hex");
       const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
       await prisma.user.update({
         where: { id: user.id },
-        data: { otpCode: generatedOtp, otpExpiry }
+        data: { otpCode: otpHash, otpExpiry }
       });
 
       const nodemailer = require("nodemailer");
       const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
-      let transporter, isTestAccount = false;
+      let transporter;
 
       if (hasSmtpConfig) {
-        const isGmail = (process.env.SMTP_HOST || "").toLowerCase().includes("gmail") || (process.env.SMTP_USER || "").endsWith("@gmail.com");
-        if (isGmail) {
-          transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-          });
-        } else {
-          transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || "587"),
-            secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-            family: 4,
-            connectionTimeout: 5000,
-            greetingTimeout: 5000,
-            socketTimeout: 5000
-          });
-        }
+        transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || "smtp.gmail.com",
+          port: parseInt(process.env.SMTP_PORT || "465"),
+          secure: process.env.SMTP_SECURE === "true",
+          family: 4,
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        });
+      } else if (process.env.NODE_ENV === "production") {
+        return res.status(500).json({ error: "SMTP mailer service is unconfigured." });
       } else {
-        isTestAccount = true;
-        try {
-          const testAccount = await nodemailer.createTestAccount();
-          transporter = nodemailer.createTransport({
-            host: "smtp.ethereal.email", port: 587, secure: false,
-            auth: { user: testAccount.user, pass: testAccount.pass },
-            connectionTimeout: 5000,
-            greetingTimeout: 5000,
-            socketTimeout: 5000
-          });
-        } catch (etherealErr) {
-          console.warn("[NODEMAILER TEST ACCOUNT FAILED]", etherealErr.message);
-        }
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email", port: 587, secure: false,
+          auth: { user: testAccount.user, pass: testAccount.pass }
+        });
       }
 
-      const recipient = user.email;
-      const senderUser = process.env.SMTP_USER || "noreply@apnileap.com";
-      const senderName = process.env.SMTP_FROM_NAME || "ApniLeap Auth";
-
+      const recipient = process.env.SMTP_REDIRECT_TO || user.email;
       const mailOptions = {
-        from: `"${senderName}" <${senderUser}>`,
+        from: process.env.SMTP_FROM || `"ApniLeap Auth" <${process.env.SMTP_USER || "noreply@apnileap.com"}>`,
         to: recipient,
         subject: "Your ApniLeap Login Code",
         text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
@@ -4938,16 +4920,11 @@ app.post("/api/login", async (req, res) => {
 `
       };
 
-      if (transporter) {
-        try {
-          const sendPromise = transporter.sendMail(mailOptions);
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SMTP timeout")), 12000));
-          const info = await Promise.race([sendPromise, timeoutPromise]);
-          if (isTestAccount) console.log(`[2FA OTP PREVIEW URL]: ${nodemailer.getTestMessageUrl(info)}`);
-          else console.log(`[2FA OTP SENT] Dispatched to ${recipient} (Message ID: ${info?.messageId || "dispatched"})`);
-        } catch (mailErr) {
-          console.warn(`[2FA OTP EMAIL WARNING] Could not dispatch email (${mailErr.message}). Code saved in database.`);
-        }
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log(`[2FA OTP SENT] Dispatched verification code to ${recipient}`);
+      } catch (mailErr) {
+        console.warn(`[2FA OTP EMAIL WARNING] Could not dispatch email (${mailErr.message}). Code saved in database.`);
       }
 
       console.log(`[2FA OTP ISSUED] User "${cleanEmail}" OTP code ready: ${generatedOtp}`);
@@ -4959,8 +4936,12 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // STEP 2: Verify OTP
-    if (user.otpCode !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
+    // STEP 2: Verify OTP (Hash comparison)
+    const crypto = require("crypto");
+    const incomingHash = crypto.createHash("sha256").update(otp.toString().trim()).digest("hex");
+    const isMatch = user.otpCode === incomingHash || user.otpCode === otp.toString().trim();
+
+    if (!isMatch || !user.otpExpiry || user.otpExpiry < new Date()) {
       return res.status(401).json({ error: "Invalid or expired OTP code." });
     }
 
