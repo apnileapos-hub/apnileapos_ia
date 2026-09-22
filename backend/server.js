@@ -10,6 +10,9 @@ require("dotenv").config();
 // Force Google DNS to bypass local router DNS issues with PostgreSQL SRV querySrv
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
 const {
   PrismaClient
 } = require('@prisma/client');
@@ -4874,6 +4877,7 @@ app.post("/api/login", async (req, res) => {
                 port: parseInt(process.env.SMTP_PORT || "587"),
                 secure: process.env.SMTP_SECURE === "true",
                 auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+                family: 4,
                 connectionTimeout: 5000,
                 greetingTimeout: 5000,
                 socketTimeout: 5000
