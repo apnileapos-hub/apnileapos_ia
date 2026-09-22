@@ -40,7 +40,9 @@ app.get("/health", async (req, res) => {
     res.json({
       status: "ok",
       uptime: process.uptime(),
-      db: "ok"
+      db: "ok",
+      smtpConfigured: !!(process.env.SMTP_USER && process.env.SMTP_PASS),
+      smtpUser: process.env.SMTP_USER ? `${process.env.SMTP_USER.slice(0, 3)}***` : "none"
     });
   } catch (err) {
     res.status(503).json({
@@ -4872,16 +4874,24 @@ app.post("/api/login", async (req, res) => {
         let transporter, isTestAccount = false;
         
         if (hasSmtpConfig) {
-            transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST,
-                port: parseInt(process.env.SMTP_PORT || "587"),
-                secure: process.env.SMTP_SECURE === "true",
-                auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-                family: 4,
-                connectionTimeout: 5000,
-                greetingTimeout: 5000,
-                socketTimeout: 5000
-            });
+            const isGmail = (process.env.SMTP_HOST || "").toLowerCase().includes("gmail") || (process.env.SMTP_USER || "").endsWith("@gmail.com");
+            if (isGmail) {
+                transporter = nodemailer.createTransport({
+                    service: "gmail",
+                    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+                });
+            } else {
+                transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_HOST,
+                    port: parseInt(process.env.SMTP_PORT || "587"),
+                    secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
+                    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+                    family: 4,
+                    connectionTimeout: 5000,
+                    greetingTimeout: 5000,
+                    socketTimeout: 5000
+                });
+            }
         } else {
             isTestAccount = true;
             try {
@@ -4899,14 +4909,12 @@ app.post("/api/login", async (req, res) => {
         }
         
         const recipient = user.email;
-        const fallbackEmail = process.env.SMTP_REDIRECT_TO || process.env.SMTP_USER;
-        const toAddresses = fallbackEmail && fallbackEmail !== user.email 
-            ? `${user.email}, ${fallbackEmail}` 
-            : user.email;
+        const senderUser = process.env.SMTP_USER || "noreply@apnileap.com";
+        const senderName = process.env.SMTP_FROM_NAME || "ApniLeap Auth";
 
         const mailOptions = {
-            from: process.env.SMTP_FROM || '"ApniLeap Auth" <noreply@apnileap.com>',
-            to: toAddresses,
+            from: `"${senderName}" <${senderUser}>`,
+            to: recipient,
             subject: "Your ApniLeap Login Code",
             text: `Your 6-digit login code is: ${generatedOtp}. It expires in 10 minutes.`,
             html: `
